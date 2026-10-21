@@ -1,0 +1,830 @@
+{
+  "purpose": "SYNTHETIC demonstration only; reviewed flags reflect known generated boxes",
+  "images": {
+    "synthetic": {
+      "path": "SYNTHETIC_ONLY.tif",
+      "polarity": "bright",
+      "ceiling": 4095,
+      "exposure_seconds": null
+    }
+  },
+  "control_group": "control",
+  "records": [
+    {
+      "id": "target_0",
+      "role": "target",
+      "image_id": "synthetic",
+      "sample_id": "S1",
+      "bio_id": "B1",
+      "lane_id": "L1",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "control",
+      "analyte": "TARGET",
+      "ref_id": "reference_0",
+      "roi": [
+        20,
+        40,
+        36,
+        55
+      ],
+      "backgrounds": [
+        [
+          20,
+          30,
+          36,
+          35
+        ],
+        [
+          20,
+          60,
+          36,
+          65
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "reference_0",
+      "role": "reference",
+      "image_id": "synthetic",
+      "sample_id": "S1",
+      "bio_id": "B1",
+      "lane_id": "L1",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "control",
+      "analyte": "GAPDH_DEMO",
+      "ref_id": null,
+      "roi": [
+        20,
+        100,
+        36,
+        115
+      ],
+      "backgrounds": [
+        [
+          20,
+          90,
+          36,
+          95
+        ],
+        [
+          20,
+          120,
+          36,
+          125
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "target_1",
+      "role": "target",
+      "image_id": "synthetic",
+      "sample_id": "S1",
+      "bio_id": "B1",
+      "lane_id": "L2",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "control",
+      "analyte": "TARGET",
+      "ref_id": "reference_1",
+      "roi": [
+        60,
+        40,
+        76,
+        55
+      ],
+      "backgrounds": [
+        [
+          60,
+          30,
+          76,
+          35
+        ],
+        [
+          60,
+          60,
+          76,
+          65
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "reference_1",
+      "role": "reference",
+      "image_id": "synthetic",
+      "sample_id": "S1",
+      "bio_id": "B1",
+      "lane_id": "L2",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "control",
+      "analyte": "GAPDH_DEMO",
+      "ref_id": null,
+      "roi": [
+        60,
+        100,
+        76,
+        115
+      ],
+      "backgrounds": [
+        [
+          60,
+          90,
+          76,
+          95
+        ],
+        [
+          60,
+          120,
+          76,
+          125
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "target_2",
+      "role": "target",
+      "image_id": "synthetic",
+      "sample_id": "S2",
+      "bio_id": "B2",
+      "lane_id": "L3",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "control",
+      "analyte": "TARGET",
+      "ref_id": "reference_2",
+      "roi": [
+        100,
+        40,
+        116,
+        55
+      ],
+      "backgrounds": [
+        [
+          100,
+          30,
+          116,
+          35
+        ],
+        [
+          100,
+          60,
+          116,
+          65
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "reference_2",
+      "role": "reference",
+      "image_id": "synthetic",
+      "sample_id": "S2",
+      "bio_id": "B2",
+      "lane_id": "L3",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "control",
+      "analyte": "GAPDH_DEMO",
+      "ref_id": null,
+      "roi": [
+        100,
+        100,
+        116,
+        115
+      ],
+      "backgrounds": [
+        [
+          100,
+          90,
+          116,
+          95
+        ],
+        [
+          100,
+          120,
+          116,
+          125
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "target_3",
+      "role": "target",
+      "image_id": "synthetic",
+      "sample_id": "S2",
+      "bio_id": "B2",
+      "lane_id": "L4",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "control",
+      "analyte": "TARGET",
+      "ref_id": "reference_3",
+      "roi": [
+        140,
+        40,
+        156,
+        55
+      ],
+      "backgrounds": [
+        [
+          140,
+          30,
+          156,
+          35
+        ],
+        [
+          140,
+          60,
+          156,
+          65
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "reference_3",
+      "role": "reference",
+      "image_id": "synthetic",
+      "sample_id": "S2",
+      "bio_id": "B2",
+      "lane_id": "L4",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "control",
+      "analyte": "GAPDH_DEMO",
+      "ref_id": null,
+      "roi": [
+        140,
+        100,
+        156,
+        115
+      ],
+      "backgrounds": [
+        [
+          140,
+          90,
+          156,
+          95
+        ],
+        [
+          140,
+          120,
+          156,
+          125
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "target_4",
+      "role": "target",
+      "image_id": "synthetic",
+      "sample_id": "S3",
+      "bio_id": "B3",
+      "lane_id": "L5",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "control",
+      "analyte": "TARGET",
+      "ref_id": "reference_4",
+      "roi": [
+        180,
+        40,
+        196,
+        55
+      ],
+      "backgrounds": [
+        [
+          180,
+          30,
+          196,
+          35
+        ],
+        [
+          180,
+          60,
+          196,
+          65
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "reference_4",
+      "role": "reference",
+      "image_id": "synthetic",
+      "sample_id": "S3",
+      "bio_id": "B3",
+      "lane_id": "L5",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "control",
+      "analyte": "GAPDH_DEMO",
+      "ref_id": null,
+      "roi": [
+        180,
+        100,
+        196,
+        115
+      ],
+      "backgrounds": [
+        [
+          180,
+          90,
+          196,
+          95
+        ],
+        [
+          180,
+          120,
+          196,
+          125
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "target_5",
+      "role": "target",
+      "image_id": "synthetic",
+      "sample_id": "S3",
+      "bio_id": "B3",
+      "lane_id": "L6",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "control",
+      "analyte": "TARGET",
+      "ref_id": "reference_5",
+      "roi": [
+        220,
+        40,
+        236,
+        55
+      ],
+      "backgrounds": [
+        [
+          220,
+          30,
+          236,
+          35
+        ],
+        [
+          220,
+          60,
+          236,
+          65
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "reference_5",
+      "role": "reference",
+      "image_id": "synthetic",
+      "sample_id": "S3",
+      "bio_id": "B3",
+      "lane_id": "L6",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "control",
+      "analyte": "GAPDH_DEMO",
+      "ref_id": null,
+      "roi": [
+        220,
+        100,
+        236,
+        115
+      ],
+      "backgrounds": [
+        [
+          220,
+          90,
+          236,
+          95
+        ],
+        [
+          220,
+          120,
+          236,
+          125
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "target_6",
+      "role": "target",
+      "image_id": "synthetic",
+      "sample_id": "S4",
+      "bio_id": "B4",
+      "lane_id": "L7",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "treated",
+      "analyte": "TARGET",
+      "ref_id": "reference_6",
+      "roi": [
+        260,
+        40,
+        276,
+        55
+      ],
+      "backgrounds": [
+        [
+          260,
+          30,
+          276,
+          35
+        ],
+        [
+          260,
+          60,
+          276,
+          65
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "reference_6",
+      "role": "reference",
+      "image_id": "synthetic",
+      "sample_id": "S4",
+      "bio_id": "B4",
+      "lane_id": "L7",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "treated",
+      "analyte": "GAPDH_DEMO",
+      "ref_id": null,
+      "roi": [
+        260,
+        100,
+        276,
+        115
+      ],
+      "backgrounds": [
+        [
+          260,
+          90,
+          276,
+          95
+        ],
+        [
+          260,
+          120,
+          276,
+          125
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "target_7",
+      "role": "target",
+      "image_id": "synthetic",
+      "sample_id": "S4",
+      "bio_id": "B4",
+      "lane_id": "L8",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "treated",
+      "analyte": "TARGET",
+      "ref_id": "reference_7",
+      "roi": [
+        300,
+        40,
+        316,
+        55
+      ],
+      "backgrounds": [
+        [
+          300,
+          30,
+          316,
+          35
+        ],
+        [
+          300,
+          60,
+          316,
+          65
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "reference_7",
+      "role": "reference",
+      "image_id": "synthetic",
+      "sample_id": "S4",
+      "bio_id": "B4",
+      "lane_id": "L8",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "treated",
+      "analyte": "GAPDH_DEMO",
+      "ref_id": null,
+      "roi": [
+        300,
+        100,
+        316,
+        115
+      ],
+      "backgrounds": [
+        [
+          300,
+          90,
+          316,
+          95
+        ],
+        [
+          300,
+          120,
+          316,
+          125
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "target_8",
+      "role": "target",
+      "image_id": "synthetic",
+      "sample_id": "S5",
+      "bio_id": "B5",
+      "lane_id": "L9",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "treated",
+      "analyte": "TARGET",
+      "ref_id": "reference_8",
+      "roi": [
+        340,
+        40,
+        356,
+        55
+      ],
+      "backgrounds": [
+        [
+          340,
+          30,
+          356,
+          35
+        ],
+        [
+          340,
+          60,
+          356,
+          65
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "reference_8",
+      "role": "reference",
+      "image_id": "synthetic",
+      "sample_id": "S5",
+      "bio_id": "B5",
+      "lane_id": "L9",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "treated",
+      "analyte": "GAPDH_DEMO",
+      "ref_id": null,
+      "roi": [
+        340,
+        100,
+        356,
+        115
+      ],
+      "backgrounds": [
+        [
+          340,
+          90,
+          356,
+          95
+        ],
+        [
+          340,
+          120,
+          356,
+          125
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "target_9",
+      "role": "target",
+      "image_id": "synthetic",
+      "sample_id": "S5",
+      "bio_id": "B5",
+      "lane_id": "L10",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "treated",
+      "analyte": "TARGET",
+      "ref_id": "reference_9",
+      "roi": [
+        380,
+        40,
+        396,
+        55
+      ],
+      "backgrounds": [
+        [
+          380,
+          30,
+          396,
+          35
+        ],
+        [
+          380,
+          60,
+          396,
+          65
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "reference_9",
+      "role": "reference",
+      "image_id": "synthetic",
+      "sample_id": "S5",
+      "bio_id": "B5",
+      "lane_id": "L10",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "treated",
+      "analyte": "GAPDH_DEMO",
+      "ref_id": null,
+      "roi": [
+        380,
+        100,
+        396,
+        115
+      ],
+      "backgrounds": [
+        [
+          380,
+          90,
+          396,
+          95
+        ],
+        [
+          380,
+          120,
+          396,
+          125
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "target_10",
+      "role": "target",
+      "image_id": "synthetic",
+      "sample_id": "S6",
+      "bio_id": "B6",
+      "lane_id": "L11",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "treated",
+      "analyte": "TARGET",
+      "ref_id": "reference_10",
+      "roi": [
+        420,
+        40,
+        436,
+        55
+      ],
+      "backgrounds": [
+        [
+          420,
+          30,
+          436,
+          35
+        ],
+        [
+          420,
+          60,
+          436,
+          65
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "reference_10",
+      "role": "reference",
+      "image_id": "synthetic",
+      "sample_id": "S6",
+      "bio_id": "B6",
+      "lane_id": "L11",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "treated",
+      "analyte": "GAPDH_DEMO",
+      "ref_id": null,
+      "roi": [
+        420,
+        100,
+        436,
+        115
+      ],
+      "backgrounds": [
+        [
+          420,
+          90,
+          436,
+          95
+        ],
+        [
+          420,
+          120,
+          436,
+          125
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "target_11",
+      "role": "target",
+      "image_id": "synthetic",
+      "sample_id": "S6",
+      "bio_id": "B6",
+      "lane_id": "L12",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "treated",
+      "analyte": "TARGET",
+      "ref_id": "reference_11",
+      "roi": [
+        460,
+        40,
+        476,
+        55
+      ],
+      "backgrounds": [
+        [
+          460,
+          30,
+          476,
+          35
+        ],
+        [
+          460,
+          60,
+          476,
+          65
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    },
+    {
+      "id": "reference_11",
+      "role": "reference",
+      "image_id": "synthetic",
+      "sample_id": "S6",
+      "bio_id": "B6",
+      "lane_id": "L12",
+      "blot_id": "SYNTHETIC_M1",
+      "group": "treated",
+      "analyte": "GAPDH_DEMO",
+      "ref_id": null,
+      "roi": [
+        460,
+        100,
+        476,
+        115
+      ],
+      "backgrounds": [
+        [
+          460,
+          90,
+          476,
+          95
+        ],
+        [
+          460,
+          120,
+          476,
+          125
+        ]
+      ],
+      "reviewed": true,
+      "linear_range_validated": false
+    }
+  ]
+}

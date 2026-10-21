@@ -1,0 +1,33 @@
+{
+  "name": "titan-wb",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 1420 --strictPort",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "tauri": "tauri",
+    "desktop:dev": "tauri dev",
+    "desktop:build": "tauri build",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-dialog": "^2",
+    "react": "^19",
+    "react-dom": "^19",
+    "lucide-react": "^0.468"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4",
+    "typescript": "^5",
+    "vite": "^6",
+    "vitest": "^3",
+    "@playwright/test": "^1.50",
+    "jsdom": "^26"
+  }
+}
