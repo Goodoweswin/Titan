@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest'
-import {createProject,editProject,screenToImage,commitResult} from './state'
+import {createProject,editProject,screenToImage,commitResult,mergeSaved,restoreHistory,acceptReview,mergeImported} from './state'
 describe('project identity',()=>{
  it('starts at a clean independent revision',()=>{
   const a=createProject('实验一'), b=createProject('实验二')
@@ -7,6 +7,34 @@ describe('project identity',()=>{
   expect(a.id).not.toBe(b.id);expect(a.rois).toEqual([])
  })
  it('rejects an empty experiment name',()=>{expect(()=>createProject('  ')).toThrow()})
+})
+describe('persistence races and history',()=>{
+ it('late save preserves a newer edit and advances only the disk baseline',()=>{
+  const base=createProject('a');const edited=editProject(base,p=>p.name='newer')
+  const saved={...base,project_path:'/p.titanwb',saved_revision:0}
+  const merged=mergeSaved(edited,saved)!
+  expect(merged.name).toBe('newer');expect(merged.revision).toBe(1)
+  expect(merged.saved_revision).toBe(0);expect(merged.project_path).toBe('/p.titanwb')
+ })
+ it('late save cannot replace a different current project',()=>{
+  const current=createProject('b'),saved=createProject('a')
+  expect(mergeSaved(current,saved)).toBe(current)
+ })
+ it('undo keeps the latest disk revision and path after a save',()=>{
+  const old=createProject('old'),current={...editProject(old,p=>p.name='new'),saved_revision:1,project_path:'/p.titanwb'}
+  const undone=restoreHistory(current,old)
+  expect(undone.saved_revision).toBe(1);expect(undone.project_path).toBe('/p.titanwb');expect(undone.revision).toBe(2)
+ })
+ it('late review cannot restore approval after an ROI or settings edit',()=>{
+  const base=createProject('a'),checked={...base,revision:1},newer=editProject(base,p=>p.name='edited')
+  expect(acceptReview(newer,base,checked)).toBeNull()
+ })
+ it('late import adds assets without overwriting newer metadata',()=>{
+  const base=createProject('a'),newer=editProject(base,p=>p.name='newer')
+  const incoming={...base,images:[{id:'image',name:'tif'} as any]}
+  const merged=mergeImported(newer,base,incoming)!
+  expect(merged.name).toBe('newer');expect(merged.images).toHaveLength(1)
+ })
 })
 describe('edits and async revision boundaries',()=>{
  it('invalidates review on every analytical edit without mutating history',()=>{

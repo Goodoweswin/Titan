@@ -34,3 +34,19 @@ test('drawing at a zoomed view is persisted in original pixels',async({page})=>{
  await page.getByTitle('撤销',{exact:true}).click()
  await expect(page.getByRole('heading',{name:'条带区域 24'})).toBeVisible()
 })
+test('a delayed review never overwrites a new edit',async({page})=>{
+ await page.goto('/?integration=1');await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await expect(page.getByLabel('原图条带工作台')).toBeVisible()
+ let release!:()=>void;const gate=new Promise<void>(resolve=>release=resolve)
+ let entered!:()=>void;const started=new Promise<void>(resolve=>entered=resolve)
+ await page.route('**/test-engine',async route=>{
+  if(route.request().postDataJSON().command==='validate'){entered();await gate}
+  await route.continue()
+ })
+ await page.getByRole('button',{name:'全部标记已复核',exact:true}).click()
+ await started
+ await page.getByLabel('实验名称').fill('复核等待期间的新修改')
+ release()
+ await expect(page.getByText('复核期间输入已变化，请重新复核。')).toBeVisible()
+ await expect(page.getByLabel('实验名称')).toHaveValue('复核等待期间的新修改')
+})

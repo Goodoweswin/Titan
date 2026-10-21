@@ -1,12 +1,11 @@
-# CP1：Tauri、Python引擎与最小安装验证
+# CP1：Tauri 与内置计算引擎
 
-状态：进行中（尚未完成原生安装包启动验收）。
+版本 0.1.0，2026-10-21。完整 CP 状态仅记录于 ../checkpoints.md。
 
-已观察RED：引擎4项合同测试失败、前端2项项目身份测试失败。
-已观察GREEN：Python25项（含参考21项）、前端2项、冻结引擎真实净积分80；Rust检查日志见artifacts目录。
+实现：Tauri→受限 Rust 命令→JSON stdin/stdout→本地 Python 引擎。发行模式只运行 App 内的 wb-engine；无常驻 HTTP 服务。引擎进程有 60 秒超时及 kill_on_drop；原生关闭权限包含 allow-destroy。
 
-架构：Tauri→Rust受限命令→冻结Python引擎，stdin/stdout JSON；无常驻端口。单次请求60秒超时，子进程kill_on_drop。
+初期 RED：引擎 4 项合同测试与前端项目身份测试失败。CP1 首次 GREEN：Python 25、前端 2、冻结引擎净积分 80。日志见 artifacts/checkpoints/CP1/。
 
-环境：macOS arm64、Python3.11、Node22。NumPy/SciPy当前解析wheel要求macOS14，因此安装包最低系统设为14.0。完整版本锁在requirements.lock、package-lock.json、Cargo.lock。
+最终回归：scripts/check_cp.py FINAL，四层退出码均为 0，实际摘要见 artifacts/checkpoints/FINAL/checks.json；后续各阶段纳入同一完整回归。Rust 2 项响应/错误协议测试通过。
 
-最小.app正在构建；只有实际启动并确认净积分80后，CP1才可通过。
+.app/.dmg 构建日志见 artifacts/checkpoints/final-release-build.log。macOS 14+ arm64；NumPy/SciPy wheel 的系统要求决定最低版本。原生启动/关闭及窗口 IPC 尚未实测：电脑操作工具拒绝访问 Titan WB。冻结引擎直接运行不作为原生 IPC 通过证据。

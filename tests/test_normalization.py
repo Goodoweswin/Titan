@@ -31,3 +31,11 @@ class NormalizationTests(unittest.TestCase):
   p,m,add=fixture();add('a','S1','B1','control','M1',2)
   p['settings']['normalization_mode']='ibc'
   with self.assertRaises(ValueError):normalize(p,m)
+ def test_ibc_exploratory_flags_propagate_to_rows_and_biological_units(self):
+  p,m,add=fixture();add('a','S1','B1','control','M1',2);add('ib','P','POOL','IBC','M1',1,'ibc','pool1')
+  m[2]['flags']=['clipping_unknown'];m[3]['flags']=['linearity_not_validated']
+  p['settings'].update(normalization_mode='ibc',ibc_by_membrane={'M1':{'X':'ibT'}})
+  rows,bio=normalize(p,m)
+  self.assertIn('ibc:clipping_unknown',bio[0]['flags'])
+  self.assertIn('ibc:reference:linearity_not_validated',bio[0]['flags'])
+  self.assertIn('ibc:clipping_unknown',rows[0]['flags'])

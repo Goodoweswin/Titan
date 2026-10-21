@@ -4,11 +4,14 @@ import unittest
 from pathlib import Path
 from titan_wb.demo import make_demo
 from titan_wb.analysis import analyze
-from titan_wb.export import export_analysis
+from titan_wb.export import export_analysis,plot_groups
 from titan_wb.images import file_hash
 
 
 class ExportTests(unittest.TestCase):
+ def test_export_chart_does_not_pool_membranes(self):
+  groups=plot_groups([dict(analyte='X',analysis_block='M1'),dict(analyte='X',analysis_block='M2')])
+  self.assertEqual(len(groups),2)
  def test_complete_export_hashes_and_no_overwrite(self):
   with tempfile.TemporaryDirectory() as tmp:
    p=make_demo();r=analyze(p);out=Path(tmp)/'结果'

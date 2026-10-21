@@ -85,7 +85,20 @@ def recover_project(path,session):
     root=Path(path);lock=root/'.writer.lock'
     if lock.exists():
         owner=json.loads(lock.read_text())
-        try:os.kill(int(owner['pid']),0)
-        except ProcessLookupError:lock.unlink()
-        else:raise ValueError('旧写入进程仍在运行，不能恢复锁')
+        if owner!=session:
+            try:os.kill(int(owner['pid']),0)
+            except ProcessLookupError:lock.unlink()
+            else:raise ValueError('旧写入进程仍在运行，不能恢复锁')
+    try:
+        content=json.loads((root/'project.json').read_text())
+        validate_project(content)
+    except (ValueError,KeyError,TypeError):
+        backup=root/'backups/previous.json'
+        try:
+            content=json.loads(backup.read_text());validate_project(content)
+        except Exception:raise ValueError('当前manifest损坏，且没有有效备份；原项目保持不变')
+        dest=root.with_name(root.stem+'-恢复-'+uuid.uuid4().hex[:8]+'.titanwb')
+        shutil.copytree(root,dest,ignore=shutil.ignore_patterns('.writer.lock'))
+        atomic_json(dest/'project.json',content)
+        return open_project(str(dest),session)
     return open_project(path,session)

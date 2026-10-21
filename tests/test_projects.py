@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image
 from titan_wb.models import new_project, validate_project
 from titan_wb.images import import_image, read_pixels
-from titan_wb.projects import save_project, open_project, release_project
+from titan_wb.projects import save_project, open_project, release_project,recover_project
 
 SESSION={'pid':os.getpid(),'token':'unit-session'}
 
@@ -51,3 +51,13 @@ class ProjectsTests(unittest.TestCase):
   p=save_project(new_project('a'),str(self.root/'p.titanwb'),None,SESSION)
   release_project(p['project_path'],SESSION)
   self.assertFalse(open_project(p['project_path'],{'pid':os.getpid(),'token':'other'})['read_only'])
+ def test_valid_backup_recovers_to_new_copy_without_overwriting_damage(self):
+  path=self.root/'recover.titanwb';p=save_project(new_project('first'),str(path),None,SESSION)
+  p['name']='second';p['revision']=1;save_project(p,str(path),0,SESSION)
+  (path/'project.json').write_text('damaged')
+  r=recover_project(str(path),SESSION)
+  self.assertEqual(r['name'],'first');self.assertNotEqual(r['project_path'],str(path))
+  self.assertEqual((path/'project.json').read_text(),'damaged')
+ def test_live_foreign_lock_cannot_be_recovered(self):
+  p=save_project(new_project('a'),str(self.root/'live.titanwb'),None,SESSION)
+  with self.assertRaises(ValueError):recover_project(p['project_path'],{'pid':os.getpid(),'token':'other'})

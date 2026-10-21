@@ -39,9 +39,12 @@ def normalize(project,measurements):
             if ref is None or ref['kind']!='ibc' or ref['membrane_id']!=r['membrane_id'] or ref['analyte']!=r['analyte'] or ref['normalized'] is None:
                 raise ValueError('缺少有效的同膜同终点IBC，无法桥接')
             r['value']/=ref['normalized'];r['pool_id']=ref['pool_id']
+            ibc_flags=['ibc:'+f for f in ref['flags']]
+            r['flags']=sorted(set(r['flags']+ibc_flags))
             for u in rows:
                 if u['sample_id']==r['sample_id'] and u['membrane_id']==r['membrane_id'] and u['analyte']==r['analyte']:
                     u['bridged']=u['normalized']/ref['normalized'] if u['normalized'] is not None else None
+                    u['flags']=sorted(set(u['flags']+ibc_flags))
         used=set()
         for block in project['settings'].get('analysis_blocks',[]):
             if not block.get('merge_same_sample'):continue

@@ -1,0 +1,15 @@
+{
+  "engine_protocol": 1,
+  "clean_path": true,
+  "source_independent_copy": true,
+  "measurements": 24,
+  "targets": 12,
+  "blocked": 1,
+  "biological_units": 6,
+  "save_reopen": true,
+  "export_files": 10,
+  "signature_verify_exit": 0,
+  "signature_verify_message": "",
+  "native_window_verified": false,
+  "real_wb_verified": false
+}

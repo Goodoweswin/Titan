@@ -14,4 +14,5 @@ __pycache__/
 !packaging/*.spec
 test-results/
 playwright-report/
+release/
 .superpowers/
