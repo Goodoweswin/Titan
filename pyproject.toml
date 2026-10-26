@@ -1,0 +1,3 @@
+[tool.pytest.ini_options]
+testpaths = ["tests", "wb_research/code"]
+pythonpath = ["backend", "wb_research/code"]

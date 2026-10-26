@@ -1,0 +1,18 @@
+[package]
+name = "titan-wb"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "titan_wb_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+serde_json = "1"
+tokio = { version = "1", features = ["process", "io-util", "time"] }
+uuid = { version = "1", features = ["v4"] }
