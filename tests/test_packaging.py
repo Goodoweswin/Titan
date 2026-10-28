@@ -36,3 +36,20 @@ def test_chinese_export_is_utf8_with_non_utf8_system_default(tmp_path,monkeypatc
     p=make_demo();p['name']='中文实验'
     export_analysis(p,analyze(p),str(tmp_path/'output'))
     assert json.loads((tmp_path/'output/project.json').read_text(encoding='utf-8'))['name']=='中文实验'
+
+def test_notice_archive_handles_pre_1980_upstream_files(tmp_path):
+    import os,subprocess,sys,zipfile
+    source=tmp_path/'source'
+    (source/'docs').mkdir(parents=True)
+    (source/'release/third-party/cargo/example').mkdir(parents=True)
+    (source/'LICENSE').write_text('MIT')
+    (source/'docs/THIRD_PARTY_NOTICES.md').write_text('Third party')
+    old=source/'release/third-party/cargo/example/LICENCE'
+    old.write_text('upstream terms');os.utime(old,(1,1))
+    output=tmp_path/'notices.zip'
+    result=subprocess.run([sys.executable,str(Path(__file__).parents[1]/'scripts/package_notices.py'),str(output),'--root',str(source)],capture_output=True,text=True)
+    assert result.returncode==0,result.stderr
+    with zipfile.ZipFile(output) as archive:
+        assert archive.read('third-party/cargo/example/LICENCE')==b'upstream terms'
+        assert archive.getinfo('third-party/cargo/example/LICENCE').date_time[0]==1980
+        assert archive.read('LICENSE')==b'MIT'

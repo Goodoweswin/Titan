@@ -18,15 +18,17 @@
 - [x] Add README, LICENSE, contribution/security documents, changelog, issue/PR templates and validation roadmap.
 - [x] Add CI and native release workflows, third-party resource inclusion and platform notice archives.
 - [x] Verify local suites, documentation links, file selection and fresh release review.
-- [ ] Publish complete snapshot to main, tag v0.1.0-beta.1 and follow builds until successful.
+- [ ] Publish complete snapshot to main, tag v0.1.0-beta.2 and follow builds until successful.
 - [ ] Download/check release assets, verify public main/release links and record results.
 
 ## Decisions
 - MIT was selected by the user. Copyright holder is Titan WB contributors.
-- Existing app version stays 0.1.0; prerelease tag beta.1 communicates validation status.
+- Existing app version stays 0.1.0; prerelease tag beta.2 communicates validation status.
 - Main is currently only an initial README. Integrate the existing Windows build branch by fast-forward from its full-source descendant, preserving remote history.
 - Native packages are rebuilt to include the exact source snapshot and dependency notices. Existing binaries remain historical local outputs.
 
 ## Verification and review
 - Local suites: 39 Vitest + 74 Python + 2 Rust + 16 browser tests all passed; TypeScript/Vite build passed. Public documentation links and file/path scan passed.
 - Fresh release review found two P2 issues: contributor quickstart omitted ignored-resource generation; license collection missed LICENCE spelling. Both fixed before publication. Actual plist inventory regression failed before fix and passed after regenerating notices.
+
+- Release beta.1: Mac application, DMG, code signature, and independent bundled-engine checks passed. Publication stopped on license ZIP files with pre-1980 mtimes. Added cross-platform strict_timestamps=False archive script and actual epoch-file regression RED→GREEN. Failed beta.1 tag is retained; beta.2 is the replacement release.

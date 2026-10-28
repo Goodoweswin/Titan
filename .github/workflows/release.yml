@@ -35,7 +35,7 @@ jobs:
           ./packaging/build_windows.ps1
           New-Item -ItemType Directory -Force dist-release | Out-Null
           Copy-Item 'src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*-setup.exe' 'dist-release/Titan-WB-0.1.0-windows-x64-setup.exe'
-          Compress-Archive -Path LICENSE,docs/THIRD_PARTY_NOTICES.md,release/third-party -DestinationPath dist-release/Titan-WB-0.1.0-windows-x64-third-party.zip
+          .venv/Scripts/python.exe scripts/package_notices.py dist-release/Titan-WB-0.1.0-windows-x64-third-party.zip
       - name: macOS build and bundled verification
         if: runner.os == 'macOS'
         run: |
@@ -52,7 +52,7 @@ jobs:
           .venv/bin/python scripts/verify_release.py --app 'src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Titan WB.app' --output artifacts/release-verification
           cp src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg dist-release/Titan-WB-0.1.0-macos-arm64.dmg
           ditto -c -k --sequesterRsrc --keepParent 'src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Titan WB.app' dist-release/Titan-WB-0.1.0-macos-arm64.app.zip
-          .venv/bin/python -m zipfile -c dist-release/Titan-WB-0.1.0-macos-arm64-third-party.zip LICENSE docs/THIRD_PARTY_NOTICES.md release/third-party
+          .venv/bin/python scripts/package_notices.py dist-release/Titan-WB-0.1.0-macos-arm64-third-party.zip
       - uses: actions/upload-artifact@v4
         with:
           name: release-${{ matrix.platform }}
