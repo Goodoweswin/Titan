@@ -18,6 +18,10 @@ Invoke-Checked 'npm.cmd' @('ci')
 Invoke-Checked 'rustup' @('target','add','x86_64-pc-windows-msvc')
 Invoke-Checked $python @('-m','pytest','-q')
 Invoke-Checked 'npm.cmd' @('test')
+New-Item -ItemType Directory -Force artifacts | Out-Null
+& cargo metadata --manifest-path src-tauri/Cargo.toml --format-version 1 | Set-Content -Encoding utf8 artifacts/cargo-metadata.json
+if ($LASTEXITCODE -ne 0) { throw 'Cargo metadata failed.' }
+Invoke-Checked $python @('scripts/collect_notices.py')
 Invoke-Checked $python @('packaging/build_engine.py')
 Invoke-Checked 'npm.cmd' @('run','desktop:build','--','--target','x86_64-pc-windows-msvc','--bundles','nsis')
 $installers = @(Get-ChildItem 'src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\*-setup.exe')

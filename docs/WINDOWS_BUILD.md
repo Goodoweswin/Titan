@@ -4,7 +4,7 @@
 
 ## GitHub 构建
 
-将当前源码上传到指定仓库，在 Actions → Windows installer → Run workflow 运行。成功后下载 `Titan-WB-Windows-x64` artifact ZIP，解压得到安装程序。本工作流不自动发布 Release；安装程序未配置商业代码签名。
+将当前源码上传到指定仓库，在 Actions → Windows installer → Run workflow 运行。独立分支 `codex/windows-installer` 的推送也会自动触发。成功后下载 `Titan-WB-Windows-x64` artifact ZIP，解压得到安装程序。本工作流不自动发布 Release；安装程序未配置商业代码签名。
 
 ## Windows 本地构建
 
@@ -20,3 +20,12 @@ powershell -ExecutionPolicy Bypass -File packaging/build_windows.ps1
 ## 验证边界
 
 必须以 Windows 构建成功及产物为准，macOS 上通过测试不代表 Windows 安装验收已完成。安装后检查合成示例、曲线、候选确认、中文路径保存/重开、PNG/SVG 导出，再用真实 WB 数据核对结果。
+
+## 首次 Windows 安装包
+
+- 版本：0.1.0，Windows x64，2026-10-26 构建。
+- 源码提交：`90aa736207010188d39a70ac03bf6aeb102c60d7`，分支 `codex/windows-installer`。
+- [成功构建记录](https://github.com/Goodoweswin/Titan/actions/runs/40274718213)。Windows runner 上 74 项 Python 测试和 39 项前端单元测试通过。
+- 文件：`release/windows/Titan WB_0.1.0_x64-setup.exe`，NSIS 安装程序。
+- SHA-256：`7c9c65af71f09fd19014059efcae2452371eaad7d8c477dd01e65196645f32ad`。
+- 尚未完成真实 Windows 桌面的安装及界面操作验收，未配置商业代码签名。

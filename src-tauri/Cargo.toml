@@ -2,6 +2,8 @@
 name = "titan-wb"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+repository = "https://github.com/Goodoweswin/Titan"
 
 [lib]
 name = "titan_wb_lib"

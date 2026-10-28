@@ -29,5 +29,10 @@
     "vitest": "^3",
     "@playwright/test": "^1.50",
     "jsdom": "^26"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Goodoweswin/Titan.git"
   }
 }
