@@ -21,6 +21,10 @@ powershell -ExecutionPolicy Bypass -File packaging/build_windows.ps1
 
 必须以 Windows 构建成功及产物为准，macOS 上通过测试不代表 Windows 安装验收已完成。安装后检查合成示例、曲线、候选确认、中文路径保存/重开、PNG/SVG 导出，再用真实 WB 数据核对结果。
 
+## 当前公开版本
+
+请从 [GitHub Releases](https://github.com/Goodoweswin/Titan/releases/tag/v0.1.0-beta.2) 下载当前预发布包，并使用发布附件 SHA256SUMS.txt 核对。下面的首次构建记录仅为历史记录，其 hash 不用于新版。
+
 ## 首次 Windows 安装包
 
 - 版本：0.1.0，Windows x64，2026-10-26 构建。

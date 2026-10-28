@@ -18,8 +18,8 @@
 - [x] Add README, LICENSE, contribution/security documents, changelog, issue/PR templates and validation roadmap.
 - [x] Add CI and native release workflows, third-party resource inclusion and platform notice archives.
 - [x] Verify local suites, documentation links, file selection and fresh release review.
-- [ ] Publish complete snapshot to main, tag v0.1.0-beta.2 and follow builds until successful.
-- [ ] Download/check release assets, verify public main/release links and record results.
+- [x] Publish complete snapshot to main, tag v0.1.0-beta.2 and follow builds until successful.
+- [x] Download/check release assets, verify public main/release links and record results.
 
 ## Decisions
 - MIT was selected by the user. Copyright holder is Titan WB contributors.
@@ -32,3 +32,10 @@
 - Fresh release review found two P2 issues: contributor quickstart omitted ignored-resource generation; license collection missed LICENCE spelling. Both fixed before publication. Actual plist inventory regression failed before fix and passed after regenerating notices.
 
 - Release beta.1: Mac application, DMG, code signature, and independent bundled-engine checks passed. Publication stopped on license ZIP files with pre-1980 mtimes. Added cross-platform strict_timestamps=False archive script and actual epoch-file regression RED→GREEN. Failed beta.1 tag is retained; beta.2 is the replacement release.
+
+## Completion
+- Full main snapshot published; MIT recognized by GitHub. Runtime source/release tag commit: e6eb0fb04b21a092bb3a2a54465ab9219ccd3cf4.
+- Updated main CI passed (run 40714869490); dual native build and publish passed (run 40714868617). Public prerelease: v0.1.0-beta.2.
+- All five payload server digests match SHA256SUMS. DMG, Windows EXE, both notice archives and checksum file were downloaded and verified. Backup app ZIP HEAD returned 200 and server digest matches; local ZIP transfer hit a transient TLS error, so no local full-ZIP validation claim.
+- Notices checked: macOS 594 dependency records, Windows 597. Native GUI acceptance and real WB validation remain pending.
+- Remaining changes are documentation/verification records only; their bookkeeping commit skips redundant CI.
