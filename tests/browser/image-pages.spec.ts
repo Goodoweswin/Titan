@@ -9,7 +9,7 @@ test.beforeAll(()=>{
  root=mkdtempSync(path.join(tmpdir(),'titan-pages-'));source=path.join(root,'多页.tif')
  execFileSync(path.resolve('.venv/bin/python'),['-c',`import sys,numpy as np,tifffile
 with tifffile.TiffWriter(sys.argv[1]) as t:
- t.write(np.zeros((20,30),dtype=np.uint8),photometric='palette',colormap=np.zeros((3,256),dtype=np.uint16))
+ t.write(np.zeros((20,30),dtype=np.uint8),photometric='palette',colormap=np.vstack([np.arange(256,dtype=np.uint16)*256,np.zeros(256,dtype=np.uint16),np.zeros(256,dtype=np.uint16)]))
  a=np.full((24,32),12345,dtype=np.uint16);a[4:8,4:8]=54321
  t.write(a,photometric='minisblack')
  t.write(np.ones((24,32),dtype=np.uint16),photometric='minisblack')`,source])

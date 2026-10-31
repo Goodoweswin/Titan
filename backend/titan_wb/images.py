@@ -46,7 +46,11 @@ def checked_page_index(index,count):
 
 def validate_tiff_page(page):
     if len(page.shape)!=2 or not 0<page.shape[0]*page.shape[1]<=MAX_PIXELS:raise ValueError('请使用单通道且不超过2500万像素的图像')
-    if int(page.photometric)!=1:raise ValueError('请导出MINISBLACK灰度TIFF，避免显示极性歧义')
+    photo=int(page.photometric)
+    if photo==3:
+        lut=page.colormap
+        if lut is None or not (np.array_equal(lut[0],lut[1]) and np.array_equal(lut[0],lut[2])):raise ValueError('此页为彩色调色板，请选择原始灰度页')
+    elif photo not in (0,1):raise ValueError('此页不是单通道灰度图')
     if page.dtype.kind not in 'uif':raise ValueError('图像不是数值灰度图')
 
 
@@ -73,7 +77,13 @@ def decode(path,page_index=None):
         with tifffile.TiffFile(path) as t:
             page=t.pages[checked_page_index(page_index,len(t.pages))]
             validate_tiff_page(page)
-            a=page.asarray()
+            try:a=page.asarray()
+            except ValueError as e:
+                if 'imagecodecs' not in str(e):raise
+                with Image.open(path) as im:
+                    im.seek(checked_page_index(page_index,len(t.pages)))
+                    a=np.asarray(im).copy()
+                if a.shape!=page.shape or a.dtype.itemsize!=page.dtype.itemsize:raise ValueError('此压缩页无法无损读取，请导出原始灰度 TIFF')
     else:
         checked_page_index(page_index,1)
         with Image.open(path) as im:
@@ -82,6 +92,20 @@ def decode(path,page_index=None):
             a=np.asarray(im).copy()
     if a.ndim!=2 or a.size==0 or a.dtype.kind not in 'uif' or not np.isfinite(a).all():raise ValueError('图像不是有限数值的单通道灰度图')
     return a
+
+
+def display_metadata(path,index):
+    meta=dict(display_inverted=False)
+    if Path(path).suffix.lower() in ['.tif','.tiff']:
+        import tifffile
+        with tifffile.TiffFile(path) as t:
+            page=t.pages[index];photo=int(page.photometric)
+            meta['photometric']={0:'miniswhite',1:'minisblack',3:'palette'}.get(photo,'unknown')
+            if photo==0:meta['display_inverted']=True
+            elif photo==3:
+                lut=page.colormap[0];meta['gray_lut']=lut.tolist()
+                meta['display_inverted']=bool(lut[0]>lut[-1])
+    return meta
 
 
 def preview(a):
@@ -110,5 +134,6 @@ def import_image(project,path,page_index=None,expected_sha256=None):
                width=a.shape[1],height=a.shape[0],dtype=str(a.dtype),preview=CACHE.get_value(('preview',info['sha256'],index),lambda:preview(a)),
                polarity='bright',ceiling=None,exposure='',linear_validated=False)
     if info['page_count']>1:asset.update(page_index=index,page_count=info['page_count'])
+    asset.update(display_metadata(path,index))
     p['images'].append(asset)
     return p

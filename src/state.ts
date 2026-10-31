@@ -55,7 +55,7 @@ function carryReviews(previous:Project,next:Project){
  }
 }
 function calculationInput(p:Project){
- return JSON.stringify({images:p.images.map(({path,preview,...a})=>a),samples:p.samples,lanes:p.lanes,settings:p.settings,
+ return JSON.stringify({images:p.images.map(({path,preview,display_inverted,...a})=>a),samples:p.samples,lanes:p.lanes,settings:p.settings,
   rois:p.rois.map(r=>({...r,reviewed_revision:r.reviewed_revision===p.revision}))})
 }
 export function retainResult(previous:Project,next:Project,result:AnalysisResult|null):AnalysisResult|null {

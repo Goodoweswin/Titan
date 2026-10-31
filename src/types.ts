@@ -1,5 +1,5 @@
 export type Rect=[number,number,number,number]
-export interface ImageAsset{id:string;name:string;path:string;sha256:string;page_index?:number;page_count?:number;width:number;height:number;dtype:string;preview:string;polarity:'bright'|'dark';ceiling:number|null;exposure:string;linear_validated:boolean}
+export interface ImageAsset{id:string;name:string;path:string;sha256:string;page_index?:number;page_count?:number;display_inverted?:boolean;photometric?:string;gray_lut?:number[];width:number;height:number;dtype:string;preview:string;polarity:'bright'|'dark';ceiling:number|null;exposure:string;linear_validated:boolean}
 export interface ImageInspection{name:string;sha256:string;page_count:number;pages:{page_index:number;width:number;height:number;dtype:string;error:string|null}[]}
 export interface Sample{id:string;bio_id:string;group:string;pair_id:string;kind:'biological'|'ibc';pool_id:string}
 export interface Lane{id:string;membrane_id:string;sample_id:string;technical_id:string}
