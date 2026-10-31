@@ -38,6 +38,18 @@ def analyze(project):
     for family in {r['family_id'] for r in statistics}:
         valid=[r for r in statistics if r['family_id']==family and r['p_raw'] is not None]
         for r,p in zip(valid,holm([r['p_raw'] for r in valid])):r['p_adjusted']=p
+    # New multi-group procedures already control their own pairwise family.
+    # Keep them outside the legacy cross-endpoint Holm loop above.
+    from .multigroup import compare_multigroup
+    omnibus=[];pairwise=[]
+    for spec in project['settings'].get('multigroup_comparisons',[]):
+        try:
+            if not project['settings'].get('design_confirmed',False):raise ValueError('请先确认独立生物学重复与分组设计')
+            multi=compare_multigroup(bio,spec);omnibus.append(multi['omnibus']);pairwise.extend(multi['comparisons'])
+        except ValueError as e:
+            identity={k:spec.get(k) for k in ['id','analyte','membrane_id','method','scale']} if isinstance(spec,dict) else {}
+            omnibus.append({**identity,'comparison_id':identity.pop('id',None),'status':'blocked','p_raw':None,'statistic':None,'df_num':None,'df_den':None,'warnings':[str(e)]})
     from .lane_results import lane_result_rows
     return dict(project_id=project['id'],input_revision=project['revision'],measurements=measurements,
-                normalized=rows,biological=bio,statistics=statistics,lane_results=lane_result_rows(project,measurements,rows))
+                normalized=rows,biological=bio,statistics=statistics,lane_results=lane_result_rows(project,measurements,rows),
+                multigroup_omnibus=omnibus,multigroup_comparisons=pairwise)
