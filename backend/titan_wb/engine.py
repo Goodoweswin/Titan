@@ -1,6 +1,7 @@
 """Restricted, one-request JSON engine. Diagnostics go to stderr only."""
 import json
 import sys
+import os
 from . import __version__
 
 
@@ -11,7 +12,7 @@ def dispatch(request):
     payload=request.get('payload') or {}
     session=request.get('session') or {'pid':0,'token':'cli'}
     if command == 'health':
-        return {'protocol': 1, 'version': __version__, 'engine': 'Python / NumPy'}
+        return {'protocol': 1, 'transport_version':2,'worker_pid':os.getpid(),'version': __version__, 'engine': 'Python / NumPy'}
     if command == 'probe':
         import numpy as np
         from .quantify import measure
@@ -76,3 +77,30 @@ def main():
     except Exception as e:
         response = {'ok': False, 'data': None, 'error': str(e)}
     sys.stdout.write(json.dumps(response, ensure_ascii=False, allow_nan=False))
+
+
+def serve(input_stream,output_stream):
+    """Newline-delimited, bounded UTF-8 frames; keep legacy main() intact."""
+    limit=20*1024*1024
+    while True:
+        raw=input_stream.readline(limit+1)
+        if not raw:return
+        request_id=None
+        try:
+            if len(raw)>limit:
+                while not raw.endswith(b'\n'):
+                    raw=input_stream.readline(limit+1)
+                    if not raw:break
+                raise ValueError('请求过大')
+            request=json.loads(raw)
+            if isinstance(request,dict):request_id=request.get('request_id')
+            result=dispatch(request)
+            response=dict(request_id=request_id,ok=True,data=result,error=None)
+        except Exception as e:
+            response=dict(request_id=request_id,ok=False,data=None,error=str(e))
+        try:
+            encoded=json.dumps(response,ensure_ascii=False,allow_nan=False).encode('utf-8')
+            if len(encoded)>limit:raise ValueError('返回数据过大，请减少本次图像数量')
+        except (ValueError,TypeError) as e:
+            encoded=json.dumps(dict(request_id=request_id,ok=False,data=None,error=str(e)),ensure_ascii=False).encode('utf-8')
+        output_stream.write(encoded+b'\n');output_stream.flush()

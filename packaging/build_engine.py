@@ -19,9 +19,9 @@ def binary_name(system, machine):
 
 def main():
     name=binary_name(platform.system(),platform.machine())
-    dest=ROOT/'src-tauri/binaries';dest.mkdir(parents=True,exist_ok=True)
-    subprocess.run([sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onefile',
-     '--name',name,'--paths',str(ROOT/'backend'),
+    dest=ROOT/'src-tauri/engine';dest.mkdir(parents=True,exist_ok=True)
+    subprocess.run([sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onedir',
+     '--name','wb-engine','--paths',str(ROOT/'backend'),
      '--hidden-import','matplotlib.backends.backend_svg',
      '--distpath',str(dest),'--workpath',str(ROOT/'build/engine'),
      '--specpath',str(ROOT/'build'),str(ROOT/'backend/entry.py')],cwd=ROOT,check=True)

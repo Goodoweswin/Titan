@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 from .models import revised
+from .image_cache import CACHE
 
 MAX_BYTES=50*1024*1024
 MAX_PIXELS=25_000_000
@@ -17,7 +18,15 @@ def file_hash(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def read_pixels(asset):
     path=Path(asset['path'])
     if not path.is_file() or file_hash(path)!=asset['sha256']:raise ValueError('原图缺失或hash已改变，请恢复原文件')
-    return decode(path,asset.get('page_index'))
+    return cached_pixels(path,asset.get('page_index'),asset['sha256'])
+
+
+def cached_pixels(path,index,digest):
+    if Path(path).suffix.lower() in ['.tif','.tiff']:
+        import tifffile
+        with tifffile.TiffFile(path) as t:index=checked_page_index(index,len(t.pages))
+    else:index=checked_page_index(index,1)
+    return CACHE.get_pixels((digest,index),lambda:decode(path,index))
 
 
 def checked_path(path):
@@ -84,19 +93,21 @@ def preview(a):
 
 
 def preview_image_page(path,page_index,expected_sha256=None):
-    if expected_sha256 is not None and file_hash(checked_path(path))!=expected_sha256:raise ValueError('原图在选择期间已改变，请重新导入')
-    return preview(decode(path,page_index))
+    digest=file_hash(checked_path(path))
+    if expected_sha256 is not None and digest!=expected_sha256:raise ValueError('原图在选择期间已改变，请重新导入')
+    a=cached_pixels(path,page_index,digest)
+    return CACHE.get_value(('preview',digest,page_index),lambda:preview(a))
 
 
 def import_image(project,path,page_index=None,expected_sha256=None):
     info=inspect_image(path)
     if expected_sha256 is not None and info['sha256']!=expected_sha256:raise ValueError('原图在选择期间已改变，请重新导入')
     index=checked_page_index(page_index,info['page_count'])
-    a=decode(path,index);p=revised(project)
+    a=CACHE.get_pixels((info['sha256'],index),lambda:decode(path,index));p=revised(project)
     name=Path(path).name
     if info['page_count']>1:name+=f' · 第 {index+1} 页'
     asset=dict(id=uuid.uuid4().hex,name=name,path=str(Path(path).resolve()),sha256=info['sha256'],
-               width=a.shape[1],height=a.shape[0],dtype=str(a.dtype),preview=preview(a),
+               width=a.shape[1],height=a.shape[0],dtype=str(a.dtype),preview=CACHE.get_value(('preview',info['sha256'],index),lambda:preview(a)),
                polarity='bright',ceiling=None,exposure='',linear_validated=False)
     if info['page_count']>1:asset.update(page_index=index,page_count=info['page_count'])
     p['images'].append(asset)

@@ -17,7 +17,7 @@ def verify(app,output):
     output=Path(output);output.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='titan-release-') as tmp:
         root=Path(tmp);copied=root/'Titan WB.app';shutil.copytree(app,copied)
-        binary=copied/'Contents/MacOS/wb-engine'
+        binary=copied/'Contents/Resources/engine/wb-engine/wb-engine'
         session=dict(pid=os.getpid(),token='release-verification')
         def call(command,payload=None):
             print('Checking bundled command:', command, flush=True)

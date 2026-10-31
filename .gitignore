@@ -20,3 +20,4 @@ release/
 # Shared local dependency links in isolated workspaces
 .venv
 node_modules
+src-tauri/engine/

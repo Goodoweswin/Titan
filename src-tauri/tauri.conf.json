@@ -30,9 +30,6 @@
       "app",
       "dmg"
     ],
-    "externalBin": [
-      "binaries/wb-engine"
-    ],
     "icon": [
       "icons/icon.png",
       "icons/icon.icns"
@@ -45,7 +42,8 @@
     "resources": {
       "../LICENSE": "LICENSE",
       "../docs/THIRD_PARTY_NOTICES.md": "THIRD_PARTY_NOTICES.md",
-      "../release/third-party/": "third-party/"
+      "../release/third-party/": "third-party/",
+      "engine/wb-engine/": "engine/wb-engine/"
     }
   }
 }
