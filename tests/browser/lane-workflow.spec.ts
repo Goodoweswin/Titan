@@ -1,5 +1,5 @@
 import {test,expect} from '@playwright/test'
-import {mkdtempSync,rmSync} from 'node:fs'
+import {mkdtempSync,rmSync,readFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import path from 'node:path'
 import {execFileSync} from 'node:child_process'
@@ -42,12 +42,15 @@ test('reference first workflow preserves missing target slot and simple three-st
  await region(page,[20,65,220,95])
  await page.getByRole('button',{name:'识别目标',exact:true}).click()
  await expect(page.getByText('L3 · 未检出',{exact:true})).toBeVisible()
+ await page.getByLabel('目标名称').fill('pAKT')
+ await page.getByRole('button',{name:'显示反色',exact:true}).click()
  await page.getByRole('button',{name:'确认目标',exact:true}).click()
  await page.getByRole('button',{name:'结果',exact:true}).click()
  await expect(page.getByRole('table',{name:'泳道定量结果'})).toBeVisible()
  const rows=page.getByRole('table',{name:'泳道定量结果'}).locator('tbody tr')
  await expect(rows).toHaveCount(5)
  await expect(rows.nth(0)).toContainText('L1 / 样本 A')
+ await expect(rows.nth(0)).toContainText('pAKT')
  await expect(rows.nth(2)).toContainText('未检出')
  await expect(rows.nth(3)).toContainText('2')
  await page.screenshot({path:'artifacts/checkpoints/lane-results.png',fullPage:true})
@@ -79,4 +82,41 @@ test('cancelled lane recognition cannot add late suggestions',async({page})=>{
  await expect(page.getByRole('button',{name:'识别泳道',exact:true})).toBeEnabled()
  await expect(page.getByRole('button',{name:'确认内参',exact:true})).toHaveCount(0)
  await expect(page.getByText('0 个条带区域',{exact:false})).toBeVisible()
+})
+
+
+test('reference re-identification reuses explicit lane template instead of guessing identities',async({page})=>{
+ await page.goto('/?integration=1');await page.getByRole('button',{name:'新建实验',exact:true}).first().click()
+ await page.evaluate((source:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async()=>[source]}},file)
+ await page.getByRole('button',{name:'导入图像',exact:true}).click()
+ await expect(page.getByLabel('当前图像')).toContainText('lanes.tif')
+ await region(page,[20,20,220,50]);await page.getByRole('button',{name:'识别泳道',exact:true}).click()
+ await page.getByRole('button',{name:'确认内参',exact:true}).click()
+ const x=await page.getByLabel('泳道 L1',{exact:true}).getAttribute('x')
+ let guesses=0
+ await page.route('**/test-engine',async route=>{if(route.request().postDataJSON().command==='detect_lanes')guesses++;await route.continue()})
+ await page.getByRole('button',{name:'重新识别',exact:true}).click()
+ await expect(page.getByRole('button',{name:'确认内参',exact:true})).toBeVisible()
+ expect(guesses).toBe(0)
+ await expect(page.getByLabel('泳道 L1',{exact:true})).toHaveAttribute('x',x!)
+ await page.getByRole('button',{name:'确认内参',exact:true}).click()
+ await expect(page.getByText('内参已确认',{exact:true})).toBeVisible()
+ await page.getByText('手动调整与图像信息',{exact:true}).click()
+ await page.getByRole('button',{name:'打开手动条带编辑',exact:true}).click()
+ await page.getByRole('button',{name:'选择 L1 内参',exact:true}).click()
+ await expect(page.getByLabel('蛋白 / 测量名称',{exact:true}).first()).toBeDisabled()
+ await page.getByTitle('删除条带',{exact:true}).click()
+ const savePath=path.join(root,'delete-reidentify.titanwb')
+ await page.evaluate((dest:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async(c:string)=>{if(c==='plugin:dialog|save')return dest;throw Error(c)}}},savePath)
+ await page.getByRole('button',{name:'保存实验',exact:true}).click()
+ await expect(page.getByText('实验已保存；保存期间的新修改仍保留。',{exact:true})).toBeVisible()
+ let disk=JSON.parse(readFileSync(path.join(savePath,'project.json'),'utf8'))
+ expect(disk.band_sets[0].assignments[0]).toMatchObject({roi_id:null,status:'pending'})
+ await page.getByRole('button',{name:'返回简洁流程',exact:true}).click()
+ await page.getByRole('button',{name:'重新识别',exact:true}).click()
+ await page.getByRole('button',{name:'确认内参',exact:true}).click()
+ await page.getByRole('button',{name:'保存实验',exact:true}).click()
+ await expect(page.getByText('实验已保存；保存期间的新修改仍保留。',{exact:true})).toBeVisible()
+ disk=JSON.parse(readFileSync(path.join(savePath,'project.json'),'utf8'))
+ expect(disk.band_sets[0].assignments.every((a:any)=>a.status==='accepted')).toBe(true)
 })

@@ -84,6 +84,10 @@ def decode(path,page_index=None):
                 with Image.open(path) as im:
                     im.seek(checked_page_index(page_index,len(t.pages)))
                     a=np.asarray(im).copy()
+                    # Pillow applies the white-is-zero display transform to L,
+                    # but leaves I;16 samples encoded. Undo only that L path.
+                    if int(page.photometric)==0 and im.mode=='L' and page.dtype==np.dtype('uint8'):
+                        a=np.uint8(255)-a
                 if a.shape!=page.shape or a.dtype.itemsize!=page.dtype.itemsize:raise ValueError('此压缩页无法无损读取，请导出原始灰度 TIFF')
     else:
         checked_page_index(page_index,1)

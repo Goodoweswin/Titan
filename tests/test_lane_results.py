@@ -39,3 +39,9 @@ def test_unconfirmed_replicate_mapping_does_not_block_lane_ratios(tmp_path):
  result=analyze(p)
  assert [r['normalized'] for r in result['lane_results']]==[4,4]
  assert result['biological']==[]
+
+def test_mismatched_group_and_roi_reference_is_rejected(tmp_path):
+ import copy,pytest
+ p=fixture(tmp_path);other=copy.deepcopy(p['rois'][0]);other.update(id='other',analyte='TUBULIN');other.pop('band_set_id');other.pop('lane_layout_id');p['rois'].append(other)
+ p['rois'][1]['reference_id']='other'
+ with pytest.raises(ValueError,match='内参|参考'):analyze(p)

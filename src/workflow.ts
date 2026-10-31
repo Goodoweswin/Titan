@@ -17,7 +17,7 @@ export function batchROIs(p:Project,ids:string[],action:BatchAction){
   const image=draft.images.find(a=>a.id===r.image_id)!
   if(action.type==='copy'){
    const lane=newLane(draft,draft.lanes.find(l=>l.id===r.lane_id)?.membrane_id)
-   draft.rois.push({...structuredClone(r),id:crypto.randomUUID(),lane_id:lane.id,reference_id:null,reviewed_revision:null})
+   draft.rois.push({...structuredClone(r),id:crypto.randomUUID(),lane_id:lane.id,reference_id:null,reviewed_revision:null,band_set_id:undefined,lane_layout_id:undefined})
    continue
   }
   if(action.type==='move'){
@@ -115,6 +115,7 @@ export function numberLanes(p:Project,ids:string[],start:number){
  const selected=p.rois.filter(r=>ids.includes(r.id)).sort((a,b)=>a.rect[0]-b.rect[0])
  if(!selected.length||new Set(selected.map(r=>r.image_id)).size!==1)throw new Error('请选择同一图像的条带')
  const lanes=Array.from(new Set(selected.map(r=>r.lane_id)))
+ if(p.lane_layouts.some(l=>l.columns.some(c=>lanes.includes(c.lane_id))))throw new Error('已建立泳道身份，请在内参步骤调整位置或样本名称')
  const mapping=new Map(lanes.map((id,i)=>[id,`L${start+i}`]))
  if(p.lanes.some(l=>!mapping.has(l.id)&&[...mapping.values()].includes(l.id)))throw new Error('编号与未选泳道冲突；未应用本次操作')
  for(const l of p.lanes)l.id=mapping.get(l.id)??l.id

@@ -25,3 +25,15 @@ def test_color_palette_is_not_silently_quantified(tmp_path):
  im.putpalette([v for i in range(256) for v in [i,0,0]]);im.save(path,compression='tiff_lzw')
  assert inspect_image(path)['pages'][0]['error']
  with pytest.raises(ValueError):decode(path)
+
+@pytest.mark.parametrize('dtype,values', [('uint8',[0,16,240,255]),('uint16',[0,1000,60000,65535])])
+def test_lzw_miniswhite_preserves_encoded_pixels(tmp_path,dtype,values):
+ # Write known MINISBLACK compressed bytes, then change only the display tag.
+ import struct
+ path=tmp_path/f'white-{dtype}.tif';a=np.array([values],dtype=dtype)
+ Image.fromarray(a).save(path,compression='tiff_lzw')
+ with tifffile.TiffFile(path) as t:
+  offset=t.pages[0].tags['PhotometricInterpretation'].valueoffset;order=t.byteorder
+ with path.open('r+b') as f:f.seek(offset);f.write(struct.pack(order+'H',0))
+ np.testing.assert_array_equal(decode(path),a)
+ assert import_image(new_project('compressed'),str(path))['images'][0]['display_inverted']

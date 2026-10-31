@@ -5,9 +5,31 @@ export function createProject(name:string):Project{
 }
 export function editProject(project:Project,mutate:(draft:Project)=>void):Project{
  if(project.read_only)throw new Error('只读项目不能编辑，请另存副本')
- const p=structuredClone(project);mutate(p);p.revision=project.revision+1
+ const p=structuredClone(project);mutate(p);reconcileLinkedMeasurements(p);p.revision=project.revision+1
  carryReviews(project,p)
  return p
+}
+function reconcileLinkedMeasurements(p:Project){
+ const rois=new Map(p.rois.map(r=>[r.id,r]))
+ for(const g of p.band_sets)for(const a of g.assignments){
+  if(a.roi_id&&!rois.has(a.roi_id)){a.roi_id=null;a.status='pending'}
+ }
+ for(const r of p.rois)if(r.reference_id&&!rois.has(r.reference_id))r.reference_id=null
+ for(const g of p.band_sets){
+  const layout=p.lane_layouts.find(l=>l.id===g.layout_id)
+  if(!layout)throw new Error('测量集合缺少泳道布局')
+  for(const a of g.assignments){
+   if(a.status!=='accepted')continue
+   const r=rois.get(a.roi_id!)
+   if(!r||r.band_set_id!==g.id||r.lane_layout_id!==layout.id||r.image_id!==layout.image_id||r.lane_id!==a.lane_id||r.role!==g.role||r.analyte!==g.analyte)throw new Error('请在内参或目标步骤修改蛋白集合身份')
+   if(g.role==='target'){
+    const ref=p.band_sets.find(s=>s.id===g.reference_set_id)
+    const expected=ref?.assignments.find(s=>s.lane_id===a.lane_id&&s.status==='accepted')?.roi_id??null
+    if(r.reference_id!==expected)throw new Error('请在目标步骤选择对应内参集合')
+   }
+  }
+ }
+ for(const r of p.rois)if(r.band_set_id&&!p.band_sets.some(g=>g.id===r.band_set_id&&g.assignments.some(a=>a.roi_id===r.id&&a.status==='accepted')))throw new Error('条带未归入所属测量集合')
 }
 export function screenToImage(r:Rect,screenWidth:number,screenHeight:number,width:number,height:number):Rect{
  const [a,b,c,d]=r

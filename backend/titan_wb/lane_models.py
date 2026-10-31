@@ -38,4 +38,12 @@ def validate_lanes(p,maps):
             if status not in ('pending','accepted','not_detected','excluded'):raise ValueError('泳道测量状态无效')
             if status=='accepted':
                 if not roi or roi['lane_id']!=assignment['lane_id'] or roi['image_id']!=layout['image_id'] or roi['role']!=group['role'] or roi['analyte']!=group['analyte']:raise ValueError('条带与泳道/蛋白集合不一致')
+                if roi.get('band_set_id')!=group['id'] or roi.get('lane_layout_id')!=layout['id']:raise ValueError('条带所属测量集合不一致')
+                if group['role']=='target':
+                    expected=next((a.get('roi_id') for a in set_map[ref]['assignments'] if a['lane_id']==assignment['lane_id'] and a['status']=='accepted'),None) if ref else None
+                    if roi.get('reference_id')!=expected:raise ValueError('目标条带的内参与测量集合不一致')
             elif assignment.get('roi_id') is not None:raise ValueError('未确认泳道不能引用正式测量')
+    for roi in maps['rois'].values():
+        if roi.get('band_set_id'):
+            group=set_map.get(roi['band_set_id'])
+            if not group or not any(a.get('roi_id')==roi['id'] and a['status']=='accepted' for a in group['assignments']):raise ValueError('条带未归入所属测量集合')

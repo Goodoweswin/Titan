@@ -41,6 +41,15 @@ export function createBandSet(p:Project,layoutId:string,analyte:string,role:'tar
  return id
 }
 
+export function renameBandSet(p:Project,setId:string,name:string){
+ writable(p);const group=p.band_sets.find(g=>g.id===setId);if(!group)throw new Error('蛋白集合不存在')
+ const analyte=name.trim(),lanes=group.assignments.map(a=>a.lane_id)
+ if(!analyte)throw new Error('请填写蛋白名称')
+ if(p.band_sets.some(g=>g.id!==setId&&g.role===group.role&&g.analyte===analyte&&g.assignments.some(a=>lanes.includes(a.lane_id)))||p.rois.some(r=>r.band_set_id!==setId&&r.role===group.role&&r.analyte===analyte&&lanes.includes(r.lane_id)))throw new Error('该泳道已有此蛋白，请检查名称')
+ group.analyte=analyte
+ for(const r of p.rois)if(r.band_set_id===setId)r.analyte=analyte
+}
+
 export function copyLaneLayout(p:Project,sourceId:string,imageId:string):string {
  writable(p);const source=layoutOf(p,sourceId),from=p.images.find(a=>a.id===source.image_id)!,to=p.images.find(a=>a.id===imageId)
  if(!to)throw new Error('请选择目标图像')
