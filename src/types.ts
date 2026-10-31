@@ -1,5 +1,6 @@
 export type Rect=[number,number,number,number]
-export interface ImageAsset{id:string;name:string;path:string;sha256:string;width:number;height:number;dtype:string;preview:string;polarity:'bright'|'dark';ceiling:number|null;exposure:string;linear_validated:boolean}
+export interface ImageAsset{id:string;name:string;path:string;sha256:string;page_index?:number;page_count?:number;width:number;height:number;dtype:string;preview:string;polarity:'bright'|'dark';ceiling:number|null;exposure:string;linear_validated:boolean}
+export interface ImageInspection{name:string;sha256:string;page_count:number;pages:{page_index:number;width:number;height:number;dtype:string;error:string|null}[]}
 export interface Sample{id:string;bio_id:string;group:string;pair_id:string;kind:'biological'|'ibc';pool_id:string}
 export interface Lane{id:string;membrane_id:string;sample_id:string;technical_id:string}
 export interface ROI{id:string;image_id:string;lane_id:string;analyte:string;role:'target'|'reference';rect:Rect;backgrounds:Rect[];reference_id:string|null;reviewed_revision:number|null}
@@ -8,5 +9,9 @@ export interface Project{id:string;name:string;schema_version:1;revision:number;
 export interface Measurement{id:string;image_id:string;lane_id:string;analyte:string;role:string;area_px:number;raw_sum:number;background_mean:number;corrected_sum:number;clipped_fraction:number|null;flags:string[]}
 export interface Normalized{id:string;sample_id:string;bio_id:string;pair_id:string;group:string;membrane_id:string;analyte:string;normalized:number|null;bridged:number|null;flags:string[];kind:string}
 export interface BioValue{sample_id:string;bio_id:string;pair_id:string;group:string;analyte:string;membrane_id:string;analysis_block:string;value:number;n_technical:number;fold:number|null;flags:string[]}
-export interface StatsResult{comparison_id:string;test:string;scale:string;n_a:number;n_b:number;effect:number|null;statistic:number|null;df:number|null;p_raw:number|null;p_adjusted:number|null;ci95:[number,number]|null;warnings:string[]}
+export interface StatsResult{analyte?:string;comparison_id:string;test:string;scale:string;n_a:number;n_b:number;effect:number|null;statistic:number|null;df:number|null;p_raw:number|null;p_adjusted:number|null;ci95:[number,number]|null;warnings:string[]}
 export interface AnalysisResult{project_id:string;input_revision:number;measurements:Measurement[];normalized:Normalized[];biological:BioValue[];statistics:StatsResult[]}
+export interface SignalProfileData{project_id:string;input_revision:number;roi_id:string;rect:Rect;height:number;samples:{y:number;mean:number;min:number;max:number}[];background_mean:number|null;measurement:{raw_sum:number;corrected_sum:number;area_px:number}|null;warning:string|null}
+export interface PlotSettings{panel_width:number;height:number;font_size:number;dpi:number}
+export interface PlotPreview{png:string;width:number;height:number;settings:PlotSettings}
+export interface DetectionPreview{projectId:string;revision:number;imageId:string;analyte:string;role:'target'|'reference';boxes:Rect[];included:number[]}

@@ -24,3 +24,30 @@ class ExportTests(unittest.TestCase):
   with tempfile.TemporaryDirectory() as tmp:
    p=make_demo();r=analyze(p);p['revision']+=1
    with self.assertRaises(ValueError):export_analysis(p,r,str(Path(tmp)/'result'))
+
+class PreviewTests(unittest.TestCase):
+ def test_preview_matches_export_dimensions_pixels_and_audit(self):
+  import base64,io
+  from PIL import Image
+  from titan_wb.engine import dispatch
+  p=make_demo();r=analyze(p)
+  settings=dict(panel_width=3,height=3,font_size=14,dpi=100)
+  preview=dispatch(dict(command='export_preview',payload=dict(project=p,result=r,settings=settings)))
+  image=Image.open(io.BytesIO(base64.b64decode(preview['png'].split(',')[1])))
+  self.assertEqual(image.size,(preview['width'],preview['height']))
+  self.assertEqual(preview['height'],300)
+  with tempfile.TemporaryDirectory() as tmp:
+   out=Path(tmp)/'export'
+   manifest=export_analysis(p,r,str(out),settings=settings)
+   self.assertEqual(manifest['plot_settings'],settings)
+   exported=Image.open(out/'plot.png')
+   self.assertEqual(image.tobytes(),exported.tobytes())
+ def test_preview_rejects_stale_results_and_invalid_settings(self):
+  from titan_wb.engine import dispatch
+  p=make_demo();r=analyze(p)
+  for settings in [dict(dpi=10000),dict(height=float('nan')),dict(font_size=0),dict(panel_width=True)]:
+   with self.assertRaises(ValueError):
+    dispatch(dict(command='export_preview',payload=dict(project=p,result=r,settings=settings)))
+  p['revision']+=1
+  with self.assertRaisesRegex(ValueError,'过期'):
+   dispatch(dict(command='export_preview',payload=dict(project=p,result=r)))

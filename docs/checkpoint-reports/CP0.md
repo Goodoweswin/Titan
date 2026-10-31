@@ -7,7 +7,7 @@
 实际基线检查：
 
 ```text
-工作目录 /Users/janus/Desktop/Titan/wb_research/code
+工作目录 wb_research/code
 命令 python3 -m unittest discover -v
 退出码 0
 Ran 21 tests

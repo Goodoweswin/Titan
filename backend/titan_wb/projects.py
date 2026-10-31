@@ -23,7 +23,7 @@ def atomic_json(path,data):
 def check_lock(root,session,acquire=True):
     lock=root/'.writer.lock'
     if lock.exists():
-        owner=json.loads(lock.read_text())
+        owner=json.loads(lock.read_text(encoding='utf-8'))
         if owner!=session:raise ValueError('项目已有写入者。可只读打开；确认旧进程退出后再恢复锁。')
     elif acquire:
         try:
@@ -39,7 +39,7 @@ def save_project(project,path,expected_revision,session):
     root.mkdir(parents=True,exist_ok=True)
     manifest=root/'project.json'
     if manifest.exists():
-        disk=json.loads(manifest.read_text())
+        disk=json.loads(manifest.read_text(encoding='utf-8'))
         if disk['id']!=project['id'] or disk['revision']!=expected_revision:raise ValueError('磁盘项目版本已变化，拒绝覆盖；请重新打开')
     elif any(x.name not in ['.writer.lock'] for x in root.iterdir()):raise ValueError('请选择空项目目录，避免覆盖已有文件')
     check_lock(root,session)
@@ -78,24 +78,55 @@ def open_project(path,session,read_only=False):
 
 def release_project(path,session):
     lock=Path(path)/'.writer.lock'
-    if lock.exists() and json.loads(lock.read_text())==session:lock.unlink()
+    if lock.exists() and json.loads(lock.read_text(encoding='utf-8'))==session:lock.unlink()
+
+
+def process_alive(pid):
+    # A Windows os.kill(pid, 0) is not a POSIX liveness probe. Query only.
+    if pid <= 0:
+        return True
+    if os.name == 'nt':
+        import ctypes
+        from ctypes import wintypes
+        kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+        kernel.OpenProcess.argtypes=[wintypes.DWORD,wintypes.BOOL,wintypes.DWORD]
+        kernel.OpenProcess.restype=wintypes.HANDLE
+        kernel.GetExitCodeProcess.argtypes=[wintypes.HANDLE,ctypes.POINTER(wintypes.DWORD)]
+        kernel.CloseHandle.argtypes=[wintypes.HANDLE]
+        handle=kernel.OpenProcess(0x1000,False,pid)
+        if not handle:
+            # Invalid PID means absent; access denied/unknown is conservatively live.
+            return ctypes.get_last_error()!=87
+        try:
+            code=wintypes.DWORD()
+            if not kernel.GetExitCodeProcess(handle,ctypes.byref(code)):
+                return True
+            return code.value==259
+        finally:
+            kernel.CloseHandle(handle)
+    try:
+        os.kill(pid,0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
 
 
 def recover_project(path,session):
     root=Path(path);lock=root/'.writer.lock'
     if lock.exists():
-        owner=json.loads(lock.read_text())
+        owner=json.loads(lock.read_text(encoding='utf-8'))
         if owner!=session:
-            try:os.kill(int(owner['pid']),0)
-            except ProcessLookupError:lock.unlink()
-            else:raise ValueError('旧写入进程仍在运行，不能恢复锁')
+            if process_alive(int(owner['pid'])):raise ValueError('旧写入进程仍在运行，不能恢复锁')
+            lock.unlink()
     try:
-        content=json.loads((root/'project.json').read_text())
+        content=json.loads((root/'project.json').read_text(encoding='utf-8'))
         validate_project(content)
     except (ValueError,KeyError,TypeError):
         backup=root/'backups/previous.json'
         try:
-            content=json.loads(backup.read_text());validate_project(content)
+            content=json.loads(backup.read_text(encoding='utf-8'));validate_project(content)
         except Exception:raise ValueError('当前manifest损坏，且没有有效备份；原项目保持不变')
         dest=root.with_name(root.stem+'-恢复-'+uuid.uuid4().hex[:8]+'.titanwb')
         shutil.copytree(root,dest,ignore=shutil.ignore_patterns('.writer.lock'))

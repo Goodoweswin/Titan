@@ -16,3 +16,7 @@ test-results/
 playwright-report/
 release/
 .superpowers/
+
+# Shared local dependency links in isolated workspaces
+.venv
+node_modules

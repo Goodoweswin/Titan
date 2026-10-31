@@ -17,12 +17,14 @@ async fn engine(mut request:Value,session:tauri::State<'_,Session>)->Result<Valu
     let mut cmd;
     if cfg!(debug_assertions){
         let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
-        cmd=tokio::process::Command::new(root.join(".venv/bin/python"));
+        cmd=tokio::process::Command::new(root.join(if cfg!(target_os="windows") {".venv/Scripts/python.exe"} else {".venv/bin/python"}));
         cmd.arg(root.join("backend/entry.py"));
     }else{
         let exe=std::env::current_exe().map_err(|e|e.to_string())?;
-        cmd=tokio::process::Command::new(exe.parent().ok_or("找不到引擎目录")?.join("wb-engine"));
+        cmd=tokio::process::Command::new(exe.parent().ok_or("找不到引擎目录")?.join(if cfg!(target_os="windows") {"wb-engine.exe"} else {"wb-engine"}));
     }
+    #[cfg(target_os="windows")]
+    cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW: retain piped JSON stdio.
     cmd.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).kill_on_drop(true);
     let mut child=cmd.spawn().map_err(|e|format!("本地引擎启动失败：{e}"))?;
     let mut stdin=child.stdin.take().ok_or("引擎输入不可用")?;

@@ -1,0 +1,7 @@
+import type {Project} from './types'
+export interface Selection{imageId:string;roiId:string;ids:string[]}
+export default function ProjectNavigator({project,selection,onSelect}:{project:Project;selection:Selection;onSelect:(s:Selection)=>void}){
+ const image=project.images.find(a=>a.id===selection.imageId)??project.images[0]
+ const rois=project.rois.filter(r=>r.image_id===image?.id)
+ return <div className="project-navigator"><div className="sidebar-label">原始图像 <span>{project.images.length}</span></div><div className="asset-list">{project.images.map(a=><button key={a.id} title={a.name} className={image?.id===a.id?'asset selected':'asset'} onClick={()=>onSelect({imageId:a.id,roiId:'',ids:[]})}>{a.name}<small>{a.width} × {a.height}</small></button>)}</div><h3>条带区域 <span>{rois.length}</span></h3><p className="hint">勾选多条，统一调整</p><div className="navigator-rois">{rois.map(r=><div key={r.id} className={selection.roiId===r.id?'navigator-roi selected':'navigator-roi'}><input type="checkbox" aria-label={`批选 ${r.lane_id} ${r.analyte}`} checked={selection.ids.includes(r.id)} onChange={e=>{const ids=e.target.checked?[...selection.ids,r.id]:selection.ids.filter(id=>id!==r.id);onSelect({...selection,roiId:e.target.checked?r.id:ids.at(-1)??'',ids})}}/><button aria-label={`选择 ${r.lane_id} ${r.analyte}`} onClick={()=>onSelect({imageId:r.image_id,roiId:r.id,ids:[]})}><i className={r.role==='target'?'target-dot':'reference-dot'}/>{r.lane_id}<span>{r.analyte}</span><small>{r.reviewed_revision===project.revision?'✓':'待复核'}</small></button></div>)}</div></div>
+}

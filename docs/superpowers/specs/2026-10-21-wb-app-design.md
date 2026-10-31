@@ -1,6 +1,6 @@
 # Titan WB 桌面 App v1 设计提案
 
-日期：2026-10-21。工作目录：`/Users/janus/Desktop/Titan`。
+日期：2026-10-21。工作目录：`<project-root>`。
 
 ## 1. 已确认的目标与本次提案
 

@@ -26,7 +26,13 @@ def dispatch(request):
         return make_demo()
     if command=='import_image':
         from .images import import_image
-        return import_image(payload['project'],payload['path'])
+        return import_image(payload['project'],payload['path'],payload.get('page_index'),payload.get('expected_sha256'))
+    if command=='inspect_image':
+        from .images import inspect_image
+        return inspect_image(payload['path'])
+    if command=='preview_image_page':
+        from .images import preview_image_page
+        return preview_image_page(payload['path'],payload['page_index'],payload.get('expected_sha256'))
     if command=='save_project':
         from .projects import save_project
         return save_project(payload['project'],payload['path'],payload.get('expected_revision'),session)
@@ -45,12 +51,18 @@ def dispatch(request):
     if command=='detect':
         from .detection import detect
         return detect(payload['project'],payload['image_id'],payload['window'],payload.get('settings',{}))
+    if command=='profile':
+        from .profiles import profile
+        return profile(payload['project'],payload['roi_id'])
     if command=='analyze':
         from .analysis import analyze
         return analyze(payload['project'])
+    if command=='export_preview':
+        from .export import export_preview
+        return export_preview(payload['project'],payload['result'],payload.get('settings'))
     if command=='export':
         from .export import export_analysis
-        return export_analysis(payload['project'],payload['result'],payload['destination'])
+        return export_analysis(payload['project'],payload['result'],payload['destination'],payload.get('settings'))
     raise ValueError('不支持的引擎命令')
 
 

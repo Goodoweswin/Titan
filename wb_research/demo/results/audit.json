@@ -836,7 +836,7 @@
   },
   "images": {
     "synthetic": {
-      "path": "/Users/janus/Desktop/Titan/wb_research/demo/SYNTHETIC_ONLY.tif",
+      "path": "wb_research/demo/SYNTHETIC_ONLY.tif",
       "sha256": "056eab1a7dbe7b06655f6b1bee3dce2ca88dbb89e5cbfed5c4c18b9ef8454156",
       "dtype": "uint16",
       "shape": [

@@ -22,7 +22,7 @@
 运行检查：
 
 ```bash
-cd /Users/janus/Desktop/Titan/wb_research/code
+cd wb_research/code
 python3 -m unittest discover -v
 ```
 

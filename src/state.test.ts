@@ -1,5 +1,6 @@
 import {describe,it,expect} from 'vitest'
-import {createProject,editProject,screenToImage,commitResult,mergeSaved,restoreHistory,acceptReview,mergeImported} from './state'
+import {createProject,editProject,screenToImage,commitResult,mergeSaved,restoreHistory,acceptReview,mergeImported,retainResult} from './state'
+import {testProject} from './test-project'
 describe('project identity',()=>{
  it('starts at a clean independent revision',()=>{
   const a=createProject('实验一'), b=createProject('实验二')
@@ -38,8 +39,8 @@ describe('persistence races and history',()=>{
 })
 describe('edits and async revision boundaries',()=>{
  it('invalidates review on every analytical edit without mutating history',()=>{
-  const p=createProject('a');p.rois=[{id:'r',reviewed_revision:0} as any]
-  const q=editProject(p,x=>{x.name='b'})
+  const p=testProject()
+  const q=editProject(p,x=>{x.rois[0].rect=[11,20,31,30]})
   expect(q.revision).toBe(1);expect(q.rois[0].reviewed_revision).toBeNull()
   expect(p.rois[0].reviewed_revision).toBe(0)
  })
@@ -51,5 +52,47 @@ describe('edits and async revision boundaries',()=>{
   const p=createProject('a');p.revision=4
   expect(commitResult(p,{project_id:p.id,input_revision:3} as any)).toBeNull()
   expect(commitResult(p,{project_id:'other',input_revision:4} as any)).toBeNull()
+ })
+})
+
+describe('scoped review and result validity',()=>{
+ it('keeps reviews after rename and rebases an eligible result for export',()=>{
+  const p=testProject(),next=editProject(p,d=>{d.name='renamed'})
+  expect(next.rois.map(r=>r.reviewed_revision)).toEqual([1,1,1,1])
+  const result={project_id:p.id,input_revision:0,measurements:[],normalized:[],biological:[],statistics:[]}
+  expect(retainResult(p,next,result)?.input_revision).toBe(1)
+  expect(result.input_revision).toBe(0)
+ })
+ it('settings require recalculation but preserve all image reviews',()=>{
+  const p=testProject(),next=editProject(p,d=>{d.settings.control_group='treated'})
+  expect(next.rois.map(r=>r.reviewed_revision)).toEqual([1,1,1,1])
+  expect(retainResult(p,next,{project_id:p.id,input_revision:0} as any)).toBeNull()
+ })
+ it('reference edits invalidate dependent target and leave the other lane approved',()=>{
+  const p=testProject(),next=editProject(p,d=>{d.rois[1].rect=[11,60,31,70]})
+  expect(next.rois.map(r=>r.reviewed_revision)).toEqual([null,null,1,1])
+ })
+ it('sample edits only require review of the affected lane',()=>{
+  const p=testProject(),next=editProject(p,d=>{d.samples[0].bio_id='B3'})
+  expect(next.rois.map(r=>r.reviewed_revision)).toEqual([null,null,1,1])
+ })
+ it('image calibration edits invalidate all dependent ROIs',()=>{
+  const p=testProject(),next=editProject(p,d=>{d.images[0].ceiling=65535})
+  expect(next.rois.every(r=>r.reviewed_revision===null)).toBe(true)
+ })
+ it('switching the source page invalidates review even when the file hash is unchanged',()=>{
+  const p=testProject();p.images[0].page_index=0;p.images[0].page_count=2
+  const next=editProject(p,d=>{d.images[0].page_index=1})
+  expect(next.rois.every(r=>r.reviewed_revision===null)).toBe(true)
+ })
+ it('undo does not resurrect invalid approval, but preserves unaffected lanes',()=>{
+  const p=testProject(),next=editProject(p,d=>{d.rois[0].rect=[11,20,31,30]})
+  const undo=restoreHistory(next,p)
+  expect(undo.rois.map(r=>r.reviewed_revision)).toEqual([null,2,2,2])
+ })
+ it('never promotes a stale or foreign result on rename',()=>{
+  const p=testProject(),next=editProject(p,d=>{d.name='new'})
+  expect(retainResult(p,next,{project_id:'other',input_revision:0} as any)).toBeNull()
+  expect(retainResult(p,next,{project_id:p.id,input_revision:8} as any)).toBeNull()
  })
 })

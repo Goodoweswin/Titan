@@ -24,6 +24,8 @@ def validate_project(p):
         if len(set(ids))!=len(ids) or not all(ids):raise ValueError(f'{key}含重复/空ID')
         maps[key]={r['id']:r for r in rows}
     for a in p['images']:
+        if 'page_index' in a and (type(a['page_index']) is not int or a['page_index']<0):raise ValueError('图像页码无效')
+        if 'page_count' in a and (type(a['page_count']) is not int or a['page_count']<1 or a.get('page_index',0)>=a['page_count']):raise ValueError('图像总页数无效')
         if a.get('polarity') not in ['bright','dark']:raise ValueError('图像极性无效')
         c=a.get('ceiling')
         if c is not None and (not isinstance(c,(float,int)) or not np.isfinite(c) or c<=0):raise ValueError('编码上界无效')

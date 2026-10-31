@@ -1,0 +1,17 @@
+{
+  "release": "https://github.com/Goodoweswin/Titan/releases/tag/v0.1.0-beta.2",
+  "source_commit": "e6eb0fb04b21a092bb3a2a54465ab9219ccd3cf4",
+  "server_digests_match_all_checksums": true,
+  "locally_downloaded_and_verified": [
+    "SHA256SUMS.txt",
+    "Titan-WB-0.1.0-macos-arm64-third-party.zip",
+    "Titan-WB-0.1.0-macos-arm64.dmg",
+    "Titan-WB-0.1.0-windows-x64-setup.exe",
+    "Titan-WB-0.1.0-windows-x64-third-party.zip"
+  ],
+  "app_zip_http_head": 200,
+  "app_zip_local_download": false,
+  "license_archives_verified": true,
+  "native_gui_acceptance": false,
+  "real_wb_validation": false
+}

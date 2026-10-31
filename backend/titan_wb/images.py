@@ -17,22 +17,56 @@ def file_hash(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def read_pixels(asset):
     path=Path(asset['path'])
     if not path.is_file() or file_hash(path)!=asset['sha256']:raise ValueError('原图缺失或hash已改变，请恢复原文件')
-    return decode(path)
+    return decode(path,asset.get('page_index'))
 
 
-def decode(path):
+def checked_path(path):
     path=Path(path)
     if path.suffix.lower() not in ['.tif','.tiff','.png']:raise ValueError('仅支持原始灰度TIFF/PNG')
     if path.stat().st_size>MAX_BYTES:raise ValueError('单文件超过50 MiB上限')
+    return path
+
+
+def checked_page_index(index,count):
+    if index is None:
+        if count!=1:raise ValueError('此文件含多页图像，请先预览并选择要导入的页面')
+        return 0
+    if type(index) is not int or not 0<=index<count:raise ValueError('图像页码无效或超出范围')
+    return index
+
+
+def validate_tiff_page(page):
+    if len(page.shape)!=2 or not 0<page.shape[0]*page.shape[1]<=MAX_PIXELS:raise ValueError('请使用单通道且不超过2500万像素的图像')
+    if int(page.photometric)!=1:raise ValueError('请导出MINISBLACK灰度TIFF，避免显示极性歧义')
+    if page.dtype.kind not in 'uif':raise ValueError('图像不是数值灰度图')
+
+
+def inspect_image(path):
+    path=checked_path(path);pages=[]
     if path.suffix.lower() in ['.tif','.tiff']:
         import tifffile
         with tifffile.TiffFile(path) as t:
-            if len(t.pages)!=1:raise ValueError('请先选择并导出单个灰度平面，不自动选择多页图')
-            page=t.pages[0]
-            if len(page.shape)!=2 or page.shape[0]*page.shape[1]>MAX_PIXELS:raise ValueError('请使用单通道且不超过2500万像素的图像')
-            if int(page.photometric)!=1:raise ValueError('请导出MINISBLACK灰度TIFF，避免显示极性歧义')
+            for index,page in enumerate(t.pages):
+                error=None
+                try:validate_tiff_page(page)
+                except ValueError as e:error=str(e)
+                pages.append(dict(page_index=index,width=page.imagewidth,height=page.imagelength,dtype=str(page.dtype),error=error))
+    else:
+        a=decode(path)
+        pages.append(dict(page_index=0,width=a.shape[1],height=a.shape[0],dtype=str(a.dtype),error=None))
+    return dict(name=path.name,sha256=file_hash(path),page_count=len(pages),pages=pages)
+
+
+def decode(path,page_index=None):
+    path=checked_path(path)
+    if path.suffix.lower() in ['.tif','.tiff']:
+        import tifffile
+        with tifffile.TiffFile(path) as t:
+            page=t.pages[checked_page_index(page_index,len(t.pages))]
+            validate_tiff_page(page)
             a=page.asarray()
     else:
+        checked_page_index(page_index,1)
         with Image.open(path) as im:
             if im.mode not in ['L','I','I;16','I;16B','I;16L']:raise ValueError('彩色/调色板图请先明确导出单个检测通道')
             if im.width*im.height>MAX_PIXELS:raise ValueError('图像超过2500万像素上限')
@@ -49,10 +83,21 @@ def preview(a):
     return 'data:image/png;base64,'+base64.b64encode(buf.getvalue()).decode()
 
 
-def import_image(project,path):
-    a=decode(path);p=revised(project)
-    asset=dict(id=uuid.uuid4().hex,name=Path(path).name,path=str(Path(path).resolve()),sha256=file_hash(path),
+def preview_image_page(path,page_index,expected_sha256=None):
+    if expected_sha256 is not None and file_hash(checked_path(path))!=expected_sha256:raise ValueError('原图在选择期间已改变，请重新导入')
+    return preview(decode(path,page_index))
+
+
+def import_image(project,path,page_index=None,expected_sha256=None):
+    info=inspect_image(path)
+    if expected_sha256 is not None and info['sha256']!=expected_sha256:raise ValueError('原图在选择期间已改变，请重新导入')
+    index=checked_page_index(page_index,info['page_count'])
+    a=decode(path,index);p=revised(project)
+    name=Path(path).name
+    if info['page_count']>1:name+=f' · 第 {index+1} 页'
+    asset=dict(id=uuid.uuid4().hex,name=name,path=str(Path(path).resolve()),sha256=info['sha256'],
                width=a.shape[1],height=a.shape[0],dtype=str(a.dtype),preview=preview(a),
                polarity='bright',ceiling=None,exposure='',linear_validated=False)
+    if info['page_count']>1:asset.update(page_index=index,page_count=info['page_count'])
     p['images'].append(asset)
     return p
