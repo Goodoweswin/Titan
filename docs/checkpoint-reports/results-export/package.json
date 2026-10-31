@@ -1,0 +1,10 @@
+{
+  "version": "0.2.1",
+  "source_commit": "24a4524",
+  "archive_sha256": "9a434fbe16f2649dcbe558b80689a0a051c6c4a4312cb74ba395133f56f529a2",
+  "archive_bytes": 62636769,
+  "signature_verified": true,
+  "zip_extraction_verified": true,
+  "installed": false,
+  "user_chose_keep_package": true
+}

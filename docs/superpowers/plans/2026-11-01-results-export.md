@@ -24,8 +24,11 @@
 ### Task 1: 一体化结果与导出
 **Files:** Create backend/titan_wb/workbook.py, tests/test_workbook.py, src/ResultVisualization.tsx; Modify backend/titan_wb/export.py, src/LaneResults.tsx, src/App.tsx, src/ExportPreview.tsx, src/style.css, requirements.lock, tests/browser/lane-workflow.spec.ts, scripts/verify_release.py, scripts/verify_lane_release.py.
 **Interfaces:** write_workbook(project,result,root) writes results.xlsx after plot.png exists. ResultVisualization accepts project/result/onExport; uses existing export_preview RPC with revision guard.
-- [ ] Write and run RED: xlsx contents, numeric values, missing cells/state, literal formula-like text, embedded chart and all-missing plot; browser shows graph and new direct export button.
-- [ ] Implement Excel writer and missing-slot plot handling; add compact result graph/export action and modal content list, keep dimensions advanced in existing dialog.
-- [ ] GREEN: pytest, Vitest, build, browser; packaged workbook readback and existing preview/export byte consistency.
-- [ ] Fresh scoped review, fix Important findings in one pass, verify changed behavior.
-- [ ] Build version 0.2.1, verify signed independent bundle and ZIP, install with recoverable 0.2.0 backup if not running; update guide/report. Native GUI/Fiji/Windows evidence limits remain explicit.
+- [x] Write and run RED: xlsx contents, numeric values, missing cells/state, literal formula-like text, embedded chart and all-missing plot; browser shows graph and new direct export button.
+- [x] Implement Excel writer and missing-slot plot handling; add compact result graph/export action and modal content list, keep dimensions advanced in existing dialog.
+- [x] GREEN: pytest, Vitest, build, browser; packaged workbook readback and existing preview/export byte consistency.
+- [x] Fresh scoped review, fix Important findings in one pass, verify changed behavior.
+- [x] Build version 0.2.1, verify signed independent bundle and ZIP, install with recoverable 0.2.0 backup if not running; update guide/report. Native GUI/Fiji/Windows evidence limits remain explicit.
+
+
+2026-11-01：193 项自动化测试 +5 subtests、打包引擎/Excel、签名/ZIP 校验完成。用户选择先保留更新包，未安装或重启；此为交付选择，非安装已完成。新包原生窗口、Fiji 与 Windows 仍未验收。后续 GraphPad 风格与多组统计另作设计，0.2.1 现有包保持不变。

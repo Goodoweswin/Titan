@@ -68,7 +68,7 @@ def verify(binary, output, source=None):
         p=call('open_project',path=p['project_path']);result=call('analyze',project=p)
         exported=call('export',project=p,result=result,destination=str(output/'export'))
         assert result['lane_results'][0]['normalized']==4
-        book=load_workbook(output/'export/results.xlsx',data_only=True);sheet=list(book['泳道结果'].values());rows=[dict(zip(sheet[0],r)) for r in sheet[1:]]
+        book=load_workbook(output/'export/results.xlsx',data_only=True);sheet=list(book['泳道结果'].values);rows=[dict(zip(sheet[0],r)) for r in sheet[1:]]
         assert rows[0]['目标/内参']==4 and rows[1]['目标/内参'] is None and rows[1]['状态']=='未检出';book.close()
         with zipfile.ZipFile(output/'export/results.xlsx') as archive:assert archive.read('xl/media/image1.png')==(output/'export/plot.png').read_bytes()
         for name,digest in exported['outputs'].items():assert hashlib.sha256((output/'export'/name).read_bytes()).hexdigest()==digest
