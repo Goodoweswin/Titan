@@ -54,3 +54,21 @@ def test_all_missing_lanes_keep_their_plot_positions_and_export_empty_numeric_ce
  book=load_workbook(out/'results.xlsx',data_only=True)
  assert all(r['目标/内参'] is None for r in sheet_rows(book['泳道结果']))
  book.close()
+
+def test_small_nonzero_results_and_p_values_are_not_formatted_as_zero(tmp_path):
+ from openpyxl import load_workbook
+ p=fixture(tmp_path);r=analyze(p);r['lane_results'][0]['normalized']=1e-8;r['normalized'][0]['normalized']=1e-8
+ r['statistics']=[dict(analyte='AKT',comparison_id='test',family_id='family',test='welch',scale='raw',n_a=3,n_b=3,effect=.1,ci95=[.01,.2],p_raw=1e-8,p_adjusted=2e-8,warnings=[])]
+ out=tmp_path/'results';export_analysis(p,r,str(out));book=load_workbook(out/'results.xlsx')
+ for name,title in [('泳道结果','目标/内参'),('统计结果','原始 p')]:
+  ws=book[name];col=[c.value for c in ws[1]].index(title)+1;cell=ws.cell(2,col)
+  assert cell.value==1e-8 and (cell.number_format=='General' or 'E' in cell.number_format)
+ book.close()
+
+def test_excel_measurements_join_to_image_hashes_by_identity_not_filename(tmp_path):
+ from openpyxl import load_workbook
+ p=fixture(tmp_path);p['images'].append({**p['images'][0],'id':'same-name-other-image','sha256':p['images'][0]['sha256']})
+ out=tmp_path/'results';export_analysis(p,analyze(p),str(out));book=load_workbook(out/'results.xlsx',data_only=True)
+ sources={r['图像ID']:r for r in sheet_rows(book['图像来源'])}
+ for measurement in sheet_rows(book['原始测量']):assert sources[measurement['图像ID']]['SHA256']==p['images'][0]['sha256']
+ book.close()

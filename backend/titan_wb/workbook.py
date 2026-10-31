@@ -20,7 +20,8 @@ def table(book,name,columns,rows):
     for row in ws:
         for cell in row:
             if isinstance(cell.value,str):cell.data_type='s'
-            elif isinstance(cell.value,(float,int)) and not isinstance(cell.value,bool):cell.number_format='0.######'
+            elif isinstance(cell.value,(float,int)) and not isinstance(cell.value,bool):
+                cell.number_format='0.000000E+00' if cell.value!=0 and (abs(cell.value)<1e-4 or abs(cell.value)>=1e10) else '0.######'
             cell.alignment=Alignment(vertical='top',wrap_text=True)
     for cell in ws[1]:cell.font=Font(bold=True,color='FFFFFF');cell.fill=PatternFill('solid',fgColor='315D9B')
     ws.freeze_panes='A2';ws.auto_filter.ref=ws.dimensions
@@ -49,7 +50,7 @@ def write_workbook(project,result,root):
     lane_rows=[{**r,**identity(r['lane_id']), 'status':STATUS.get(r['status'],r['status'])} for r in result.get('lane_results',[])]
     table(book,'泳道结果',common+[('corrected_sum','目标净积分'),('reference_analyte','内参蛋白'),('reference_net','内参净积分'),('normalized','目标/内参'),('status','状态'),('flags','质量标记'),('target_roi_id','目标条带ID'),('reference_roi_id','内参条带ID'),('band_set_id','测量集合ID')],lane_rows)
     raw=[{**r,**identity(r['lane_id']), 'source':images[r['image_id']]['name'],'page':images[r['image_id']].get('page_index',0)+1} for r in result['measurements']]
-    table(book,'原始测量',common+[('role','角色'),('area_px','面积 px²'),('raw_sum','原始积分'),('background_mean','背景均值'),('corrected_sum','净积分'),('clipped_fraction','饱和比例'),('source','原图'),('page','页码'),('rect','峰区坐标'),('backgrounds','背景坐标'),('id','条带ID'),('reference_id','内参条带ID'),('reviewed_revision','复核版本'),('flags','质量标记')],raw)
+    table(book,'原始测量',common+[('role','角色'),('area_px','面积 px²'),('raw_sum','原始积分'),('background_mean','背景均值'),('corrected_sum','净积分'),('clipped_fraction','饱和比例'),('image_id','图像ID'),('source','原图'),('page','页码'),('rect','峰区坐标'),('backgrounds','背景坐标'),('id','条带ID'),('reference_id','内参条带ID'),('reviewed_revision','复核版本'),('flags','质量标记')],raw)
     normalized=[]
     for row in result['normalized']:
         target=measurements[row['id']];reference=measurements.get(target.get('reference_id'))
