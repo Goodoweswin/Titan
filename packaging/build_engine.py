@@ -1,5 +1,6 @@
 """Build the scientific executable on its target OS, including Python."""
 import platform
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -23,6 +24,7 @@ def main():
     subprocess.run([sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onedir',
      '--name','wb-engine','--paths',str(ROOT/'backend'),
      '--hidden-import','matplotlib.backends.backend_svg',
+     '--add-data',str(ROOT/'backend/titan_wb/assets')+os.pathsep+'titan_wb/assets',
      '--distpath',str(dest),'--workpath',str(ROOT/'build/engine'),
      '--specpath',str(ROOT/'build'),str(ROOT/'backend/entry.py')],cwd=ROOT,check=True)
 

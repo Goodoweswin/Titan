@@ -69,10 +69,10 @@ def dispatch(request):
         return analyze(payload['project'])
     if command=='export_preview':
         from .export import export_preview
-        return export_preview(payload['project'],payload['result'],payload.get('settings'))
+        return export_preview(payload['project'],payload['result'],payload.get('settings'),payload.get('figure_settings'))
     if command=='export':
         from .export import export_analysis
-        return export_analysis(payload['project'],payload['result'],payload['destination'],payload.get('settings'))
+        return export_analysis(payload['project'],payload['result'],payload['destination'],payload.get('settings'),payload.get('figure_settings'))
     raise ValueError('不支持的引擎命令')
 
 

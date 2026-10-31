@@ -1,0 +1,3 @@
+import type {FigureSettings,PlotSettings} from './types'
+export const defaultPlotSettings:PlotSettings={panel_width:5,height:4,font_size:11,dpi:220}
+export function defaultFigureSettings():FigureSettings{return {kind:'bar_points',value_mode:'normalized',error:'sd',error_direction:'both',colors:{},borders:{},display_labels:{},group_order:[],point_marker:'circle',hollow:true,point_size:4,jitter:.08,error_width:1,error_cap:3,bar_width:.6,bar_gap:.3,axis_width:1,title:'',title_italic:true,x_label:'',y_label:'',label_angle:45,y_min:null,y_max:null,y_step:null,annotations:'none',comparison_ids:[],panel_key:'',show_n:true}}

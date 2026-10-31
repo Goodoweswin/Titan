@@ -40,6 +40,8 @@ for candidate in [python_license, Path(sys.base_prefix) / 'LICENSE.txt', Path(sy
     if candidate.is_file():
         add('python', 'CPython', sys.version.split()[0], 'Python-2.0', [candidate])
         break
+font_license=ROOT/'backend/titan_wb/assets/OFL.txt'
+if font_license.is_file():add('fonts','NotoSansSC','2026-11-01','OFL-1.1',[font_license])
 for package in (ROOT / 'node_modules').glob('**/package.json'):
     try:
         m = json.loads(package.read_text(encoding='utf-8'))

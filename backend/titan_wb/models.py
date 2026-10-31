@@ -49,6 +49,12 @@ def validate_project(p):
         ref=r.get('reference_id')
         if ref:
             if ref not in maps['rois'] or maps['rois'][ref]['role']!='reference':raise ValueError('上样参考引用无效')
+    if 'figure_settings' in p:
+        from .figures import validate_figure_settings
+        validate_figure_settings(p['figure_settings'])
+    if 'plot_settings' in p:
+        from .export import plot_settings
+        plot_settings(p['plot_settings'])
     from .lane_models import validate_lanes
     validate_lanes(p,maps)
     return p
