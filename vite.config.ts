@@ -2,8 +2,12 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import {spawn} from 'node:child_process'
 import path from 'node:path'
+import {mkdtempSync,rmSync} from 'node:fs'
+import {tmpdir} from 'node:os'
 const integration={name:'local-integration-engine',configureServer(server:any){
  if(process.env.TITAN_INTEGRATION!=='1')return
+ const libraryRoot=mkdtempSync(path.join(tmpdir(),'titan-integration-library-'))
+ server.httpServer?.once('close',()=>rmSync(libraryRoot,{recursive:true,force:true}))
  server.middlewares.use('/test-engine',(req:any,res:any)=>{
   let body='';req.on('data',(chunk:any)=>{body+=chunk;if(body.length>20*1024*1024)req.destroy()})
   req.on('end',()=>{
@@ -11,7 +15,7 @@ const integration={name:'local-integration-engine',configureServer(server:any){
    let output='';child.stdout.on('data',(b:any)=>output+=b)
    child.on('error',(e:any)=>{res.statusCode=500;res.end(JSON.stringify({ok:false,error:String(e)}))})
    child.on('close',()=>{res.setHeader('Content-Type','application/json');res.end(output||JSON.stringify({ok:false,error:'test engine exited'}))})
-   try{const request=JSON.parse(body);request.session={pid:process.pid,token:'integration-test'};child.stdin.end(JSON.stringify(request))}catch{child.kill();res.end('{"ok":false,"error":"invalid JSON"}')}
+   try{const request=JSON.parse(body);request.session={pid:process.pid,token:'integration-test',library_root:libraryRoot};child.stdin.end(JSON.stringify(request))}catch{child.kill();res.end('{"ok":false,"error":"invalid JSON"}')}
   })
  })
 }}

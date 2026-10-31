@@ -34,6 +34,24 @@ def dispatch(request):
     if command=='preview_image_page':
         from .images import preview_image_page
         return preview_image_page(payload['path'],payload['page_index'],payload.get('expected_sha256'))
+    if command=='library_list':
+        from .library import library_list
+        return library_list(session)
+    if command=='library_create':
+        from .library import library_create
+        return library_create(payload['name'],session)
+    if command=='library_register':
+        from .library import library_register
+        return library_register(payload['path'],session,payload.get('entry_id'))
+    if command=='library_remove':
+        from .library import library_remove
+        return library_remove(payload['entry_id'],session)
+    if command=='save_figure':
+        from .figure_documents import save_figure
+        return save_figure(payload['project'],payload['result'],payload.get('figure_settings'),payload['name'],session,figure_id=payload.get('figure_id'),expected_version=payload.get('expected_version'),settings=payload.get('settings'),update_source=payload.get('update_source',False),default_key=payload.get('default_key'))
+    if command=='load_figure':
+        from .figure_documents import load_figure
+        return load_figure(payload['path'],payload['figure_id'],session,payload.get('version_id'))
     if command=='save_project':
         from .projects import save_project
         return save_project(payload['project'],payload['path'],payload.get('expected_revision'),session)

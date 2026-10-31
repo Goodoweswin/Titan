@@ -77,7 +77,7 @@ def export_analysis(project,result,destination,settings=None,figure_settings=Non
         config=copy.deepcopy(project);(stage/'originals').mkdir();(stage/'overlays').mkdir()
         for a in config['images']:
             pixels=read_pixels(a);source=Path(a['path']);target=stage/'originals'/(a['id']+source.suffix)
-            shutil.copy2(source,target);a['path']=str(target.relative_to(stage))
+            shutil.copy2(source,target);a['path']=target.relative_to(stage).as_posix()
             lo,hi=np.percentile(pixels,[.5,99.5]);hi=max(hi,lo+1)
             canvas=Image.fromarray(np.uint8(np.clip((pixels.astype(float)-lo)/(hi-lo),0,1)*255)).convert('RGB')
             draw=ImageDraw.Draw(canvas)

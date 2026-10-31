@@ -3,7 +3,7 @@ use tauri::Manager;
 mod engine_worker;
 use engine_worker::EngineWorker;
 
-struct Session { token:String }
+struct Session { token:String, library_root:std::path::PathBuf }
 
 fn decode_response(bytes:&[u8])->Result<Value,String>{
     let v:Value=serde_json::from_slice(bytes).map_err(|_|"计算引擎返回了无效数据".to_string())?;
@@ -14,13 +14,14 @@ fn decode_response(bytes:&[u8])->Result<Value,String>{
 #[tauri::command]
 async fn engine(mut request:Value,session:tauri::State<'_,Session>,worker:tauri::State<'_,EngineWorker>)->Result<Value,String>{
     if !request.is_object(){return Err("请求格式错误".into())}
-    request["session"]=json!({"token":session.token,"pid":std::process::id()});
+    request["session"]=json!({"token":session.token,"pid":std::process::id(),"library_root":session.library_root.to_string_lossy()});
     worker.request(request).await
 }
 
 pub fn run(){
-    tauri::Builder::default().manage(Session{token:uuid::Uuid::new_v4().to_string()})
+    tauri::Builder::default()
       .setup(|app| {
+        app.manage(Session{token:uuid::Uuid::new_v4().to_string(),library_root:app.path().app_local_data_dir()?.join("library")});
         let (program,args)=if cfg!(debug_assertions){
           let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
           (root.join(if cfg!(windows){".venv/Scripts/python.exe"}else{".venv/bin/python"}),vec![root.join("backend/entry.py").into_os_string()])
