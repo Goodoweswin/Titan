@@ -120,6 +120,7 @@ def process_alive(pid):
 
 
 def recover_project(path,session):
+    from .migrations import migrate_project
     root=Path(path);lock=root/'.writer.lock'
     if lock.exists():
         owner=json.loads(lock.read_text(encoding='utf-8'))
@@ -128,11 +129,11 @@ def recover_project(path,session):
             lock.unlink()
     try:
         content=json.loads((root/'project.json').read_text(encoding='utf-8'))
-        validate_project(content)
+        validate_project(migrate_project(content))
     except (ValueError,KeyError,TypeError):
         backup=root/'backups/previous.json'
         try:
-            content=json.loads(backup.read_text(encoding='utf-8'));validate_project(content)
+            content=json.loads(backup.read_text(encoding='utf-8'));validate_project(migrate_project(content))
         except Exception:raise ValueError('当前manifest损坏，且没有有效备份；原项目保持不变')
         dest=root.with_name(root.stem+'-恢复-'+uuid.uuid4().hex[:8]+'.titanwb')
         shutil.copytree(root,dest,ignore=shutil.ignore_patterns('.writer.lock'))

@@ -7,6 +7,8 @@ import {createProject,editProject,commitResult,mergeSaved,restoreHistory,acceptR
 import type {Project,AnalysisResult,Rect,PlotSettings,DetectionPreview,ImageInspection} from './types'
 import ImagePagePicker from './ImagePagePicker'
 import Workspace from './Workspace'
+import LaneSetup from './LaneSetup'
+import LaneResults from './LaneResults'
 import ExportPreview from './ExportPreview'
 import Results from './Results'
 import SampleEditor from './SampleEditor'
@@ -32,6 +34,9 @@ export default function App(){
  const staged=candidates&&candidates.projectId===project?.id&&candidates.revision===project?.revision?candidates:null
  useEffect(()=>{setCandidates(null);setShowExport(false)},[project?.id,project?.revision])
  const [tab,setTab]=useState<'workspace'|'samples'|'results'>('workspace')
+ const [manualMode,setManualMode]=useState(false),[activeSetId,setActiveSetId]=useState('')
+ const guided=!!project&&!(project as any).demo&&!manualMode
+ useEffect(()=>{setManualMode(false);setActiveSetId('')},[project?.id])
  const navigation=useRef(0)
  function navigate(next:typeof tab){navigation.current++;setTab(next)}
  const [busy,setBusy]=useState(''),[message,setMessage]=useState(''),[connected,setConnected]=useState(false)
@@ -40,7 +45,7 @@ export default function App(){
  const [textSize,setTextSize]=useState(()=>{try{return localStorage.getItem('titan-text-size')==='large'?'large':'standard'}catch{return 'standard'}})
  useEffect(()=>{document.documentElement.dataset.textSize=textSize;try{localStorage.setItem('titan-text-size',textSize)}catch{}},[textSize])
  function select(s:Selection){setSelection(s);navigate('workspace')}
- function locate(id:string){const r=project?.rois.find(r=>r.id===id);if(r)select({imageId:r.image_id,roiId:r.id,ids:[]})}
+ function locate(id:string){const r=project?.rois.find(r=>r.id===id);if(r){if(guided&&r.band_set_id){setActiveSetId(r.band_set_id);navigate(r.role==='reference'?'workspace':'samples')}else select({imageId:r.image_id,roiId:r.id,ids:[]})}}
  const [past,setPast]=useState<Project[]>([]),[future,setFuture]=useState<Project[]>([])
  const current=useRef(project),job=useRef(0),persisting=useRef(false);current.current=project
  useEffect(()=>{callEngine('health').then(()=>setConnected(true)).catch(e=>setMessage(String(e)))},[])
@@ -50,7 +55,7 @@ export default function App(){
   try{const value=await task();return job.current===token?value:undefined}catch(e){if(job.current===token)setMessage(String(e));return undefined}
   finally{if(job.current===token)setBusy('')}
  }
- function edit(f:(draft:Project)=>void){if(!project)return;try{const p=editProject(project,f);setPast(v=>[...v.slice(-29),project]);setFuture([]);setProject(p);setResult(r=>retainResult(project,p,r))}catch(e){setMessage(String(e))}}
+ function edit(f:(draft:Project)=>void){if(!project)return;try{const p=editProject(project,f);setPast(v=>[...v.slice(-29),project]);setFuture([]);setProject(p);setResult(r=>retainResult(project,p,r));setMessage('')}catch(e){setMessage(String(e))}}
  async function switchProject(p:Project){
   if(current.current&&current.current.saved_revision!==current.current.revision&&!await ask('当前实验尚有未保存的修改，放弃修改并切换？')){if(p.project_path&&p.project_path!==current.current.project_path)await callEngine('release_project',{path:p.project_path}).catch(()=>{});return}
   const old=current.current
@@ -182,9 +187,17 @@ export default function App(){
   },1500)
   return()=>clearTimeout(timer)
  },[project,busy])
+ useEffect(()=>{
+  if(!guided||!project?.band_sets.length||result?.input_revision===project.revision)return
+  const input=project;let cancelled=false
+  const timer=setTimeout(()=>callEngine<AnalysisResult>('analyze',{project:input}).then(data=>{
+   if(!cancelled&&current.current?.id===input.id&&current.current?.revision===input.revision)setResult(commitResult(input,data))
+  }).catch(e=>{if(!cancelled)setMessage(String(e))}),300)
+  return()=>{cancelled=true;clearTimeout(timer)}
+ },[project,guided])
  const reviewed=project?.rois.filter(r=>r.reviewed_revision===project.revision).length??0
  return <div className="app-shell">
-  <aside className="sidebar"><div className="brand"><div className="brand-mark"><Layers3 size={21}/></div><div className="brand-name"><strong>Titan<span>WB</span></strong><small>你的条带分析工作台</small></div></div>{project&&<ProjectNavigator project={project} selection={selection} onSelect={select}/>}
+  <aside className="sidebar"><div className="brand"><div className="brand-mark"><Layers3 size={21}/></div><div className="brand-name"><strong>Titan<span>WB</span></strong><small>你的条带分析工作台</small></div></div>{project&&(guided?<div className="protein-navigator"><div className="sidebar-label">蛋白</div>{project.band_sets.map(g=><button key={g.id} className={activeSetId===g.id?'selected':''} onClick={()=>{setActiveSetId(g.id);navigate(g.role==='reference'?'workspace':'samples')}}><span>{g.analyte}</span><small>{g.role==='reference'?'内参':'目标'}</small></button>)}{!project.band_sets.length&&<p className="hint">从内参开始</p>}</div>:<ProjectNavigator project={project} selection={selection} onSelect={select}/>)}
    <div className="sidebar-divider"/><div className="sidebar-label">实验项目</div>
    <button className="nav" onClick={()=>switchProject(createProject('未命名实验'))}><Plus size={18}/>新建实验</button><button className="nav" onClick={()=>openProject().catch(e=>setMessage(String(e)))}><FolderOpen size={18}/>打开项目</button><button className="nav" onClick={loadDemo}><Sparkles size={18}/>探索合成示例</button>
    <div className="sidebar-bottom"><ShieldCheck size={19}/><div><strong>本地分析 · 原图保留</strong><small>数据保存在你的电脑</small></div></div>
@@ -196,9 +209,9 @@ export default function App(){
    <div className="welcome-hero"><div className="welcome-copy"><h1>读懂每一条带。<br/>看清每一步。</h1><p>从原始图像，到有据可查的定量结果。<br/>让繁复的分析，回到清晰、专注的工作流。</p><div className="welcome-actions"><button className="btn primary" onClick={()=>switchProject(createProject('未命名实验'))}><Plus size={17}/>新建实验</button><button className="btn secondary" onClick={loadDemo}><Sparkles size={17}/>体验合成示例</button></div><div className="welcome-formats"><span>TIFF / PNG</span><span>8 / 16 位原始数据</span><span>本地计算</span></div></div>
    <div className="welcome-card"><div className="preview-heading"><span><ScanLine size={15}/>条带分析预览</span></div><div className="signal-preview"><div className="preview-lanes" aria-hidden="true">{Array.from({length:6},(_,i)=><span key={i}>L{i+1}</span>)}</div><svg viewBox="0 0 420 174" role="img" aria-label="条带分析流程示意，非实验图像"><defs><linearGradient id="membrane" x2="1" y2="1"><stop stopColor="#e2e6ec"/><stop offset="1" stopColor="#f4f5f8"/></linearGradient><filter id="band-soften"><feGaussianBlur stdDeviation="1.7"/></filter></defs><rect width="420" height="174" rx="5" fill="url(#membrane)"/>{[.42,.6,.48,.83,.67,.9].map((opacity,i)=><g key={i}><rect x={28+i*64} y={53+(i%2)*2} width={36} height={9+(i%3)*2} rx="3" fill="#253140" opacity={opacity} filter="url(#band-soften)"/><rect x={28+i*64} y="122" width={36} height="8" rx="3" fill="#253140" opacity={.58+(i%3)*.05} filter="url(#band-soften)"/><rect x={21+i*64} y="43" width="50" height="32" rx="3" fill="#406de406" stroke="#668bea" strokeWidth=".85"/><rect x={21+i*64} y="111" width="50" height="29" rx="3" fill="none" stroke="#90a1bc" strokeWidth=".8" strokeDasharray="3 3"/></g>)}</svg><div className="preview-legend"><span><i/>目标信号</span><span><i/>上样参考</span><small>分析示意 · 非实验图像</small></div></div><div className="preview-footer"><ShieldCheck size={16}/><div><strong>每一步，都有原始依据</strong><span>原图保留，区域可编辑，结果可追溯。</span></div></div></div></div>
    <div className="welcome-workflow">{welcomeSteps.map(({Icon,title,description},i)=><div key={title}><span className="workflow-icon"><Icon size={19} strokeWidth={1.6}/></span><div><h3>{title}</h3><p>{description}</p></div>{i<2&&<ChevronRight className="workflow-chevron" size={16}/>}</div>)}</div>
-   <div className="welcome-foot"><span>Titan WB 0.1</span><span>科研分析工具 · 真实 WB 数据验证待完成</span></div></section>:
-   <><section className="project-heading"><div><input aria-label="实验名称" className="project-name" readOnly={project.read_only} value={project.name} onChange={e=>edit(p=>p.name=e.target.value)}/><p>{project.images.length} 张原始图像 <span>·</span> {project.rois.length} 个条带区域 <span>·</span> {reviewed} 已复核 {(project as any).demo&&<b className="synthetic-label">纯合成示例 · 非实验数据</b>}</p></div><div className="project-actions"><button className="icon-btn" title="撤销" disabled={!past.length||project.read_only||!!busy} onClick={()=>historyUndo()}><Undo2 size={17}/></button><button className="icon-btn" title="重做" disabled={!future.length||project.read_only||!!busy} onClick={()=>historyUndo(true)}><Redo2 size={17}/></button><button className="btn secondary" disabled={!!busy||project.read_only} onClick={()=>importImages().catch(e=>setMessage(String(e)))}><ImagePlus size={16}/>导入图像</button><button className="btn primary" disabled={!!busy||!project.rois.length} onClick={analyze}><Activity size={16}/>开始定量</button></div></section>
-   <div className="steps">{([['workspace','图像与条带'],['samples','样本与分析设置'],['results','定量结果']] as const).map(([t,label],i)=><button aria-label={label} key={t} onClick={()=>navigate(t)} className={tab===t?'selected':''} aria-current={tab===t?'step':undefined}><span>0{i+1}</span>{label}</button>)}<div className="steps-note"><ShieldCheck size={14}/>原始像素参与计算</div></div>
-   <section className={`page-content ${tab==='workspace'?'workbench-page':''}`}><QualityPanel project={project} result={result} onLocate={locate}/>{tab==='workspace'?<Workspace project={project} onEdit={edit} onDetect={detect} candidates={staged} onCandidates={setCandidates} onAcceptCandidates={acceptCandidates} onReview={review} busy={!!busy} selection={selection} onSelect={setSelection}/>:tab==='samples'?<SampleEditor project={project} onEdit={edit} onReview={review}/>:<Results project={project} result={result} onLocate={locate} onAnalyze={analyze}/>}</section></>}
+   <div className="welcome-foot"><span>Titan WB 0.2</span><span>科研分析工具 · 真实 WB 数据验证待完成</span></div></section>:
+   <><section className="project-heading"><div><input aria-label="实验名称" className="project-name" readOnly={project.read_only} value={project.name} onChange={e=>edit(p=>p.name=e.target.value)}/><p>{project.images.length} 张原始图像 <span>·</span> {project.rois.length} 个条带区域 <span>·</span> {reviewed} 已复核 {(project as any).demo&&<b className="synthetic-label">纯合成示例 · 非实验数据</b>}</p></div><div className="project-actions"><button className="icon-btn" title="撤销" disabled={!past.length||project.read_only||!!busy} onClick={()=>historyUndo()}><Undo2 size={17}/></button><button className="icon-btn" title="重做" disabled={!future.length||project.read_only||!!busy} onClick={()=>historyUndo(true)}><Redo2 size={17}/></button><button className="btn secondary" disabled={!!busy||project.read_only} onClick={()=>importImages().catch(e=>setMessage(String(e)))}><ImagePlus size={16}/>导入图像</button>{!guided&&<button className="btn primary" disabled={!!busy||!project.rois.length} onClick={analyze}><Activity size={16}/>开始定量</button>}{manualMode&&<button className="btn secondary" onClick={()=>{setManualMode(false);navigate('workspace')}}>返回简洁流程</button>}</div></section>
+   <div className="steps">{(guided?([['workspace','内参'],['samples','目标'],['results','结果']] as const):([['workspace','图像与条带'],['samples','样本与分析设置'],['results','定量结果']] as const)).map(([t,label],i)=><button aria-label={label} key={t} onClick={()=>navigate(t)} className={tab===t?'selected':''} aria-current={tab===t?'step':undefined}><span>0{i+1}</span>{label}</button>)}<div className="steps-note"><ShieldCheck size={14}/>原始像素参与计算</div></div>
+   <section className={`page-content ${tab==='workspace'?'workbench-page':''}`}>{guided?(tab==='results'?<LaneResults project={project} result={result} onEdit={edit} onReview={review} onLocate={locate} onAnalyze={analyze}/>:<LaneSetup project={project} stage={tab==='workspace'?'reference':'targets'} activeSetId={activeSetId} onSet={setActiveSetId} onEdit={edit} onImport={()=>importImages().catch(e=>setMessage(String(e)))} onTarget={()=>{setActiveSetId('');navigate('samples')}} onManual={()=>{setManualMode(true);navigate('workspace')}}/>):<><QualityPanel project={project} result={result} onLocate={locate}/>{tab==='workspace'?<Workspace project={project} onEdit={edit} onDetect={detect} candidates={staged} onCandidates={setCandidates} onAcceptCandidates={acceptCandidates} onReview={review} busy={!!busy} selection={selection} onSelect={setSelection}/>:tab==='samples'?<SampleEditor project={project} onEdit={edit} onReview={review}/>:<Results project={project} result={result} onLocate={locate} onAnalyze={analyze}/>}</>}</section></>}
   {pageChoice&&<ImagePagePicker path={pageChoice.path} info={pageChoice.info} onChoose={choosePages}/>} {showExport&&project&&result&&<ExportPreview project={project} result={result} onClose={()=>setShowExport(false)} onExport={exportResult}/>}<footer className="statusbar"><span><ShieldCheck size={12}/>原图与预览分离 · 本地运行</span><span>{project?`项目版本 ${project.revision} · ${dirty?'有未保存修改':'已保存'}`:'Titan WB · 本地科研工作台'}</span></footer></div></div>
 }

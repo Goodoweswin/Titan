@@ -52,9 +52,18 @@ def dispatch(request):
     if command=='detect':
         from .detection import detect
         return detect(payload['project'],payload['image_id'],payload['window'],payload.get('settings',{}))
+    if command=='detect_lanes':
+        from .lanes import detect_lanes
+        return detect_lanes(payload['project'],payload['image_id'],payload['window'],payload.get('excluded_regions'),payload.get('expected_count'))
     if command=='profile':
         from .profiles import profile
         return profile(payload['project'],payload['roi_id'])
+    if command=='lane_profile':
+        from .bands import lane_profile
+        return lane_profile(payload['project'],payload['layout_id'],payload['lane_id'],payload.get('window'))
+    if command=='propose_bands':
+        from .bands import propose_bands
+        return propose_bands(payload['project'],payload['band_set_id'],payload.get('settings',{}))
     if command=='analyze':
         from .analysis import analyze
         return analyze(payload['project'])

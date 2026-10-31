@@ -23,7 +23,7 @@ def measure_project(project):
 def analyze(project):
     from .normalization import normalize
     measurements=measure_project(project)
-    rows,bio=normalize(project,measurements)
+    rows,bio=normalize(project,measurements,summarize=not project['band_sets'] or project['settings'].get('design_confirmed',False))
     statistics=[]
     from .statistics import compare,holm
     for spec in project['settings'].get('comparisons',[]):
@@ -38,5 +38,6 @@ def analyze(project):
     for family in {r['family_id'] for r in statistics}:
         valid=[r for r in statistics if r['family_id']==family and r['p_raw'] is not None]
         for r,p in zip(valid,holm([r['p_raw'] for r in valid])):r['p_adjusted']=p
+    from .lane_results import lane_result_rows
     return dict(project_id=project['id'],input_revision=project['revision'],measurements=measurements,
-                normalized=rows,biological=bio,statistics=statistics)
+                normalized=rows,biological=bio,statistics=statistics,lane_results=lane_result_rows(project,measurements,rows))

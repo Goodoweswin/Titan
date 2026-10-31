@@ -63,7 +63,11 @@ def plot_results(result,root,settings=None):
     matplotlib.use('Agg')
     from matplotlib import pyplot as plt
     settings=plot_settings(settings)
-    grouped=plot_groups(result['biological'])
+    lane_mode=not result['biological'] and bool(result.get('lane_results'))
+    values=result['biological']
+    if lane_mode:
+        values=[dict(analyte=r['analyte'],analysis_block=r['membrane_id'],group=r['lane_id']+'/'+r['sample_id'],value=r['normalized'],fold=None,pair_id='') for r in result['lane_results'] if r['normalized'] is not None]
+    grouped=plot_groups(values)
     width=settings['panel_width']*max(1,len(grouped))
     if width*settings['height']*settings['dpi']**2 > 20_000_000:
         raise ValueError('图表超过2000万像素，请降低尺寸或DPI')
@@ -83,7 +87,7 @@ def plot_results(result,root,settings=None):
         for points in paired.values():
             if len(points)==2:ax.plot(*zip(*points),color='#bac9c0',linewidth=1,zorder=1)
         ax.set_xticks(range(len(groups)),groups);ax.set_ylabel('Relative signal (fold where available)')
-        ax.set_title(analyte+' / '+block+' (mean +/- SD)');ax.spines[['top','right']].set_visible(False)
+        ax.set_title(analyte+' / '+block+(' (per-lane ratio)' if lane_mode else ' (mean +/- SD)'));ax.spines[['top','right']].set_visible(False)
     if not grouped:axs[0,0].text(.5,.5,'No eligible biological values',ha='center')
     try:
         for ax in axs[0]:
@@ -107,6 +111,7 @@ def export_analysis(project,result,destination,settings=None):
     stage=Path(tempfile.mkdtemp(prefix='.titan-export-',dir=dest.parent))
     try:
         for name in ['measurements','normalized','biological','statistics']:csv_file(stage/(name+'.csv'),result[name])
+        if result.get('lane_results'):csv_file(stage/'lanes.csv',result['lane_results'])
         (stage/'analysis.json').write_text(json.dumps(result,ensure_ascii=False,indent=2,allow_nan=False),encoding='utf-8')
         config=copy.deepcopy(project);(stage/'originals').mkdir();(stage/'overlays').mkdir()
         for a in config['images']:
@@ -121,7 +126,7 @@ def export_analysis(project,result,destination,settings=None):
                 draw.rectangle([x0,y0,x1-1,y1-1],outline=color,width=1)
                 for x0,y0,x1,y1 in r['backgrounds']:draw.rectangle([x0,y0,x1-1,y1-1],outline='orange',width=1)
             canvas.save(stage/'overlays'/(a['id']+'.png'))
-        for k in ['project_path','saved_revision','read_only']:config.pop(k,None)
+        for k in ['project_path','saved_revision','read_only','upgrade_from']:config.pop(k,None)
         (stage/'project.json').write_text(json.dumps(config,ensure_ascii=False,indent=2,allow_nan=False),encoding='utf-8')
         plot_results(result,stage,settings)
         manifest=dict(software='Titan WB '+__version__,project_id=project['id'],revision=project['revision'],

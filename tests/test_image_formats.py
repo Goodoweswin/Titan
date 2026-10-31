@@ -12,6 +12,7 @@ def test_inverted_gray_lzw_palette_preserves_indices_and_metadata(tmp_path):
  asset=import_image(new_project('gray'),str(path))['images'][0]
  assert asset['display_inverted'] is True and asset['polarity']=='bright'
  assert asset['photometric']=='palette' and asset['gray_lut'][0]>asset['gray_lut'][-1]
+ assert inspect_image(path)['pages'][0]['display_inverted'] is True
 
 def test_miniswhite_preserves_16bit_values(tmp_path):
  path=tmp_path/'white.tif';a=np.array([[0,4095,65535]],dtype=np.uint16)

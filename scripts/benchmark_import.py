@@ -18,7 +18,8 @@ def benchmark(binary,source,repeats=5):
         try:
             health,_=call('health');cold=time.perf_counter()-start
             info,listing=call('inspect_image',dict(path=str(source)))
-            page=next(row['page_index'] for row in info['pages'] if row['error'] is None)
+            eligible=[row for row in info['pages'] if row['error'] is None]
+            page=next((row['page_index'] for row in eligible if row['dtype']=='uint16'),eligible[0]['page_index'])
             _,preview=call('preview_image_page',dict(path=str(source),page_index=page,expected_sha256=info['sha256']))
             project,_=call('new_project',dict(name='性能验证'))
             _,importing=call('import_image',dict(project=project,path=str(source),page_index=page,expected_sha256=info['sha256']))

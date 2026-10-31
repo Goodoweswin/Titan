@@ -68,6 +68,7 @@ export function pasteSamples(p:Project,text:string){
 }
 export const flagLabels:Record<string,string>={missing_background:'缺少背景',missing_reference:'缺少参考',reference_lane_mismatch:'参考泳道不匹配',review_required:'待复核',signal_clipped:'像素端点饱和',background_clipped:'背景像素饱和',nonpositive_signal:'净信号非正',linearity_not_validated:'线性范围未验证',clipping_unknown:'编码范围未知',missing_control:'缺少对照组',nonpositive_ratio_input:'归一化输入非正'}
 export function flagLabel(flag:string):string{
+ if(flag==='target_not_detected')return '该泳道未检出目标'
  if(flag.startsWith('reference:'))return '参考：'+flagLabel(flag.slice(10))
  if(flag.startsWith('ibc:'))return '跨膜参考：'+flagLabel(flag.slice(4))
  if(flag.startsWith('measurement_error:'))return '测量失败：'+flag.slice(18)

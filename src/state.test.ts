@@ -2,6 +2,10 @@ import {describe,it,expect} from 'vitest'
 import {createProject,editProject,screenToImage,commitResult,mergeSaved,restoreHistory,acceptReview,mergeImported,retainResult} from './state'
 import {testProject} from './test-project'
 describe('project identity',()=>{
+ it('changing a sample display name preserves its measured ROI approval',()=>{
+  const p=testProject(),next=editProject(p,d=>{d.samples[0].name='样本 A'})
+  expect(next.rois.every(r=>r.reviewed_revision===next.revision)).toBe(true)
+ })
  it('starts at a clean independent revision',()=>{
   const a=createProject('实验一'), b=createProject('实验二')
   expect(a.revision).toBe(0);expect(a.schema_version).toBe(2)

@@ -63,7 +63,8 @@ def inspect_image(path):
                 error=None
                 try:validate_tiff_page(page)
                 except ValueError as e:error=str(e)
-                pages.append(dict(page_index=index,width=page.imagewidth,height=page.imagelength,dtype=str(page.dtype),error=error))
+                inverted=int(page.photometric)==0 or (int(page.photometric)==3 and error is None and bool(page.colormap[0,0]>page.colormap[0,-1]))
+                pages.append(dict(page_index=index,width=page.imagewidth,height=page.imagelength,dtype=str(page.dtype),error=error,display_inverted=inverted))
     else:
         a=decode(path)
         pages.append(dict(page_index=0,width=a.shape[1],height=a.shape[0],dtype=str(a.dtype),error=None))

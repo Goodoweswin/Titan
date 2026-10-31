@@ -3,7 +3,7 @@ from collections import defaultdict
 import numpy as np
 
 
-def normalize(project,measurements):
+def normalize(project,measurements,*,summarize=True):
     samples={s['id']:s for s in project['samples']};lanes={l['id']:l for l in project['lanes']}
     by_id={r['id']:r for r in measurements}
     rows=[]
@@ -24,6 +24,7 @@ def normalize(project,measurements):
         rows.append(dict(id=r['id'],sample_id=sample['id'],bio_id=sample['bio_id'],pair_id=sample.get('pair_id',''),
            group=sample['group'],membrane_id=lane['membrane_id'],analyte=r['analyte'],normalized=value,bridged=None,
            kind=sample.get('kind','biological'),pool_id=sample.get('pool_id',''),flags=sorted(set(flags))))
+    if not summarize:return rows,[]
     grouped=defaultdict(list)
     for r in rows:
         if r['normalized'] is not None and r['kind']=='biological':grouped[(r['sample_id'],r['membrane_id'],r['analyte'])].append(r)

@@ -1,0 +1,12 @@
+import type {Project,AnalysisResult} from './types'
+import SampleEditor from './SampleEditor'
+import Results from './Results'
+import {flagLabel,flagSource} from './workflow'
+export default function LaneResults({project,result,onEdit,onReview,onLocate,onAnalyze}:{project:Project;result:AnalysisResult|null;onEdit:(f:(p:Project)=>void)=>void;onReview:()=>void;onLocate:(id:string)=>void;onAnalyze:()=>void}){
+ const current=result?.input_revision===project.revision?result:null
+ const format=(n:number|null)=>n==null?'—':n.toLocaleString(undefined,{maximumFractionDigits:4})
+ const labels:Record<string,string>={valid:'已计算',not_detected:'未检出',excluded:'已排除',pending:'待确认',blocked:'需处理'}
+ return <div className="lane-results"><div className="section-title"><div><h2>泳道定量结果</h2><p>每个目标使用同一泳道的内参净积分归一化；空值保留原因。</p></div></div>{!current?<p role="status">{project.band_sets.some(g=>g.role==='target')?'正在更新当前结果…':'确认内参并添加目标后，这里显示归一化结果。'}</p>:<><div className="table-wrap"><table aria-label="泳道定量结果"><thead><tr><th>泳道 / 样本</th><th>目标</th><th>目标净积分</th><th>内参净积分</th><th>目标 / 内参</th><th>状态</th></tr></thead><tbody>{current.lane_results?.map((r,i)=><tr key={`${r.band_set_id}-${r.lane_id}-${i}`}><td>{r.lane_id} / {project.samples.find(s=>s.id===r.sample_id)?.name||r.sample_id}<small>{r.membrane_id}</small></td><td>{r.analyte}</td><td>{format(r.corrected_sum)}</td><td>{format(r.reference_net)}</td><td><strong>{format(r.normalized)}</strong></td><td><span title={r.flags.map(flagLabel).join('；')}>{labels[r.status]??r.status}</span>{r.status==='blocked'&&r.target_roi_id&&<><button className="text-btn" onClick={()=>onLocate(flagSource(project,r.target_roi_id!,r.flags.find(f=>f.startsWith('reference:'))??r.flags[0]??'').roiId)}>查看原图</button><small>{r.flags.map(flagLabel).join('；')}</small></>}</td></tr>)}</tbody></table></div>{current.lane_results?.some(r=>r.flags.length>0)&&<details className="lane-advanced"><summary>采集与测量提示</summary><p className="hint">{Array.from(new Set(current.lane_results.flatMap(r=>r.flags.map(flagLabel)))).join('；')}。采集信息未完整确认时，比值用于探索性分析。</p></details>}</>}
+ <details className="lane-advanced"><summary>样本信息、分组与统计</summary><p className="hint">仅在做分组比较时配置生物学与技术重复；泳道数不会自动作为生物学重复数。</p><SampleEditor project={project} onEdit={onEdit} onReview={onReview}/><button className="btn secondary" disabled={project.read_only} onClick={()=>onEdit(p=>{p.settings.design_confirmed=true})}>确认实验设计</button>{project.settings.design_confirmed&&<Results project={project} result={current} onLocate={onLocate} onAnalyze={onAnalyze}/>}</details>
+ </div>
+}

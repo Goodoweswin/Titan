@@ -43,12 +43,19 @@ function reviewInput(p:Project,r:ROI):string {
  const sample=p.samples.find(s=>s.id===lane?.sample_id)
  const ref=p.rois.find(x=>x.id===r.reference_id)
  const layout=p.lane_layouts.find(l=>l.id===r.lane_layout_id)
- return JSON.stringify([annotation,layout&&[layout.image_id,layout.window,layout.columns.find(c=>c.lane_id===r.lane_id)],image&&[image.id,image.sha256,image.page_index??0,image.width,image.height,image.dtype,image.polarity,image.ceiling],lane,sample,
+ const sampleIdentity=sample?{...sample,name:undefined}:undefined
+ return JSON.stringify([annotation,layout&&[layout.image_id,layout.window,layout.columns.find(c=>c.lane_id===r.lane_id)],image&&[image.id,image.sha256,image.page_index??0,image.width,image.height,image.dtype,image.polarity,image.ceiling],lane,sampleIdentity,
   ref&&{...ref,reviewed_revision:undefined},ref&&p.images.find(a=>a.id===ref.image_id)?.sha256])
 }
 function carryReviews(previous:Project,next:Project){
+ for(const layout of next.lane_layouts){
+  const old=previous.lane_layouts.find(l=>l.id===layout.id)
+  if(layout.confirmed_revision===next.revision)continue
+  if(old){const {confirmed_revision:_,...a}=old,{confirmed_revision:__,...b}=layout;layout.confirmed_revision=old.confirmed_revision===previous.revision&&JSON.stringify(a)===JSON.stringify(b)?next.revision:null}
+ }
  for(const roi of next.rois){
   const old=previous.rois.find(r=>r.id===roi.id)
+  if(roi.band_set_id&&roi.reviewed_revision===next.revision)continue
   // The reference itself must also retain its pixel/calibration approval.
   const ref=previous.rois.find(r=>r.id===roi.reference_id),newRef=next.rois.find(r=>r.id===roi.reference_id)
   const referenceUnchanged=!ref||!!newRef&&reviewInput(previous,ref)===reviewInput(next,newRef)
@@ -56,7 +63,7 @@ function carryReviews(previous:Project,next:Project){
  }
 }
 function calculationInput(p:Project){
- return JSON.stringify({lane_layouts:p.lane_layouts,band_sets:p.band_sets,images:p.images.map(({path,preview,display_inverted,...a})=>a),samples:p.samples,lanes:p.lanes,settings:p.settings,
+ return JSON.stringify({lane_layouts:p.lane_layouts.map(l=>({...l,confirmed_revision:l.confirmed_revision===p.revision})),band_sets:p.band_sets,images:p.images.map(({path,preview,display_inverted,...a})=>a),samples:p.samples,lanes:p.lanes,settings:p.settings,
   rois:p.rois.map(r=>({...r,reviewed_revision:r.reviewed_revision===p.revision}))})
 }
 export function retainResult(previous:Project,next:Project,result:AnalysisResult|null):AnalysisResult|null {

@@ -4,7 +4,7 @@ import pytest
 from PIL import Image
 from titan_wb.models import new_project,validate_project
 from titan_wb.images import import_image
-from titan_wb.projects import save_project,open_project
+from titan_wb.projects import save_project,open_project,recover_project
 
 def project(tmp_path):
  path=tmp_path/'a.png';Image.fromarray(np.zeros((40,60),dtype=np.uint8)).save(path)
@@ -41,6 +41,7 @@ def test_v1_migration_requires_new_copy_and_does_not_invent_geometry(tmp_path):
  migrated=open_project(str(root),session)
  assert migrated['schema_version']==2 and migrated['lane_layouts']==[]
  assert migrated['lanes']==p['lanes'] and migrated['upgrade_from']==str(root)
+ assert recover_project(str(root),session)['schema_version']==2
  with pytest.raises(ValueError):save_project(migrated,str(root),p['revision'],session)
  saved=save_project(migrated,str(tmp_path/'new.titanwb'),None,session)
  assert saved['schema_version']==2 and (root/'project.json').read_text()==raw
