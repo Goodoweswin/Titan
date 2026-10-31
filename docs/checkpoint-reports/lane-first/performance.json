@@ -1,0 +1,61 @@
+{
+  "binary": "Titan WB 0.2.0.app/Contents/Resources/engine/wb-engine/wb-engine",
+  "source_name": "108603.tif",
+  "file_bytes": 12413842,
+  "repeats": 5,
+  "runs": [
+    {
+      "cold_start": 0.7812757090432569,
+      "listing": 0.09795850003138185,
+      "preview": 0.07395416696090251,
+      "import_page": 0.006068042013794184,
+      "worker_starts": 1
+    },
+    {
+      "cold_start": 0.07265387498773634,
+      "listing": 0.03994683304335922,
+      "preview": 0.07144254096783698,
+      "import_page": 0.005939083988778293,
+      "worker_starts": 1
+    },
+    {
+      "cold_start": 0.07135158299934119,
+      "listing": 0.03814837499521673,
+      "preview": 0.0711256250506267,
+      "import_page": 0.005958415917120874,
+      "worker_starts": 1
+    },
+    {
+      "cold_start": 0.07331945898476988,
+      "listing": 0.038883417029865086,
+      "preview": 0.07269941689446568,
+      "import_page": 0.006113083916716278,
+      "worker_starts": 1
+    },
+    {
+      "cold_start": 0.07286887499503791,
+      "listing": 0.03871666605118662,
+      "preview": 0.07242874999064952,
+      "import_page": 0.0064845000160858035,
+      "worker_starts": 1
+    }
+  ],
+  "summary": {
+    "cold_start": {
+      "median": 0.07286887499503791,
+      "maximum": 0.7812757090432569
+    },
+    "listing": {
+      "median": 0.038883417029865086,
+      "maximum": 0.09795850003138185
+    },
+    "preview": {
+      "median": 0.07242874999064952,
+      "maximum": 0.07395416696090251
+    },
+    "import_page": {
+      "median": 0.006068042013794184,
+      "maximum": 0.0064845000160858035
+    }
+  }
+}

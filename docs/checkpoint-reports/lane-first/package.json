@@ -1,0 +1,10 @@
+{
+  "version": "0.2.0",
+  "source_commit": "2a05435",
+  "architecture": "arm64",
+  "archive_sha256": "06ef2a9ff36bee464e0cb464c44932bac45e5c4a9bbc3e42b733f1e4f073a7c6",
+  "archive_bytes": 62107318,
+  "signature_verified": true,
+  "installed_matches_archive": true,
+  "native_window_verified": false
+}

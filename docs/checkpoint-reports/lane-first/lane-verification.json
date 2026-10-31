@@ -1,0 +1,50 @@
+{
+  "version": {
+    "protocol": 1,
+    "transport_version": 2,
+    "worker_pid": 93307,
+    "version": "0.2.0",
+    "engine": "Python / NumPy"
+  },
+  "compressed_miniswhite": [
+    {
+      "page_index": 0,
+      "dtype": "uint8",
+      "display_inverted": true,
+      "raw_sum_matches": true,
+      "background_matches": true
+    },
+    {
+      "page_index": 0,
+      "dtype": "uint16",
+      "display_inverted": true,
+      "raw_sum_matches": true,
+      "background_matches": true
+    }
+  ],
+  "source_pages": [
+    {
+      "page_index": 0,
+      "dtype": "uint8",
+      "display_inverted": true,
+      "raw_sum_matches": true,
+      "background_matches": true
+    },
+    {
+      "page_index": 1,
+      "dtype": "uint16",
+      "display_inverted": false,
+      "raw_sum_matches": true,
+      "background_matches": true
+    }
+  ],
+  "source_hash_unchanged": true,
+  "target_raw": 48000,
+  "target_net": 32000,
+  "reference_net": 8000,
+  "ratio": 4,
+  "missing_lane": null,
+  "display_changes_numerics": false,
+  "save_reopen_export": true,
+  "worker_starts": 1
+}
