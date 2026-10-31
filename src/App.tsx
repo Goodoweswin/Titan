@@ -85,7 +85,7 @@ export default function App(){
  async function saveProject(asCopy=false){
   if(!project)return
   if(persisting.current){setMessage('自动保存正在完成，请稍后再试。');return}
-  let path:string|null|undefined=asCopy?null:project.project_path
+  let path:string|null|undefined=asCopy||project.upgrade_from?null:project.project_path
   if(!path)path=await save({defaultPath:`${project.name.replace(/[\/\\:]/g,'_')}.titanwb`,title:'保存为项目文件夹',filters:[{name:'Titan WB 项目',extensions:['titanwb']}]})
   if(!path)return
   const dest=path
@@ -94,7 +94,7 @@ export default function App(){
    if(current.current?.id!==saved.id)await callEngine('release_project',{path:saved.project_path}).catch(()=>{})
    return saved
   })
-  if(p){setProject(current=>mergeSaved(current,p));setMessage('实验已保存；保存期间的新修改仍保留。')}
+  if(p){if(project.project_path&&project.project_path!==p.project_path)await callEngine('release_project',{path:project.project_path}).catch(()=>{});setProject(current=>{const merged=mergeSaved(current,p);if(merged)delete merged.upgrade_from;return merged});setMessage('实验已保存；保存期间的新修改仍保留。')}
  }
  async function openProject(){
   const path=await open({directory:true,multiple:false,title:'选择 .titanwb 项目文件夹'});if(!path||Array.isArray(path))return
@@ -169,7 +169,7 @@ export default function App(){
   }).then(fn=>stop=fn);return()=>stop?.()
  },[])
  useEffect(()=>{
-  if(!project?.project_path||project.read_only||project.saved_revision===project.revision||busy)return
+  if(!project?.project_path||project.read_only||project.upgrade_from||project.saved_revision===project.revision||busy)return
   const input=project
   const timer=setTimeout(async()=>{
    if(persisting.current)return;persisting.current=true

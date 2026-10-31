@@ -4,7 +4,7 @@ import {testProject} from './test-project'
 describe('project identity',()=>{
  it('starts at a clean independent revision',()=>{
   const a=createProject('实验一'), b=createProject('实验二')
-  expect(a.revision).toBe(0);expect(a.schema_version).toBe(1)
+  expect(a.revision).toBe(0);expect(a.schema_version).toBe(2)
   expect(a.id).not.toBe(b.id);expect(a.rois).toEqual([])
  })
  it('rejects an empty experiment name',()=>{expect(()=>createProject('  ')).toThrow()})

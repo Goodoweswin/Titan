@@ -7,13 +7,13 @@ from .quantify import _slice
 
 def new_project(name):
     if not isinstance(name,str) or not name.strip():raise ValueError('请输入实验名称')
-    return dict(id=uuid.uuid4().hex,name=name.strip(),schema_version=1,revision=0,
-                images=[],samples=[],lanes=[],rois=[],settings=dict(control_group='control',
+    return dict(id=uuid.uuid4().hex,name=name.strip(),schema_version=2,revision=0,
+                images=[],samples=[],lanes=[],rois=[],lane_layouts=[],band_sets=[],settings=dict(control_group='control',
                 normalization_mode='within',ibc_by_membrane={},analysis_blocks=[],comparisons=[]))
 
 
 def validate_project(p):
-    if p.get('schema_version')!=1:raise ValueError('不支持此项目版本，请使用兼容版本打开')
+    if p.get('schema_version')!=2:raise ValueError('不支持此项目版本，请使用兼容版本打开')
     if not isinstance(p.get('revision'),int) or p['revision']<0:raise ValueError('项目版本无效')
     if not p.get('id') or not p.get('name','').strip():raise ValueError('项目身份缺失')
     maps={}
@@ -49,6 +49,8 @@ def validate_project(p):
         ref=r.get('reference_id')
         if ref:
             if ref not in maps['rois'] or maps['rois'][ref]['role']!='reference':raise ValueError('上样参考引用无效')
+    from .lane_models import validate_lanes
+    validate_lanes(p,maps)
     return p
 
 

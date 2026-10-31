@@ -1,7 +1,7 @@
 import type {Project,Rect,AnalysisResult,ROI} from './types'
 export function createProject(name:string):Project{
  if(!name.trim())throw new Error('请输入实验名称')
- return {id:crypto.randomUUID(),name:name.trim(),revision:0,schema_version:1,images:[],samples:[],lanes:[],rois:[],settings:{control_group:'control',normalization_mode:'within',ibc_by_membrane:{},analysis_blocks:[],comparisons:[]}}
+ return {id:crypto.randomUUID(),name:name.trim(),revision:0,schema_version:2,lane_layouts:[],band_sets:[],images:[],samples:[],lanes:[],rois:[],settings:{control_group:'control',normalization_mode:'within',ibc_by_membrane:{},analysis_blocks:[],comparisons:[]}}
 }
 export function editProject(project:Project,mutate:(draft:Project)=>void):Project{
  if(project.read_only)throw new Error('只读项目不能编辑，请另存副本')
@@ -42,7 +42,8 @@ function reviewInput(p:Project,r:ROI):string {
  const lane=p.lanes.find(l=>l.id===r.lane_id)
  const sample=p.samples.find(s=>s.id===lane?.sample_id)
  const ref=p.rois.find(x=>x.id===r.reference_id)
- return JSON.stringify([annotation,image&&[image.id,image.sha256,image.page_index??0,image.width,image.height,image.dtype,image.polarity,image.ceiling],lane,sample,
+ const layout=p.lane_layouts.find(l=>l.id===r.lane_layout_id)
+ return JSON.stringify([annotation,layout&&[layout.image_id,layout.window,layout.columns.find(c=>c.lane_id===r.lane_id)],image&&[image.id,image.sha256,image.page_index??0,image.width,image.height,image.dtype,image.polarity,image.ceiling],lane,sample,
   ref&&{...ref,reviewed_revision:undefined},ref&&p.images.find(a=>a.id===ref.image_id)?.sha256])
 }
 function carryReviews(previous:Project,next:Project){
@@ -55,7 +56,7 @@ function carryReviews(previous:Project,next:Project){
  }
 }
 function calculationInput(p:Project){
- return JSON.stringify({images:p.images.map(({path,preview,display_inverted,...a})=>a),samples:p.samples,lanes:p.lanes,settings:p.settings,
+ return JSON.stringify({lane_layouts:p.lane_layouts,band_sets:p.band_sets,images:p.images.map(({path,preview,display_inverted,...a})=>a),samples:p.samples,lanes:p.lanes,settings:p.settings,
   rois:p.rois.map(r=>({...r,reviewed_revision:r.reviewed_revision===p.revision}))})
 }
 export function retainResult(previous:Project,next:Project,result:AnalysisResult|null):AnalysisResult|null {

@@ -35,6 +35,7 @@ def save_project(project,path,expected_revision,session):
     validate_project(project)
     if project.get('read_only'):raise ValueError('只读项目不能保存，请另存副本')
     root=Path(path).expanduser().resolve()
+    if project.get('upgrade_from') and root==Path(project['upgrade_from']).resolve():raise ValueError('旧项目升级需要另存新副本，原项目保持不变')
     if root.suffix!='.titanwb':raise ValueError('项目目录名需以.titanwb结尾')
     root.mkdir(parents=True,exist_ok=True)
     manifest=root/'project.json'
@@ -54,7 +55,7 @@ def save_project(project,path,expected_revision,session):
             if dest.exists() and file_hash(dest)!=a['sha256']:raise ValueError('项目原图冲突')
             if not dest.exists():shutil.copy2(source,dest)
         a['path']=str(dest.relative_to(root))
-    for key in ['project_path','saved_revision','read_only']:p.pop(key,None)
+    for key in ['project_path','saved_revision','read_only','upgrade_from']:p.pop(key,None)
     if manifest.exists():
         (root/'backups').mkdir(exist_ok=True)
         shutil.copy2(manifest,root/'backups/previous.json')
@@ -65,6 +66,10 @@ def save_project(project,path,expected_revision,session):
 def open_project(path,session,read_only=False):
     root=Path(path).expanduser().resolve()
     p=json.loads((root/'project.json').read_text(encoding='utf-8'))
+    legacy=p.get('schema_version')==1
+    disk_revision=p['revision']
+    from .migrations import migrate_project
+    p=migrate_project(p)
     validate_project(p)
     for a in p['images']:
         full=(root/a['path']).resolve()
@@ -72,7 +77,8 @@ def open_project(path,session,read_only=False):
         if not full.is_file() or file_hash(full)!=a['sha256']:raise ValueError('项目原图缺失或hash不匹配')
         a['path']=str(full)
     if not read_only:check_lock(root,session)
-    p.update(project_path=str(root),saved_revision=p['revision'],read_only=read_only)
+    p.update(project_path=str(root),saved_revision=disk_revision,read_only=read_only)
+    if legacy:p['upgrade_from']=str(root)
     return p
 
 

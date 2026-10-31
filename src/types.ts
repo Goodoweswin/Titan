@@ -3,9 +3,9 @@ export interface ImageAsset{id:string;name:string;path:string;sha256:string;page
 export interface ImageInspection{name:string;sha256:string;page_count:number;pages:{page_index:number;width:number;height:number;dtype:string;error:string|null}[]}
 export interface Sample{id:string;bio_id:string;group:string;pair_id:string;kind:'biological'|'ibc';pool_id:string}
 export interface Lane{id:string;membrane_id:string;sample_id:string;technical_id:string}
-export interface ROI{id:string;image_id:string;lane_id:string;analyte:string;role:'target'|'reference';rect:Rect;backgrounds:Rect[];reference_id:string|null;reviewed_revision:number|null}
+export interface ROI{id:string;image_id:string;lane_id:string;analyte:string;role:'target'|'reference';rect:Rect;backgrounds:Rect[];reference_id:string|null;reviewed_revision:number|null;lane_layout_id?:string;band_set_id?:string}
 export interface ComparisonSpec{id:string;family_id:string;group_a:string;group_b:string;test:'descriptive'|'welch'|'paired';scale:'raw'|'log2'}
-export interface Project{id:string;name:string;schema_version:1;revision:number;images:ImageAsset[];samples:Sample[];lanes:Lane[];rois:ROI[];settings:{control_group:string;normalization_mode:'within'|'ibc';ibc_by_membrane:Record<string,Record<string,string>>;analysis_blocks:{id:string;membrane_ids:string[];pooled_reference_id:string;merge_same_sample:boolean}[];comparisons:ComparisonSpec[]};saved_revision?:number;project_path?:string;read_only?:boolean}
+export interface Project{id:string;name:string;schema_version:2;revision:number;lane_layouts:LaneLayout[];band_sets:BandSet[];upgrade_from?:string;images:ImageAsset[];samples:Sample[];lanes:Lane[];rois:ROI[];settings:{control_group:string;normalization_mode:'within'|'ibc';ibc_by_membrane:Record<string,Record<string,string>>;analysis_blocks:{id:string;membrane_ids:string[];pooled_reference_id:string;merge_same_sample:boolean}[];comparisons:ComparisonSpec[]};saved_revision?:number;project_path?:string;read_only?:boolean}
 export interface Measurement{id:string;image_id:string;lane_id:string;analyte:string;role:string;area_px:number;raw_sum:number;background_mean:number;corrected_sum:number;clipped_fraction:number|null;flags:string[]}
 export interface Normalized{id:string;sample_id:string;bio_id:string;pair_id:string;group:string;membrane_id:string;analyte:string;normalized:number|null;bridged:number|null;flags:string[];kind:string}
 export interface BioValue{sample_id:string;bio_id:string;pair_id:string;group:string;analyte:string;membrane_id:string;analysis_block:string;value:number;n_technical:number;fold:number|null;flags:string[]}
@@ -15,3 +15,8 @@ export interface SignalProfileData{project_id:string;input_revision:number;roi_i
 export interface PlotSettings{panel_width:number;height:number;font_size:number;dpi:number}
 export interface PlotPreview{png:string;width:number;height:number;settings:PlotSettings}
 export interface DetectionPreview{projectId:string;revision:number;imageId:string;analyte:string;role:'target'|'reference';boxes:Rect[];included:number[]}
+
+export interface LaneColumn{lane_id:string;rect:Rect}
+export interface LaneLayout{id:string;image_id:string;membrane_id:string;window:Rect;columns:LaneColumn[];excluded_regions:Rect[];source_layout_id:string|null;confirmed_revision:number|null}
+export interface BandAssignment{lane_id:string;roi_id:string|null;status:'pending'|'accepted'|'not_detected'|'excluded'}
+export interface BandSet{id:string;layout_id:string;analyte:string;role:'target'|'reference';window:Rect;reference_set_id:string|null;assignments:BandAssignment[]}
