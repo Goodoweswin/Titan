@@ -7,6 +7,8 @@ import argparse, hashlib, json, os, struct, subprocess
 from pathlib import Path
 import numpy as np
 import tifffile
+import zipfile
+from openpyxl import load_workbook
 from PIL import Image
 
 
@@ -66,10 +68,13 @@ def verify(binary, output, source=None):
         p=call('open_project',path=p['project_path']);result=call('analyze',project=p)
         exported=call('export',project=p,result=result,destination=str(output/'export'))
         assert result['lane_results'][0]['normalized']==4
+        book=load_workbook(output/'export/results.xlsx',data_only=True);sheet=list(book['泳道结果'].values());rows=[dict(zip(sheet[0],r)) for r in sheet[1:]]
+        assert rows[0]['目标/内参']==4 and rows[1]['目标/内参'] is None and rows[1]['状态']=='未检出';book.close()
+        with zipfile.ZipFile(output/'export/results.xlsx') as archive:assert archive.read('xl/media/image1.png')==(output/'export/plot.png').read_bytes()
         for name,digest in exported['outputs'].items():assert hashlib.sha256((output/'export'/name).read_bytes()).hexdigest()==digest
         call('release_project',path=p['project_path'])
         assert call('health')['worker_pid']==health['worker_pid']
-        report=dict(version=health,compressed_miniswhite=checks,source_pages=real,source_hash_unchanged=bool(source),target_raw=48000,target_net=32000,reference_net=8000,ratio=4,missing_lane=None,display_changes_numerics=False,save_reopen_export=True,worker_starts=1)
+        report=dict(version=health,compressed_miniswhite=checks,source_pages=real,source_hash_unchanged=bool(source),target_raw=48000,target_net=32000,reference_net=8000,ratio=4,missing_lane=None,display_changes_numerics=False,save_reopen_export=True,worker_starts=1,excel_numeric_and_missing_verified=True,excel_embedded_plot_matches=True)
         (output/'lane-release-verification.json').write_text(json.dumps(report,ensure_ascii=False,indent=2));print(json.dumps(report,ensure_ascii=False,indent=2))
     finally:
         worker.stdin.close()

@@ -11,6 +11,8 @@ import os
 import shutil
 import subprocess
 import tempfile
+import zipfile
+from openpyxl import load_workbook
 from pathlib import Path
 
 
@@ -52,6 +54,11 @@ def verify(app,output):
         assert reopened['id']==project['id']
         exported=call('export',dict(project=project,result=result,destination=str(root/'导出结果')))
         assert (root/'导出结果/plot.svg').is_file()
+        book=load_workbook(root/'导出结果/results.xlsx',data_only=True)
+        assert book['原始测量'].max_row==25 and book['生物学汇总'].max_row==7
+        book.close()
+        with zipfile.ZipFile(root/'导出结果/results.xlsx') as archive:
+            assert archive.read('xl/media/image1.png')==(root/'导出结果/plot.png').read_bytes()
         assert hashlib.sha256(base64.b64decode(preview['png'].split(',')[1])).hexdigest()==exported['outputs']['plot.png']
         for name, digest in exported['outputs'].items():
             assert hashlib.sha256((root/'导出结果'/name).read_bytes()).hexdigest()==digest
@@ -63,7 +70,7 @@ def verify(app,output):
              measurements=24,targets=12,blocked=1,biological_units=6,save_reopen=True,export_files=len(exported['outputs']),
              signature_verify_exit=sig.returncode,signature_verify_message=sig.stderr,
              profile_matches_measurement=True,preview_matches_export=True,
-             native_window_verified=False,real_wb_verified=False)
+             native_window_verified=False,real_wb_verified=False,excel_workbook_verified=True,excel_embedded_plot_matches=True)
         (output/'release-verification.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
         print(json.dumps(report,ensure_ascii=False,indent=2))
 

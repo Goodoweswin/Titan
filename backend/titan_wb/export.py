@@ -66,7 +66,7 @@ def plot_results(result,root,settings=None):
     lane_mode=not result['biological'] and bool(result.get('lane_results'))
     values=result['biological']
     if lane_mode:
-        values=[dict(analyte=r['analyte'],analysis_block=r['membrane_id'],group=r['lane_id']+'/'+r['sample_id'],value=r['normalized'],fold=None,pair_id='') for r in result['lane_results'] if r['normalized'] is not None]
+        values=[dict(analyte=r['analyte'],analysis_block=r['membrane_id'],group=r['lane_id']+'/'+r['sample_id'],value=r['normalized'],fold=None,pair_id='',status=r['status']) for r in result['lane_results'] ]
     grouped=plot_groups(values)
     width=settings['panel_width']*max(1,len(grouped))
     if width*settings['height']*settings['dpi']**2 > 20_000_000:
@@ -77,18 +77,24 @@ def plot_results(result,root,settings=None):
         paired={}
         for i,g in enumerate(groups):
             vals=[b for b in rows if b['group']==g]
-            values=[b['fold'] if b['fold'] is not None else b['value'] for b in vals]
-            jitter=np.linspace(-.09,.09,len(values)) if len(values)>1 else [0]
+            eligible=[b for b in vals if b['value'] is not None]
+            values=[b['fold'] if b['fold'] is not None else b['value'] for b in eligible]
+            jitter=np.linspace(-.09,.09,len(values)) if len(values)>1 else np.zeros(len(values))
+            if not values:
+                missing=all(b.get('status')=='not_detected' for b in vals)
+                ax.text(i,.04,'ND' if missing else 'NA',transform=ax.get_xaxis_transform(),ha='center',color='#6b778c')
             ax.scatter(i+np.array(jitter),values,s=45,color=['#247a68','#bf874a'][i%2],zorder=3)
             if values:ax.hlines(np.mean(values),i-.18,i+.18,color='#233b35',linewidth=2)
             if len(values)>1:ax.errorbar(i,np.mean(values),yerr=np.std(values,ddof=1),fmt='none',ecolor='#233b35',capsize=4,linewidth=1)
-            for b,y in zip(vals,values):
+            for b,y in zip(eligible,values):
                 if b.get('pair_id'):paired.setdefault(b['pair_id'],[]).append((i,y))
         for points in paired.values():
             if len(points)==2:ax.plot(*zip(*points),color='#bac9c0',linewidth=1,zorder=1)
-        ax.set_xticks(range(len(groups)),groups);ax.set_ylabel('Relative signal (fold where available)')
+        ax.set_xticks(range(len(groups)),groups);ax.set_ylabel('Target / reference ratio' if lane_mode else 'Relative signal (fold where available)')
+        if lane_mode:
+            ax.set_ylim(bottom=0);ax.tick_params(axis='x',labelrotation=35)
         ax.set_title(analyte+' / '+block+(' (per-lane ratio)' if lane_mode else ' (mean +/- SD)'));ax.spines[['top','right']].set_visible(False)
-    if not grouped:axs[0,0].text(.5,.5,'No eligible biological values',ha='center')
+    if not grouped:axs[0,0].text(.5,.5,'No eligible values',ha='center')
     try:
         for ax in axs[0]:
             ax.tick_params(labelsize=settings['font_size'])
@@ -129,6 +135,8 @@ def export_analysis(project,result,destination,settings=None):
         for k in ['project_path','saved_revision','read_only','upgrade_from']:config.pop(k,None)
         (stage/'project.json').write_text(json.dumps(config,ensure_ascii=False,indent=2,allow_nan=False),encoding='utf-8')
         plot_results(result,stage,settings)
+        from .workbook import write_workbook
+        write_workbook(project,result,stage)
         manifest=dict(software='Titan WB '+__version__,project_id=project['id'],revision=project['revision'],
           synthetic=bool(project.get('demo')),plot_settings=settings,outputs={str(p.relative_to(stage)):file_hash(p) for p in stage.rglob('*') if p.is_file()},
           limitations=['Digitally unclipped does not prove linear response','Human review and linearity fields are declarations','Real WB validation pending'])

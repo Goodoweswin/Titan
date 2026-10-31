@@ -29,7 +29,8 @@ export default function ExportPreview({project,result,onClose,onExport}:{project
  <fieldset className="export-settings" disabled={exporting}>{([['panel_width','每面板宽度 in',3,8],['height','图表高度 in',3,8],['font_size','图表字号 pt',8,24],['dpi','图表 DPI',72,300]] as const).map(([k,label,min,max])=><label key={k}>{label}<input type="number" min={min} max={max} step={k==='panel_width'||k==='height'?.5:1} value={settings[k]} onChange={e=>{setExportError('');setSettings(s=>({...s,[k]:Number(e.target.value)}))}}/></label>)}</fieldset>
  <div className="export-canvas">{!valid?<p role="alert">尺寸须为 3–8 in，字号 8–24 pt，DPI 72–300。</p>:current?.error?<p role="alert">{current.error}</p>:current?.data?<img src={current.data.png} alt="实际导出图表"/>:<p role="status">正在生成图表预览…</p>}</div>
  {current?.data&&valid&&<p data-testid="export-dimensions">PNG：{current.data.width} × {current.data.height} px · 同时导出 SVG 矢量图</p>}
- <p className="hint">整图宽度随分析面板数量增加。导出还包含 CSV、原始图像、标注与审计记录；预览缩放仅影响屏幕显示。</p>
+ <p className="hint">整图宽度随分析面板数量增加。预览缩放仅影响屏幕显示。</p>
+ <div className="export-contents"><p><strong>results.xlsx</strong> · 泳道结果、原始测量、内参归一化、样本与来源、汇总/统计、图表。</p><p><strong>plot.png / plot.svg</strong> · 当前图表；另附 CSV、原图、标注与审计记录。</p><p className="hint">Excel 数值可继续计算；未检出为空值，状态列保留原因。</p></div>
  {exportError&&<p role="alert">{exportError}</p>}
  <div className="export-actions"><button className="btn primary" disabled={!valid||!current?.data||exporting} onClick={confirmExport}>{exporting?'正在导出…':'选择目录并导出'}</button></div>
  </dialog>

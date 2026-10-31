@@ -49,6 +49,7 @@ test('reference first workflow preserves missing target slot and simple three-st
  await expect(page.getByRole('table',{name:'泳道定量结果'})).toBeVisible()
  const rows=page.getByRole('table',{name:'泳道定量结果'}).locator('tbody tr')
  await expect(rows).toHaveCount(5)
+ await expect(page.getByRole('img',{name:'当前结果图表',exact:true})).toBeVisible()
  await expect(rows.nth(0)).toContainText('L1 / 样本 A')
  await expect(rows.nth(0)).toContainText('pAKT')
  await expect(rows.nth(2)).toContainText('未检出')
@@ -67,6 +68,16 @@ test('reference first workflow preserves missing target slot and simple three-st
  await expect(rows.nth(8)).toContainText('L4 / S4')
  await expect(rows.nth(8)).toContainText('2')
  await expect(rows.nth(7)).toContainText('未检出')
+ await page.getByRole('button',{name:'导出 Excel 与图表',exact:true}).click()
+ await expect(page.getByText('results.xlsx',{exact:true})).toBeVisible()
+ const exportPath=path.join(root,'excel-export')
+ await page.evaluate((dest:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async(c:string)=>{if(c==='plugin:dialog|save')return dest;throw Error(c)}}},exportPath)
+ await page.getByRole('button',{name:'选择目录并导出',exact:true}).click()
+ await expect(page.getByText('已导出到 '+exportPath,{exact:true})).toBeVisible()
+ const summary=JSON.parse(execFileSync(path.resolve('.venv/bin/python'),['-c',`import sys,json,openpyxl
+b=openpyxl.load_workbook(sys.argv[1],data_only=True);w=b['泳道结果'];r=list(w.values);rows=[dict(zip(r[0],v)) for v in r[1:]]
+print(json.dumps({'rows':len(rows),'missing':sum(v['目标/内参'] is None for v in rows),'first':rows[0]['目标/内参']}));b.close()`,path.join(exportPath,'results.xlsx')],{encoding:'utf8'}))
+ expect(summary).toEqual({rows:10,missing:2,first:2})
 })
 
 test('cancelled lane recognition cannot add late suggestions',async({page})=>{

@@ -545,3 +545,12 @@ dialog.source-dialog::backdrop { background: #24365066; }
 .protein-navigator small { font-size:.7rem; }
 @media(max-width:1150px){.lane-workspace{grid-template-columns:minmax(0,1fr) 245px;gap:15px}.lane-task{padding:16px}.lane-toolbar .tool{padding:7px 5px}}
 @media(max-width:850px){.lane-workspace{grid-template-columns:1fr}.lane-task{position:static}.lane-canvas-scroll{min-height:240px}.lane-toolbar{gap:10px}}
+
+.result-visualization { margin-top:28px; border-top:1px solid var(--border); padding-top:22px; }
+.result-visualization .card-heading { align-items:baseline; flex-wrap:wrap; gap:10px; }
+.result-visualization h3 { margin:0; }
+.result-figure { min-height:180px; max-height:520px; overflow:auto; background:#fff; border:1px solid var(--border); border-radius:8px; padding:14px; }
+.result-figure img { display:block; max-width:none; height:auto; }
+.result-figure>p { color:var(--muted); padding:40px 20px; }
+.export-contents { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px 16px; margin:16px 0; }
+.export-contents p { line-height:1.7; margin:4px 0; }
