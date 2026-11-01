@@ -1,6 +1,6 @@
 import {it,expect} from 'vitest'
 import {testProject} from './test-project'
-import {acceptLaneLayout,createBandSet,alignLaneLayout,acceptBandAssignments,copyLaneLayout,linkReferenceSet,applyPreparedDraft} from './lane-workflow'
+import {acceptLaneLayout,createBandSet,alignLaneLayout,setLaneRect,acceptBandAssignments,copyLaneLayout,linkReferenceSet,applyPreparedDraft} from './lane-workflow'
 import type {LaneProposal} from './types'
 it('uses explicit candidate identity, never the filtered candidate index',()=>{
  const p=testProject()
@@ -39,4 +39,23 @@ it('keeps empty lane slots and reuses reference identity for another target imag
  expect(p).toEqual(before)
  expect(()=>alignLaneLayout(p,other,{dx:200,dy:0,scaleX:1,anchorX:0})).toThrow()
  expect(p).toEqual(before)
+})
+
+it('rejects lane edits outside their analysis window without altering the draft',()=>{
+ const p=testProject();p.lane_layouts.push({id:'crop',image_id:'im',membrane_id:'M1',window:[20,10,80,90],columns:[{lane_id:'L1',rect:[30,10,50,90]}],excluded_regions:[],source_layout_id:null,confirmed_revision:0})
+ const before=structuredClone(p)
+ expect(()=>setLaneRect(p,'crop','L1',[19,10,50,90])).toThrow()
+ expect(p).toEqual(before)
+})
+it('fits a different target crop using the selected regions and retains lane identities',()=>{
+ const p=testProject();p.images.push({...p.images[0],id:'target',width:500,height:400})
+ p.lane_layouts.push({id:'ref',image_id:'im',membrane_id:'M1',window:[10,20,90,50],columns:[{lane_id:'L1',rect:[20,20,40,50]},{lane_id:'L2',rect:[60,20,80,50]}],excluded_regions:[],source_layout_id:null,confirmed_revision:0})
+ const id=copyLaneLayout(p,'ref','target',[100,250,340,290],[10,20,90,50])
+ const l=p.lane_layouts.find(l=>l.id===id)!
+ expect(l.window).toEqual([100,250,340,290]);expect(l.columns).toEqual([{lane_id:'L1',rect:[130,250,190,290]},{lane_id:'L2',rect:[250,250,310,290]}])
+})
+it('a second protein on the same image preserves x coordinates and uses the new band height',()=>{
+ const p=testProject();p.lane_layouts.push({id:'ref',image_id:'im',membrane_id:'M1',window:[10,10,90,30],columns:[{lane_id:'L1',rect:[20,10,40,30]}],excluded_regions:[],source_layout_id:null,confirmed_revision:0})
+ const id=copyLaneLayout(p,'ref','im',[5,60,95,85],[10,10,90,30])
+ expect(p.lane_layouts.find(l=>l.id===id)!.columns[0].rect).toEqual([20,60,40,85])
 })

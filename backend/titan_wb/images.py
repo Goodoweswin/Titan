@@ -15,10 +15,17 @@ MAX_PIXELS=25_000_000
 def file_hash(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def read_pixels(asset):
+def read_source_pixels(asset):
     path=Path(asset['path'])
     if not path.is_file() or file_hash(path)!=asset['sha256']:raise ValueError('原图缺失或hash已改变，请恢复原文件')
     return cached_pixels(path,asset.get('page_index'),asset['sha256'])
+
+
+def read_pixels(asset):
+    from .image_rotation import checked_degrees,rotate_pixels
+    angle=checked_degrees(asset.get('rotation_degrees',0));raw=read_source_pixels(asset)
+    if not angle:return raw
+    return CACHE.get_pixels(('rotation',asset['sha256'],asset.get('page_index',0),angle),lambda:rotate_pixels(raw,angle))
 
 
 def cached_pixels(path,index,digest):

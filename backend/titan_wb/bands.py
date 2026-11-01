@@ -18,7 +18,7 @@ def _parts(project,layout_id,lane_id,window=None):
 def lane_profile(project,layout_id,lane_id,window=None):
     layout,asset,rect=_parts(project,layout_id,lane_id,window)
     pixels=read_pixels(asset);_slice(rect,pixels.shape)
-    key=('lane-profile',asset['sha256'],asset.get('page_index',0),asset['polarity'],asset.get('ceiling'),tuple(rect))
+    key=('lane-profile',asset['sha256'],asset.get('page_index',0),asset.get('rotation_degrees',0),asset['polarity'],asset.get('ceiling'),tuple(rect))
     def calculate():
         signal=_oriented(pixels,asset['polarity'],asset.get('ceiling'));x0,y0,x1,y1=rect
         sub=signal[y0:y1,x0:x1];rows=sub.sum(axis=1);step=max(1,int(np.ceil(len(rows)/1200)))

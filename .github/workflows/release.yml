@@ -17,6 +17,8 @@ jobs:
             platform: macos-arm64
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    env:
+      PYTHONUTF8: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -36,6 +38,13 @@ jobs:
         run: |
           rustup default stable-x86_64-pc-windows-msvc
           ./packaging/build_windows.ps1
+          $engine = 'src-tauri/engine/wb-engine/wb-engine.exe'
+          .venv/Scripts/python.exe scripts/verify_lane_release.py --binary $engine --output artifacts/lane-verification
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged lane verification failed' }
+          .venv/Scripts/python.exe scripts/verify_publication_release.py $engine artifacts/publication-verification
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged publication verification failed' }
+          .venv/Scripts/python.exe scripts/verify_rotation_release.py --binary $engine --output artifacts/rotation-verification
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged rotation verification failed' }
           New-Item -ItemType Directory -Force dist-release | Out-Null
           Copy-Item 'src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*-setup.exe' 'dist-release/Titan-${{ env.APP_VERSION }}-windows-x64-setup.exe'
           .venv/Scripts/python.exe scripts/package_notices.py dist-release/Titan-${{ env.APP_VERSION }}-windows-x64-third-party.zip
@@ -53,9 +62,22 @@ jobs:
           .venv/bin/python packaging/build_engine.py
           npm run desktop:build -- --target aarch64-apple-darwin --bundles app,dmg
           .venv/bin/python scripts/verify_release.py --app 'src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Titan.app' --output artifacts/release-verification
+          ENGINE='src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Titan.app/Contents/Resources/engine/wb-engine/wb-engine'
+          .venv/bin/python scripts/verify_lane_release.py --binary "$ENGINE" --output artifacts/lane-verification
+          .venv/bin/python scripts/verify_publication_release.py "$ENGINE" artifacts/publication-verification
+          .venv/bin/python scripts/verify_rotation_release.py --binary "$ENGINE" --output artifacts/rotation-verification
           cp src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg dist-release/Titan-${{ env.APP_VERSION }}-macos-arm64.dmg
           ditto -c -k --sequesterRsrc --keepParent 'src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Titan.app' dist-release/Titan-${{ env.APP_VERSION }}-macos-arm64.app.zip
           .venv/bin/python scripts/package_notices.py dist-release/Titan-${{ env.APP_VERSION }}-macos-arm64-third-party.zip
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification-${{ matrix.platform }}
+          path: |
+            artifacts/**/*verification*.json
+            artifacts/**/engine-stderr.log
+          if-no-files-found: warn
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
           name: release-${{ matrix.platform }}

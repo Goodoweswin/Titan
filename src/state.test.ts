@@ -100,3 +100,14 @@ describe('scoped review and result validity',()=>{
   expect(retainResult(p,next,{project_id:p.id,input_revision:8} as any)).toBeNull()
  })
 })
+it('undo keeps portable original paths established by a completed save',()=>{
+ const before=testProject(),current=structuredClone(before)
+ current.images[0].path='/saved.titanwb/originals/im.tif';current.saved_revision=before.revision;current.revision++
+ const restored=restoreHistory(current,before)
+ expect(restored.images[0].path).toBe('/saved.titanwb/originals/im.tif')
+ expect(restored.images[0].preview).toBe(before.images[0].preview)
+})
+it('rotating an image invalidates its prior ROI approval even when dimensions are unchanged',()=>{
+ const p=testProject(),next=editProject(p,d=>{d.images[0].rotation_degrees=2})
+ expect(next.rois.filter(r=>r.image_id===p.images[0].id).every(r=>r.reviewed_revision===null)).toBe(true)
+})

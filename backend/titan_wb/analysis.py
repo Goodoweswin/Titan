@@ -11,7 +11,10 @@ def measure_project(project):
     for r in project['rois']:
         a=assets[r['image_id']]
         try:
-            m=measure(pixels[a['id']],r['rect'],r['backgrounds'],polarity=a['polarity'],ceiling=a.get('ceiling'))
+            if a.get('rotation_degrees',0):
+                from .image_rotation import measure_original
+                m=measure_original(a,r['rect'],r['backgrounds'])
+            else:m=measure(pixels[a['id']],r['rect'],r['backgrounds'],polarity=a['polarity'],ceiling=a.get('ceiling'))
         except ValueError as e:
             m=dict(area_px=0,raw_sum=None,background_mean=None,corrected_sum=None,clipped_fraction=None,flags=['measurement_error:'+str(e)])
         if r.get('reviewed_revision')!=project['revision']:m['flags'].append('review_required')

@@ -28,6 +28,9 @@ def dispatch(request):
     if command=='import_image':
         from .images import import_image
         return import_image(payload['project'],payload['path'],payload.get('page_index'),payload.get('expected_sha256'))
+    if command=='rotate_image':
+        from .image_rotation import rotate_image
+        return rotate_image(payload['project'],payload['image_id'],payload['degrees'])
     if command=='inspect_image':
         from .images import inspect_image
         return inspect_image(payload['path'])

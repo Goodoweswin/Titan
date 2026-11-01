@@ -22,8 +22,8 @@ def profile(project, roi_id):
                for i in range(0, len(rows), step)]
     measurement, warning = None, None
     try:
-        measurement = measure(pixels, roi['rect'], roi['backgrounds'],
-                              polarity=asset['polarity'], ceiling=asset.get('ceiling'))
+        from .image_rotation import measure_original
+        measurement = measure_original(asset,roi['rect'],roi['backgrounds'])
     except ValueError as exc:
         warning = '背景尚不可用于扣除，请检查背景框：' + str(exc)
     return dict(project_id=project['id'], input_revision=project['revision'], roi_id=roi_id,

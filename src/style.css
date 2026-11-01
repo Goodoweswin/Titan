@@ -598,3 +598,31 @@ dialog.source-dialog::backdrop { background: #24365066; }
  .header-actions{min-width:0;max-width:100%;flex-shrink:1}
 }
 @media(max-width:520px){.header-actions{justify-content:flex-start}.figure-common,.figure-fields{grid-template-columns:1fr}}
+
+.lane-tool-hint { padding:7px 14px; font-size:.76rem; color:var(--muted); border-bottom:1px solid var(--border); }
+.lane-canvas-scroll svg:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+.rotation-dialog { width:min(760px,calc(100vw - 32px)); }
+.rotation-preview { height:min(44vh,390px); background:#171b23; position:relative; overflow:hidden; display:grid; place-items:center; margin:18px 0; border-radius:8px; }
+.rotation-preview img { width:100%; height:100%; object-fit:contain; transition:transform .08s linear; }
+.rotation-grid { position:absolute; inset:0; pointer-events:none; background:repeating-linear-gradient(0deg,transparent 0,transparent 39px,#ffffff25 40px),repeating-linear-gradient(90deg,transparent 0,transparent 39px,#ffffff25 40px); }
+.rotation-controls { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
+.rotation-controls label { display:flex; align-items:center; gap:8px; margin:0; }
+.rotation-controls input { width:100px; }
+.rotation-dialog>input[type=range] { width:100%; margin:20px 0 4px; }
+.lane-mapping { margin:12px 0; padding:14px; border:1px solid var(--border); border-radius:8px; }
+.lane-mapping label { display:inline-flex; gap:8px; align-items:center; margin:8px 12px 8px 0; }
+.lane-mapping select { width:auto; }
+.rotation-guide { position:absolute; z-index:2; touch-action:none; outline:none; }
+.rotation-guide::before { content:''; position:absolute; background:#7de7ff; box-shadow:0 0 0 1px #0b152a99; }
+.rotation-guide.horizontal { left:0; width:100%; height:22px; margin-top:-11px; cursor:ns-resize; }
+.rotation-guide.horizontal::before { left:0; top:10px; width:100%; height:1px; }
+.rotation-guide.vertical { top:0; height:100%; width:22px; margin-left:-11px; cursor:ew-resize; }
+.rotation-guide.vertical::before { top:0; left:10px; height:100%; width:1px; background:#ffd88c; }
+.rotation-guide span { position:absolute; padding:2px 5px; font-size:11px; border-radius:3px; background:#172030df; color:#bcefff; user-select:none; }
+.rotation-guide.horizontal span { top:0; left:8px; }
+.rotation-guide.vertical span { top:8px; left:0; color:#ffe3ae; }
+.rotation-guide:focus-visible::before { box-shadow:0 0 0 2px #ffffff88; }
+.rotation-guide-controls { display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:.8rem; color:var(--muted); margin:-8px 0 16px; }
+.rotation-guide-controls label { margin:0; }
+.target-lane-actions { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }
+.target-lane-actions .btn { padding:7px 10px; font-size:.8rem; }

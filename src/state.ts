@@ -45,6 +45,7 @@ export function mergeSaved(current:Project|null,saved:Project):Project|null{
 }
 export function restoreHistory(current:Project,old:Project):Project{
  const p=structuredClone(old);p.revision=current.revision+1;p.project_path=current.project_path;p.saved_revision=current.saved_revision;p.read_only=current.read_only
+ p.images=p.images.map(a=>{const saved=current.images.find(b=>b.id===a.id&&b.sha256===a.sha256);return saved?{...a,path:saved.path}:a})
  carryReviews(current,p);return p
 }
 export function acceptReview(current:Project|null,input:Project,checked:Project):Project|null{
@@ -66,7 +67,7 @@ function reviewInput(p:Project,r:ROI):string {
  const ref=p.rois.find(x=>x.id===r.reference_id)
  const layout=p.lane_layouts.find(l=>l.id===r.lane_layout_id)
  const sampleIdentity=sample?{...sample,name:undefined}:undefined
- return JSON.stringify([annotation,layout&&[layout.image_id,layout.window,layout.columns.find(c=>c.lane_id===r.lane_id)],image&&[image.id,image.sha256,image.page_index??0,image.width,image.height,image.dtype,image.polarity,image.ceiling],lane,sampleIdentity,
+ return JSON.stringify([annotation,layout&&[layout.image_id,layout.window,layout.columns.find(c=>c.lane_id===r.lane_id)],image&&[image.id,image.sha256,image.page_index??0,image.width,image.height,image.dtype,image.polarity,image.ceiling,image.rotation_degrees??0],lane,sampleIdentity,
   ref&&{...ref,reviewed_revision:undefined},ref&&p.images.find(a=>a.id===ref.image_id)?.sha256])
 }
 function carryReviews(previous:Project,next:Project){

@@ -5,6 +5,7 @@ an experimental sample. Synthetic fixture identities carry no biological claim.
 """
 import argparse, hashlib, json, os, struct, subprocess
 from pathlib import Path
+from release_environment import packaged_environment
 import numpy as np
 import tifffile
 import zipfile
@@ -14,7 +15,7 @@ from PIL import Image
 
 def verify(binary, output, source=None):
     output.mkdir(parents=True, exist_ok=True)
-    worker=subprocess.Popen([str(binary.resolve()),'--stdio-server'], stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,cwd=output,env={'PATH':'/usr/bin:/bin','HOME':os.environ['HOME']})
+    worker=subprocess.Popen([str(binary.resolve()),'--stdio-server'], stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',cwd=output,env=packaged_environment())
     sequence=0
     def call(command, **payload):
         nonlocal sequence
@@ -75,7 +76,7 @@ def verify(binary, output, source=None):
         call('release_project',path=p['project_path'])
         assert call('health')['worker_pid']==health['worker_pid']
         report=dict(version=health,compressed_miniswhite=checks,source_pages=real,source_hash_unchanged=bool(source),target_raw=48000,target_net=32000,reference_net=8000,ratio=4,missing_lane=None,display_changes_numerics=False,save_reopen_export=True,worker_starts=1,excel_numeric_and_missing_verified=True,excel_embedded_plot_matches=True)
-        (output/'lane-release-verification.json').write_text(json.dumps(report,ensure_ascii=False,indent=2));print(json.dumps(report,ensure_ascii=False,indent=2))
+        (output/'lane-release-verification.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8');print(json.dumps(report,ensure_ascii=False,indent=2))
     finally:
         worker.stdin.close()
         try:worker.wait(timeout=5)

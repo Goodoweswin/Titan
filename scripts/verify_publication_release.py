@@ -5,6 +5,7 @@ No backend imports. The fixed pixel fixture gives ratios [1,2,3], [2,3,4],
 """
 import argparse,base64,copy,hashlib,json,math,os,shutil,subprocess,zipfile
 from pathlib import Path
+from release_environment import packaged_environment
 import numpy as np
 import tifffile
 from openpyxl import load_workbook
@@ -13,8 +14,8 @@ from openpyxl import load_workbook
 def verify(binary,output):
     output=output.resolve();output.mkdir(parents=True,exist_ok=False)
     session=dict(pid=os.getpid(),token='publication-release',library_root=str(output/'library'))
-    diagnostic=(output/'engine-stderr.log').open('w+')
-    worker=subprocess.Popen([str(binary.resolve()),'--stdio-server'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=diagnostic,text=True,cwd=output,env={'PATH':'/usr/bin:/bin','HOME':os.environ['HOME']})
+    diagnostic=(output/'engine-stderr.log').open('w+',encoding='utf-8')
+    worker=subprocess.Popen([str(binary.resolve()),'--stdio-server'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=diagnostic,text=True,encoding='utf-8',cwd=output,env=packaged_environment())
     sequence=0
     def call(command,**payload):
         nonlocal sequence
@@ -24,7 +25,7 @@ def verify(binary,output):
     def rows(sheet):
         values=list(sheet.values);return [dict(zip(values[0],r)) for r in values[1:]]
     try:
-        health=call('health');assert health['version']=='0.3.0'
+        health=call('health');assert health['version']==json.loads((Path(__file__).resolve().parents[1]/'package.json').read_text(encoding='utf-8'))['version']
         created=call('library_create',name='三组定量 · 合成验收');p=created['project']
         values=[1,2,3,2,3,4,4,5,6];pixels=np.full((40,100),1000,dtype=np.uint16)
         for i,value in enumerate(values):
@@ -81,7 +82,7 @@ def verify(binary,output):
         assert restored['result']==result and len(restored['document']['versions'])==2
         call('release_project',path=copied['project_path']);assert call('health')['worker_pid']==health['worker_pid']
         report=dict(version=health['version'],synthetic_only=True,clean_path=True,worker_starts=1,ratios=values,ordinary_F=7,ordinary_p=.027,welch_F=6,welch_p=.0625,methods=checks,excel_sheets=12,preview_export_excel_png_equal=True,export_settings_match=True,archive_source_frozen=True,archive_export_png_link=True,portable_history_versions=2,library_copies_distinct=True)
-        (output/'publication-release-verification.json').write_text(json.dumps(report,ensure_ascii=False,indent=2));print(json.dumps(report,ensure_ascii=False,indent=2))
+        (output/'publication-release-verification.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8');print(json.dumps(report,ensure_ascii=False,indent=2))
     finally:
         worker.stdin.close()
         try:worker.wait(timeout=5)

@@ -50,18 +50,23 @@ export function renameBandSet(p:Project,setId:string,name:string){
  for(const r of p.rois)if(r.band_set_id===setId)r.analyte=analyte
 }
 
-export function copyLaneLayout(p:Project,sourceId:string,imageId:string):string {
+export function copyLaneLayout(p:Project,sourceId:string,imageId:string,targetWindow?:Rect,sourceWindow?:Rect):string {
  writable(p);const source=layoutOf(p,sourceId),from=p.images.find(a=>a.id===source.image_id)!,to=p.images.find(a=>a.id===imageId)
  if(!to)throw new Error('请选择目标图像')
- const id=crypto.randomUUID(),scale=to.width/from.width
- p.lane_layouts.push({...structuredClone(source),id,image_id:imageId,window:[0,0,to.width,to.height],columns:source.columns.map(c=>({lane_id:c.lane_id,rect:[Math.round(c.rect[0]*scale),0,Math.round(c.rect[2]*scale),to.height]})),excluded_regions:[],source_layout_id:sourceId,confirmed_revision:null})
+ const window:Rect=targetWindow??[0,0,to.width,to.height],frame=sourceWindow??source.window
+ if(!validRect(window,to.width,to.height)||!validRect(frame,from.width,from.height))throw new Error('分析区域无效')
+ const x=(value:number)=>targetWindow?(source.image_id===imageId?value:window[0]+(value-frame[0])*(window[2]-window[0])/(frame[2]-frame[0])):value*to.width/from.width
+ const columns=source.columns.map(c=>({lane_id:c.lane_id,rect:[Math.round(x(c.rect[0])),window[1],Math.round(x(c.rect[2])),window[3]] as Rect}))
+ if(columns.some((c,i)=>!validRect(c.rect,to.width,to.height)||c.rect[0]<window[0]||c.rect[2]>window[2]||(i>0&&c.rect[0]<columns[i-1].rect[2])))throw new Error('所选区域未覆盖全部泳道或过窄，请扩大区域，或重新识别泳道位置')
+ const id=crypto.randomUUID()
+ p.lane_layouts.push({...structuredClone(source),id,image_id:imageId,window,columns,excluded_regions:[],source_layout_id:sourceId,confirmed_revision:null})
  return id
 }
 
 function updateColumns(p:Project,layoutId:string,columns:Project['lane_layouts'][number]['columns']) {
  const layout=layoutOf(p,layoutId),asset=p.images.find(a=>a.id===layout.image_id)!
  const sorted=[...columns].sort((a,b)=>a.rect[0]-b.rect[0])
- if(sorted.some((c,i)=>!validRect(c.rect,asset.width,asset.height)||(i>0&&c.rect[0]<sorted[i-1].rect[2])))throw new Error('泳道越界或重叠，请缩小调整幅度')
+ if(sorted.some((c,i)=>!validRect(c.rect,asset.width,asset.height)||c.rect[0]<layout.window[0]||c.rect[1]<layout.window[1]||c.rect[2]>layout.window[2]||c.rect[3]>layout.window[3]||(i>0&&c.rect[0]<sorted[i-1].rect[2])))throw new Error('泳道越界或重叠，请缩小调整幅度')
  layout.columns=columns;layout.confirmed_revision=null
  const sets=p.band_sets.filter(g=>g.layout_id===layoutId);const removed=new Set(sets.flatMap(g=>g.assignments.map(a=>a.roi_id)))
  p.rois=p.rois.filter(r=>!removed.has(r.id));for(const r of p.rois)if(removed.has(r.reference_id)){r.reference_id=null;r.reviewed_revision=null}

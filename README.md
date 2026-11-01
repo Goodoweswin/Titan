@@ -9,7 +9,7 @@
 
 ## 下载与安装
 
-前往 **[GitHub Releases](https://github.com/Goodoweswin/Titan/releases)** 下载预发布版本：
+当前版本为 **[0.3.1 测试版](https://github.com/Goodoweswin/Titan/releases/tag/v0.3.1-beta.1)**，包含最新泳道微调、撤销与旋转参考线。下载安装包：
 
 | 系统 | 下载文件 | 安装方式 |
 | --- | --- | --- |

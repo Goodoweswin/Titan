@@ -26,7 +26,7 @@ export default function SignalProfile({project,roi}:{project:Project;roi?:ROI}){
  const format=(n:number)=>n.toLocaleString(undefined,{maximumFractionDigits:2})
  return <section ref={container} className="card signal-profile"><button className="profile-toggle" aria-expanded={expanded} onClick={()=>setExpanded(v=>!v)}><strong>强度与背景</strong><span>{roi?`${roi.lane_id} · ${roi.analyte}`:'原始像素检查'} · {expanded?'收起':'展开'}</span></button>{expanded&&<>
  {!roi?<p className="hint">选择一个条带，查看原始像素强度。</p>:current?.error?<p role="alert">{current.error}</p>:!data?<p role="status">正在读取原始像素…</p>:<>
- <div className="profile-controls"><span>横轴：原图 y 坐标 · 纵轴：泳道宽度内平均信号</span><label className="checkbox-label"><input type="checkbox" checked={corrected&&data.background_mean!=null} disabled={data.background_mean==null} onChange={e=>setCorrected(e.target.checked)}/>显示扣背景曲线</label></div>
+ <div className="profile-controls"><span>横轴：{project.images.find(a=>a.id===roi.image_id)?.rotation_degrees?'校正视图':'原图'} y 坐标 · 纵轴：泳道宽度内平均信号</span><label className="checkbox-label"><input type="checkbox" checked={corrected&&data.background_mean!=null} disabled={data.background_mean==null} onChange={e=>setCorrected(e.target.checked)}/>显示扣背景曲线</label></div>
  <svg className="profile-chart" viewBox={`0 0 ${chartWidth} 210}`} role="img" aria-label="泳道强度曲线">
  <rect x={x(data.rect[1])} y="20" width={Math.max(1,x(Math.min(data.height-1,data.rect[3]))-x(data.rect[1]))} height="150" fill="#e6edff"/>
  {[low,(low+high)/2,high].map((v,i)=><g key={i}><line x1="68" x2={chartWidth-32} y1={y(v+offset)} y2={y(v+offset)} stroke="#dce3ee"/><text x="62" y={y(v+offset)+4} textAnchor="end">{v.toPrecision(3)}</text></g>)}
@@ -37,7 +37,7 @@ export default function SignalProfile({project,roi}:{project:Project;roi?:ROI}){
  </svg>
  <div className="profile-legend"><span>蓝色：{offset?'扣背景后信号':'按极性转换的信号'}</span><span>阴影：条带范围 [{data.rect[1]}, {data.rect[3]})</span><span>虚线：{offset?'零基线':'局部背景均值'}</span></div>
  {data.measurement?<div className="profile-values" data-testid="profile-measurement"><span>原始像素总和<strong>{format(data.measurement.raw_sum)}</strong></span><span>背景均值<strong>{format(data.background_mean!)}</strong></span><span>扣背景积分<strong>{format(data.measurement.corrected_sum)}</strong></span></div>:<p role="status">{data.warning}</p>}
- <p className="hint">使用原始位深；积分保留负值。曲线按条带宽度取平均，背景来自所画背景框的并集。此处仅供检查，正式结果请运行定量。</p>
+ <p className="hint">使用原始位深；积分保留负值。曲线按条带宽度取平均，背景来自所画背景框的并集。{project.images.find(a=>a.id===roi.image_id)?.rotation_degrees?'校正曲线供检查，积分回到原始像素。':'此处仅供检查，正式结果请运行定量。'}</p>
  </>}
  </>}</section>
 }

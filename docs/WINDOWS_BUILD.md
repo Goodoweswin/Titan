@@ -4,7 +4,7 @@
 
 ## GitHub 构建
 
-将当前源码上传到指定仓库，在 Actions → Windows installer → Run workflow 运行。独立分支 `codex/windows-installer` 的推送也会自动触发。成功后下载 `Titan-WB-Windows-x64` artifact ZIP，解压得到安装程序。本工作流不自动发布 Release；安装程序未配置商业代码签名。
+推送版本标签 `v*` 后，Release 工作流在 Windows 原生 runner 构建 NSIS 安装包并发布到 GitHub Releases。也可上传源码，在 Actions → Windows installer → Run workflow 运行。独立分支 `codex/windows-installer` 的推送也会自动触发。成功后下载 `Titan-WB-Windows-x64` artifact ZIP，解压得到安装程序。本工作流不自动发布 Release；安装程序未配置商业代码签名。
 
 ## Windows 本地构建
 
@@ -23,7 +23,7 @@ powershell -ExecutionPolicy Bypass -File packaging/build_windows.ps1
 
 ## 当前公开版本
 
-请从 [GitHub Releases](https://github.com/Goodoweswin/Titan/releases/tag/v0.1.0-beta.2) 下载当前预发布包，并使用发布附件 SHA256SUMS.txt 核对。下面的首次构建记录仅为历史记录，其 hash 不用于新版。
+请从 [GitHub Releases](https://github.com/Goodoweswin/Titan/releases/tag/v0.3.1-beta.1) 下载当前预发布包，并使用发布附件 SHA256SUMS.txt 核对。下面的首次构建记录仅为历史记录，其 hash 不用于新版。
 
 ## 首次 Windows 安装包
 
