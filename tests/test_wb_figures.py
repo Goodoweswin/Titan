@@ -103,3 +103,35 @@ def test_large_layout_and_synthetic_exports_are_explicit(tmp_path):
     d['settings'].update(width_mm=180,dpi=600)
     d['rows']=[dict(copy.deepcopy(d['rows'][0]),id=str(i),crop=[0,0,120,60]) for i in range(40)]
     with pytest.raises(ValueError,match='像素|尺寸|行数'):preview_document(p,d)
+
+
+def test_raster_uses_regular_font_matching_editable_svg_default_weight():
+    from titan_wb.wb_render import font
+    from PIL import ImageFont
+    path=Path(__file__).parents[1]/'backend/titan_wb/assets/NotoSansSC.ttf'
+    reference=ImageFont.truetype(str(path),32);reference.set_variation_by_name('Regular')
+    assert bytes(font(32).getmask('AKT 蛋白'))==bytes(reference.getmask('AKT 蛋白'))
+
+
+@pytest.mark.parametrize('inverted',[False,True])
+def test_rotated_grayscale_palette_maps_intensity_before_resampling(tmp_path,inverted):
+    import tifffile
+    from titan_wb.image_rotation import rotate_image,rotate_pixels
+    raw=np.tile(np.arange(40,dtype=np.uint8),(30,1))
+    lut=np.asarray([int((i/255)**2*65535) for i in range(256)],dtype=np.uint16)
+    if inverted:lut=lut[::-1].copy()
+    path=tmp_path/'palette.tif';tifffile.imwrite(path,raw,photometric='palette',colormap=np.stack([lut]*3))
+    p=import_image(new_project('palette'),str(path));p['images']=[rotate_image(p,p['images'][0]['id'],5)]
+    d=new_document(p);d['rows'][0]['confirmed']=True
+    from titan_wb.wb_render import display_pixels
+    source=d['rows'][0]['source'];rendered=display_pixels(source)
+    mapped=rotate_pixels(lut[raw],5);low,high=np.percentile(mapped,[.5,99.5]);high=max(high,low+1)
+    expected=np.uint8(np.clip((mapped-low)/(high-low),0,1)*255)
+    assert np.array_equal(rendered,expected)
+    assert preview_document(p,d)['png'].startswith('data:image/png')
+    d['rows'][0]['crop']=[3,4,30,25]
+    export_document(p,d,str(tmp_path/'cropped'))
+    svg=ET.parse(tmp_path/'cropped/figure.svg').getroot()
+    node=svg.find('{http://www.w3.org/2000/svg}image')
+    actual=np.array(Image.open(io.BytesIO(base64.b64decode(node.get('href').split(',')[1]))))
+    assert np.array_equal(actual,expected[4:25,3:30])

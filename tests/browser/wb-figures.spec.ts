@@ -92,4 +92,66 @@ test('crop dragging, markers and document switching keep independent drafts',asy
  await page.getByLabel('已保存的组图',{exact:true}).selectOption({label:'second'})
  await expect(page.getByLabel('蛋白名称',{exact:true})).toHaveValue('B')
  await expect(page.getByLabel('裁剪 X0',{exact:true})).toHaveValue('0')
+ await page.getByLabel('蛋白名称',{exact:true}).fill('B revised')
+ await page.getByRole('button',{name:'保存组图',exact:true}).click()
+ await expect(page.getByRole('status').filter({hasText:'组图已保存'})).toBeVisible()
+ await page.getByRole('button',{name:'撤销组图修改',exact:true}).click()
+ await expect(page.getByLabel('蛋白名称',{exact:true})).toHaveValue('B')
+ const undoSave=page.waitForResponse(response=>response.url().endsWith('/test-engine')&&response.request().postDataJSON().command==='wb_save')
+ await page.getByRole('button',{name:'保存组图',exact:true}).click()
+ expect((await (await undoSave).json()).ok).toBe(true)
+ await expect(page.getByRole('status').filter({hasText:'组图已保存'})).toBeVisible()
+})
+
+test('saving an unsaved experiment also saves its WB figure on the first attempt',async({page})=>{
+ await page.goto('/?integration=1')
+ const created=await rpc(page,'library_create',{name:'first-save-path'}),destination=created.project.project_path+'-manual.titanwb'
+ await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await page.getByRole('button',{name:'WB 组图',exact:true}).click()
+ await page.getByRole('button',{name:'新建组图',exact:true}).first().click()
+ await page.getByLabel('蛋白名称',{exact:true}).fill('Initial save')
+ await expect(page.getByRole('img',{name:'原图裁剪画布',exact:true}).locator('image')).toHaveAttribute('href',/^data:image/)
+ await page.getByRole('button',{name:'确认本行裁剪',exact:true}).click()
+ await page.evaluate((path:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async(command:string)=>{
+  if(command==='plugin:dialog|save')return path
+  throw new Error(command)
+ }}},destination)
+ await page.getByRole('button',{name:'保存组图',exact:true}).click()
+ await expect(page.getByRole('status').filter({hasText:'组图已保存'})).toBeVisible({timeout:8000})
+ await expect(page.getByLabel('蛋白名称',{exact:true})).toHaveValue('Initial save')
+ const p=await rpc(page,'open_project',{path:destination}),docs=await rpc(page,'wb_list',{project:p})
+ expect(docs).toHaveLength(1)
+ const d=await rpc(page,'wb_load',{project:p,document_id:docs[0].id})
+ expect(d.rows[0].source.path).toContain(destination+'/originals/')
+})
+
+test('copy and WB loads cannot overlap or reintroduce paths from the original project',async({page})=>{
+ await page.goto('/?integration=1');const p=await seed(page)
+ const d=await rpc(page,'wb_new',{project:p});d.name='saved';d.rows[0].confirmed=true
+ const saved=await rpc(page,'wb_save',{project:p,document:d})
+ await page.reload();await page.getByRole('button',{name:'打开项目 '+p.name,exact:true}).click()
+ await page.getByRole('button',{name:'WB 组图',exact:true}).click()
+ let releaseLoad!:()=>void,releaseCopy!:()=>void
+ const loadGate=new Promise<void>(r=>releaseLoad=r),copyGate=new Promise<void>(r=>releaseCopy=r)
+ const destination=p.project_path+'-copy.titanwb'
+ await page.route('**/test-engine',async route=>{
+  const request=route.request().postDataJSON()
+  if(request.command==='wb_load'){const response=await route.fetch();await loadGate;await route.fulfill({response});return}
+  if(request.command==='save_project'&&request.payload.path===destination){const response=await route.fetch();await copyGate;await route.fulfill({response});return}
+  await route.continue()
+ })
+ await page.getByLabel('已保存的组图',{exact:true}).selectOption(saved.id)
+ try{await expect(page.getByRole('button',{name:'另存副本',exact:true})).toBeDisabled({timeout:2000})}finally{releaseLoad()}
+ await expect(page.getByLabel('蛋白名称',{exact:true})).toBeVisible()
+ await page.evaluate((path:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async()=>path}},destination)
+ await page.getByRole('button',{name:'另存副本',exact:true}).click()
+ try{await expect(page.getByLabel('已保存的组图',{exact:true})).toBeDisabled({timeout:2000})}finally{releaseCopy()}
+ await expect(page.getByText('实验已保存；保存期间的新修改仍保留。',{exact:true})).toBeVisible()
+ await page.getByLabel('已保存的组图',{exact:true}).selectOption(saved.id)
+ await expect(page.getByRole('button',{name:'导出组图',exact:true})).toBeEnabled()
+ await page.getByLabel('蛋白名称',{exact:true}).fill('copy edited')
+ await page.getByRole('button',{name:'保存组图',exact:true}).click()
+ await expect(page.getByRole('status').filter({hasText:'组图已保存'})).toBeVisible()
+ const copied=await rpc(page,'open_project',{path:destination}),doc=await rpc(page,'wb_load',{project:copied,document_id:saved.id})
+ expect(doc.rows[0].source.path).toContain(destination+'/originals/')
 })

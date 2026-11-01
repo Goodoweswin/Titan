@@ -5,7 +5,7 @@ from pathlib import Path
 from xml.sax.saxutils import escape, quoteattr
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
-from .images import read_pixels
+from .images import read_pixels, read_source_pixels
 
 MM = 72 / 25.4
 
@@ -13,22 +13,32 @@ MM = 72 / 25.4
 def font(size):
     bundled = Path(__file__).parent / 'assets/NotoSansSC.ttf'
     if bundled.is_file():
-        return ImageFont.truetype(str(bundled), max(1, round(size)))
+        face=ImageFont.truetype(str(bundled), max(1, round(size)))
+        face.set_variation_by_name('Regular')
+        return face
     from matplotlib.font_manager import findfont
     return ImageFont.truetype(findfont('DejaVu Sans'), max(1, round(size)))
 
 
-def display_pixels(source):
-    pixels = read_pixels(source)
-    if pixels.shape != (source['height'], source['width']):
-        raise ValueError('原图尺寸与组图来源不一致')
-    values = pixels.astype(float)
+def display_values(source):
+    """Decode palette intensities before spatial interpolation, never indices."""
     lut = source.get('gray_lut')
-    if lut is not None:
-        indices = values.astype(int)
-        if not np.array_equal(indices, values) or indices.min() < 0 or indices.max() >= len(lut):
+    if lut is None:return read_pixels(source).astype(float)
+    raw=read_source_pixels(source);indices=raw.astype(int)
+    if not np.array_equal(indices,raw) or indices.min()<0 or indices.max()>=len(lut):
             raise ValueError('原图灰度映射范围无效')
-        values = np.asarray(lut, dtype=float)[indices]
+    values=np.asarray(lut,dtype=float)[indices]
+    if source.get('rotation_degrees'):
+        from .image_rotation import rotate_pixels
+        values=rotate_pixels(values,source['rotation_degrees'])
+    return values
+
+
+def display_pixels(source):
+    values=display_values(source)
+    if values.shape != (source['height'], source['width']):
+        raise ValueError('原图尺寸与组图来源不一致')
+    lut = source.get('gray_lut')
     lo, hi = source['display_range']
     gray = np.uint8(np.clip((values - lo) / (hi - lo), 0, 1) * 255)
     if source.get('display_inverted') and lut is None:

@@ -1,6 +1,6 @@
 # WB Strip Assembly Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build a local, editable WB strip figure with default layout, preserved source images, and PNG/SVG exports.
 
@@ -32,10 +32,10 @@
 
 **Interfaces:** `new_document(project) -> dict`; `preview_document(project, document) -> dict` returns validated document, PNG data URL and physical layout; `save_document(project, document, session, expected_version=None) -> dict`; `list_documents(project) -> list`; `load_document(project, document_id) -> dict`; `export_document(project, document, destination) -> dict`. Sources stored in row snapshots; safe project-relative paths on disk, resolved only after containment/hash checks. Schema version 1.
 
-- [ ] Write failing tests for known-pixel crop, rotation/page mapping, label escaping, embedded SVG, DPI/aspect ratio, source hash checks, limits, save/reopen/conflicts/copy and read-only behavior.
-- [ ] Run `.venv/bin/python -m pytest tests/test_wb_figures.py -q`; expect missing module/API failures before implementation.
-- [ ] Implement physical layout with shared row raster and text positions, authoritative backend validation, atomic document versions and exports, IPC commands with `wb_` prefix. Reuse project locks, original preservation and bundled font.
-- [ ] Run `.venv/bin/python -m pytest tests/test_wb_figures.py tests/test_library.py tests/test_projects.py -q`; expect all pass, then commit task files.
+- [x] Write failing tests for known-pixel crop, rotation/page mapping, label escaping, embedded SVG, DPI/aspect ratio, source hash checks, limits, save/reopen/conflicts/copy and read-only behavior.
+- [x] Run `.venv/bin/python -m pytest tests/test_wb_figures.py -q`; expect missing module/API failures before implementation.
+- [x] Implement physical layout with shared row raster and text positions, authoritative backend validation, atomic document versions and exports, IPC commands with `wb_` prefix. Reuse project locks, original preservation and bundled font.
+- [x] Run `.venv/bin/python -m pytest tests/test_wb_figures.py tests/test_library.py tests/test_projects.py -q`; expect all pass, then commit task files.
 
 ## Task 2: Editable figure state and project UI
 
@@ -43,10 +43,10 @@
 
 **Interfaces:** WB types live in `src/wb-figure.ts`, mirroring backend schema. Editor consumes `project`, `onBeforeSave: () => Promise<Project>`, `onDraft: (dirty:boolean) => void`; uses Task 1 IPC methods. Source crop interaction returns integer half-open rects. Default construction and style-reset utilities are pure.
 
-- [ ] Write failing state tests proving crop proposals preserve continuous rectangles, known lane labels use actual coordinates, ambiguous mappings prompt review, and restoring defaults preserves row content.
-- [ ] Run `npm test -- src/wb-figure.test.ts`; expect missing exports before implementation.
-- [ ] Implement a quiet two-pane workspace: central white figure sheet and source crop preview, compact right inspector, row list, document selector, undo/redo, draft guards. Preserve existing Titan type/colors; avoid new branding or animated decoration. Route global undo to the editor in this view.
-- [ ] Run `npm test` and `npm run build`; expect all pass, then commit task files.
+- [x] Write failing state tests proving crop proposals preserve continuous rectangles, known lane labels use actual coordinates, ambiguous mappings prompt review, and restoring defaults preserves row content.
+- [x] Run `npm test -- src/wb-figure.test.ts`; expect missing exports before implementation.
+- [x] Implement a quiet two-pane workspace: central white figure sheet and source crop preview, compact right inspector, row list, document selector, undo/redo, draft guards. Preserve existing Titan type/colors; avoid new branding or animated decoration. Route global undo to the editor in this view.
+- [x] Run `npm test` and `npm run build`; expect all pass, then commit task files.
 
 ## Task 3: Browser acceptance, docs and whole-change review
 
@@ -54,11 +54,13 @@
 
 **Interfaces:** Use actual integration engine and browser flow with synthetic images; screenshots saved to `artifacts/`. Existing analysis and statistical-figure routes stay compatible.
 
-- [ ] Write/run failing browser tests before integration is finished: create without analysis, crop and confirm, labels/marker editing, save/reopen, SVG/PNG export, guard unsaved navigation and switch documents without stale preview.
-- [ ] Complete missing UI integration, run `npm run test:e2e -- tests/browser/wb-figures.spec.ts` and inspect screenshot.
-- [ ] Run full Python/frontend/browser suites plus production build; inspect file diff and rendering artifacts.
-- [ ] Document operation and actual acceptance boundaries; commission one independent whole-change code review, fix material findings with regression tests, and commit verified changes.
+- [x] Write/run failing browser tests before integration is finished: create without analysis, crop and confirm, labels/marker editing, save/reopen, SVG/PNG export, guard unsaved navigation and switch documents without stale preview.
+- [x] Complete missing UI integration, run `npm run test:e2e -- tests/browser/wb-figures.spec.ts` and inspect screenshot.
+- [x] Run full Python/frontend/browser suites plus production build; inspect file diff and rendering artifacts.
+- [x] Document operation and actual acceptance boundaries; commission one independent whole-change code review, fix material findings with regression tests, and commit verified changes.
 
 ## Execution record
 
 User authorized execution after reviewing the design. Continue inline in the existing `codex/results-ui-polish` checkout, preserving unrelated untracked brand explorations. No merge, push or release is part of this task. No further plan confirmation is required.
+
+Final verification: 194 Python tests + 5 subtests, 62 frontend tests, 40 browser tests and production build passed. Independent review found four Important issues; all fixed with regressions. See `docs/checkpoint-reports/wb-strip-assembly.md`. Changes retained in the existing development branch; no publication performed.

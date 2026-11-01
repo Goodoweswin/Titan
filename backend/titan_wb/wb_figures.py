@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 from .images import read_pixels, read_source_pixels, file_hash
 from .projects import atomic_json, check_lock, operation_lock
-from .wb_render import render, display_pixels, data_url, png_bytes
+from .wb_render import render, display_pixels, display_values, data_url, png_bytes
 from PIL import Image
 
 DEFAULTS = dict(width_mm=85, image_width_mm=0, font_pt=8, gap_mm=3, dpi=300)
@@ -35,8 +35,7 @@ def _number(value, lo, hi):
 
 def _source(asset):
     source = {k: copy.deepcopy(v) for k,v in asset.items() if k!='preview'}
-    pixels = read_pixels(source); values = pixels.astype(float)
-    if source.get('gray_lut') is not None: values = np.asarray(source['gray_lut'])[pixels.astype(int)]
+    values = display_values(source)
     lo,hi = np.percentile(values,[.5,99.5]); source['display_range']=[float(lo),max(float(hi),float(lo)+1)]
     raw=read_source_pixels(source)
     source['source_width'] = raw.shape[1]
