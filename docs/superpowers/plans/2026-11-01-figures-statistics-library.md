@@ -32,9 +32,9 @@
 - AnalysisResult optional multigroup_omnibus[], multigroup_comparisons[]; old statistics[] untouched. Error returns explicit blocked row with reason, never silent group drop.
 - group_summary(values) -> {n,mean,sd,sem,ci95}; n<2 error measures null, n0 mean null. CI uses t(n−1).
 - Infer from .value (not .fold); require same single membrane, all selected groups n>=2, no duplicate/shared bio IDs, finite inputs, explicit positive log2. ANOVA ordinary df K−1/N−K; Welch df from weights formula. Tukey/GH effect B−A reverses SciPy i,j A−B CI endpoints. Dunnett is treatment−control, rng0 numerical integration. CI is simultaneous95%; log2 also returns consistently back-transformed ratio/CI.
-- [ ] RED: hand-derived F7/p.027 and WelchF6/p.0625; SD/SEM/tCI; control/all pair sets, B−A sign, simultaneousCI/p ranges, seed repeatability; n0/n1/zero variance, shared/duplicate IDs, cross-membrane, missing control, positive log2; existing Holm regression.
-- [ ] Implement pure helper and integrate only after design_confirmed; use locked SciPy APIs; method-specific adjustment metadata, no second hidden adjustment. Include trustworthy published fixed posthoc test vectors or independently derived distribution checks with tolerances.
-- [ ] GREEN: pytest multigroup/statistics/analysis/normalization; add state result validity test; commit scoped code.
+- [x] RED: hand-derived F7/p.027 and WelchF6/p.0625; SD/SEM/tCI; control/all pair sets, B−A sign, simultaneousCI/p ranges, seed repeatability; n0/n1/zero variance, shared/duplicate IDs, cross-membrane, missing control, positive log2; existing Holm regression.
+- [x] Implement pure helper and integrate only after design_confirmed; use locked SciPy APIs; method-specific adjustment metadata, no second hidden adjustment. Include trustworthy published fixed posthoc test vectors or independently derived distribution checks with tolerances.
+- [x] GREEN: pytest multigroup/statistics/analysis/normalization; add state result validity test; commit scoped code.
 
 ### Task 2: 图形配置、分组数据与单一渲染器
 **Files:** Create backend/titan_wb/figures.py, tests/test_figures.py, src/figure-settings.ts; Modify export.py, engine.py, models.py, types.ts, image-display/state tests; add licensed font asset and package data if required.
@@ -43,9 +43,9 @@
 - validate_figure_settings(input,project,result) canonical settings; finite bounds/type/hex/labels/order validation, safe literal text. Project.figure_settings and optional project.plot_settings display metadata excluded from calculation fingerprint. The existing PlotSettings.font_size remains the single authority for font size, avoiding conflicting font controls. Invalid edits remain local UI draft.
 - figure_data(project,result,settings) returns panels with declared expected groups (from target records/project, not only eligible biological), raw/fold arrays, n, summaries, clipping warnings and matching computed comparisons; no within-panel fallback; descriptive fold uncertainty caveat.
 - plot_results retains legacy result/root/settings arguments and accepts optional figure_settings/project; export_preview/export payload gets separate figure_settings, response returns canonical figure_settings plus existing dimensions. Export snapshot/audit record settings and figure data; plot settings protocol remains compatible.
-- [ ] RED: mean/bar/point/error exact data, n0/n1/ND/NA, group order/colors stable, no mixed modes, missing fold, bad hex/NaN/range, deterministic jitter, B−A annotations use adjusted pairwisep not omnibus; style change retains measurement/review. PNG preview/export equality.
-- [ ] Implement renderer with reference yellow/gray style, free colors/details, explicit truncation notes; no fake significance. Offline CJK/Latin glyphs and font licensing; preserve old interactive legacy source plot.
-- [ ] GREEN: figures/export/workbook/format tests, unit build; commit.
+- [x] RED: mean/bar/point/error exact data, n0/n1/ND/NA, group order/colors stable, no mixed modes, missing fold, bad hex/NaN/range, deterministic jitter, B−A annotations use adjusted pairwisep not omnibus; style change retains measurement/review. PNG preview/export equality.
+- [x] Implement renderer with reference yellow/gray style, free colors/details, explicit truncation notes; no fake significance. Offline CJK/Latin glyphs and font licensing; preserve old interactive legacy source plot.
+- [x] GREEN: figures/export/workbook/format tests, unit build; commit.
 
 ### Task 3: 自动项目库与冻结图形文档
 **Files:** Create backend/titan_wb/library.py, tests/test_library.py; Modify projects.py, engine.py, src-tauri/src/lib.rs, vite.config.ts; define TypeScript library/figure DTOs.
@@ -55,9 +55,9 @@
 - library_create(name,session) -> {project,entry}, save_project under root/Projects/UUID.titanwb. library_register(path,session) metadata reads, dedup canonical path; missing external path marked unavailable with relocation. Removal only drops index entry, not files.
 - save_figure(project,result,settings,name,session,figure_id=None,expected_version=None) -> FigureDocument; only successful complete files committed under project/figures; snapshot source project/result, renderer PNG/SVG and settings/hashes. load_figure(path,id,session) -> frozen source project/result/settings/preview + metadata. History source version stored, editing styles appends a document version; replacing source only via explicit update action. Stable IDs and expected_version prevent concurrent overwrite.
 - save_project to another directory carries figure catalog/history and referenced immutable originals; old project and history retained. Figure catalog independent of project scientific revision; source snapshots resolve original files relative to project root with traversal/hash guards.
-- [ ] RED: create/autosave/reopen, dedup and sameUUID copies, index interleave/corruption/missing path, readonly/foreign lock, safe paths, figure valid/stale source/re-style/explicit update, copy project with historical assets, failed render no official entry.
-- [ ] Implement library/figure documents with staged atomic commits, safe rollback of self-created temp files, no deleting user data. Original project source remains authoritative.
-- [ ] GREEN: library/projects/migration/engine tests, Rust tests. Integration cannot write user library. Commit.
+- [x] RED: create/autosave/reopen, dedup and sameUUID copies, index interleave/corruption/missing path, readonly/foreign lock, safe paths, figure valid/stale source/re-style/explicit update, copy project with historical assets, failed render no official entry.
+- [x] Implement library/figure documents with staged atomic commits, safe rollback of self-created temp files, no deleting user data. Original project source remains authoritative.
+- [x] GREEN: library/projects/migration/engine tests, Rust tests. Integration cannot write user library. Commit.
 
 ### Task 4: 简洁图形/统计交互与左栏整合
 **Files:** Create src/FigureEditor.tsx, src/MultiGroupEditor.tsx, src/ProjectLibrary.tsx, src/FigureDocument.tsx and focused state helpers; Modify App.tsx, LaneResults.tsx, ExportPreview.tsx, ComparisonEditor.tsx, style.css; browser tests.
@@ -66,9 +66,9 @@
 - MultiGroupEditor shows explicit groups/control, method/scope/scale and contextual explanations: question/assumptions/n/family/limitations; descriptive default. Only settings change triggers recompute, no automatic method-by-p selection.
 - ProjectLibrary shows create/open/search/recent project tree -> workspace/results/figure docs. Inner protein switching remains in workspace. Current project expanded, others collapsed; historical docs show source version and stale badge, load frozen source independent of live project state.
 - New experiment creates managed local project, manual save flushes, Save as chooses external copy. Register successful manual opens/saves/exports. First formal saved/generated chart and successful exports appear in tree; preview-slider frames do not create entries. Default formal figure keyed per endpoint, selected variants stored by explicit Save new. Errors retain work and never switch after a newer edit; switching auto-managed dirty project flushes safely or stays on failure. Existing legacy demo/manual interactions and source navigation stay functional.
-- [ ] RED browser/state: auto project persists/reload opens, left tree fig/data selection, format changes no review loss, three independent groups inference + explanation + colors/CI/annotations, snapshot old source after current data edit, export workbook/image and cancellation/late responses. Existing 21 browser tests remain meaningful (update UI expectations only for deliberate layout changes).
-- [ ] Implement and visually inspect at standard/large text sizes; screenshot chart+controls and sidebar. No invented user data, fixtures clearly synthetic.
-- [ ] GREEN Vitest/build/browser and scoped Python; commit.
+- [x] RED browser/state: auto project persists/reload opens, left tree fig/data selection, format changes no review loss, three independent groups inference + explanation + colors/CI/annotations, snapshot old source after current data edit, export workbook/image and cancellation/late responses. Existing 21 browser tests remain meaningful (update UI expectations only for deliberate layout changes).
+- [x] Implement and visually inspect at standard/large text sizes; screenshot chart+controls and sidebar. No invented user data, fixtures clearly synthetic.
+- [x] GREEN Vitest/build/browser and scoped Python; commit.
 
 ### Task 5: Excel/审计/包交付
 **Files:** Modify workbook.py, scripts/verify_release.py, verify_lane_release.py; add fixture/standalone verification and report; version files0.3.0, guide/changelog/native checklist.

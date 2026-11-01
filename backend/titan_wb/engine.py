@@ -48,7 +48,7 @@ def dispatch(request):
         return library_remove(payload['entry_id'],session)
     if command=='save_figure':
         from .figure_documents import save_figure
-        return save_figure(payload['project'],payload['result'],payload.get('figure_settings'),payload['name'],session,figure_id=payload.get('figure_id'),expected_version=payload.get('expected_version'),settings=payload.get('settings'),update_source=payload.get('update_source',False),default_key=payload.get('default_key'))
+        return save_figure(payload['project'],payload['result'],payload.get('figure_settings'),payload['name'],session,figure_id=payload.get('figure_id'),expected_version=payload.get('expected_version'),settings=payload.get('settings'),update_source=payload.get('update_source',False),default_key=payload.get('default_key'),export_origin=payload.get('export_origin'))
     if command=='load_figure':
         from .figure_documents import load_figure
         return load_figure(payload['path'],payload['figure_id'],session,payload.get('version_id'))

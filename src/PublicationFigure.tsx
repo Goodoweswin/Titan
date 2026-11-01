@@ -3,7 +3,7 @@ import type {AnalysisResult,FigureDocumentMetadata,FigureSettings,PlotPreview,Pl
 import {defaultFigureSettings,defaultPlotSettings} from './figure-settings'
 import FigureEditor from './FigureEditor'
 import useFigurePreview from './useFigurePreview'
-export interface ArchiveFigureRequest{project:Project;result:AnalysisResult;figure_settings:FigureSettings;settings:PlotSettings;name:string;figure_id?:string;expected_version?:string;update_source?:boolean;default_key?:string;silent?:boolean;frozen?:boolean}
+export interface ArchiveFigureRequest{project:Project;result:AnalysisResult;figure_settings:FigureSettings;settings:PlotSettings;name:string;figure_id?:string;expected_version?:string;update_source?:boolean;default_key?:string;silent?:boolean;frozen?:boolean;export_origin?:{path:string;png_sha256:string}}
 export interface LiveFigurePreview{project:Project;result:AnalysisResult;ready:boolean;data?:PlotPreview;dirty:boolean;figure_settings:FigureSettings;settings:PlotSettings}
 interface Props{project:Project;result:AnalysisResult;document?:FigureDocumentMetadata;onApply?:(f:FigureSettings,s:PlotSettings)=>void;onArchive?:(request:ArchiveFigureRequest)=>Promise<FigureDocumentMetadata|undefined>;onPreview?:(value:LiveFigurePreview|null)=>void;onShowDesign?:()=>void;frozen?:boolean}
 export default function PublicationFigure({project,result,document,onApply,onArchive,onPreview,onShowDesign,frozen=false}:Props){

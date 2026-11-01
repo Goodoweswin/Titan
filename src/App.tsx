@@ -248,10 +248,10 @@ export default function App(){
   const path=await save({defaultPath:`${context.project.name}-结果`,title:'选择新的结果目录'});if(!path)return
   const stillSelected=context.frozenId?frozenRef.current?.document.id===context.frozenId&&frozenRef.current?.document.selected_version===context.frozenVersion:sameProjectContext(current.current,context.project)&&current.current?.revision===context.project.revision
   if(!stillSelected)throw new Error('项目或图表已变化，请重新预览后导出')
-  const exported=await callEngine('export',{project:context.project,result:context.result,destination:path,settings,figure_settings:figure})
+  const exported=await callEngine<{outputs:Record<string,string>}>('export',{project:context.project,result:context.result,destination:path,settings,figure_settings:figure})
   if(exported){
    setShowExport(false);setMessage(`已导出到 ${path}`)
-   if(!context.project.read_only)try{await archiveFigure({project:context.project,result:context.result,figure_settings:figure,settings,name:(figure.title||'导出图表')+' · '+new Date().toLocaleTimeString(),frozen:!!context.frozenId})}catch(e){setMessage(`已导出到 ${path}；左栏归档未完成：${e}`)}
+   if(!context.project.read_only)try{await archiveFigure({project:context.project,result:context.result,figure_settings:figure,settings,name:(figure.title||'导出图表')+' · '+new Date().toLocaleTimeString(),frozen:!!context.frozenId,export_origin:{path,png_sha256:exported.outputs['plot.png']}})}catch(e){setMessage(`已导出到 ${path}；左栏归档未完成：${e}`)}
   }
  }
  useEffect(()=>{

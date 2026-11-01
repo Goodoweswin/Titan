@@ -42,7 +42,7 @@ def _catalog(root):
 def _public(doc,current_signature=None,version_id=None):
     version=next(v for v in doc['versions'] if v['version_id']==(version_id or doc['current_version']))
     history=[{k:v.get(k) for k in ['version_id','source_revision','created_at','name']} for v in doc['versions']]
-    return dict(id=doc['id'],name=version['name'],current_version=doc['current_version'],selected_version=version['version_id'],source_revision=version['source_revision'],source_signature=version['source_signature'],source_stale=current_signature is not None and version['source_signature']!=current_signature,created_at=doc['created_at'],updated_at=version['created_at'],kind=version['figure_settings']['kind'],panel_key=version['figure_settings']['panel_key'],default_key=doc.get('default_key'),versions=history)
+    return dict(id=doc['id'],name=version['name'],current_version=doc['current_version'],selected_version=version['version_id'],source_revision=version['source_revision'],source_signature=version['source_signature'],source_stale=current_signature is not None and version['source_signature']!=current_signature,created_at=doc['created_at'],updated_at=version['created_at'],kind=version['figure_settings']['kind'],panel_key=version['figure_settings']['panel_key'],default_key=doc.get('default_key'),export_origin=version.get('export_origin'),versions=history)
 
 
 def figure_catalog_metadata(root,current_signature=None):
@@ -68,7 +68,7 @@ def _snapshot(project,root):
     return p
 
 
-def save_figure(project,result,figure_settings,name,session,*,figure_id=None,expected_version=None,settings=None,update_source=False,default_key=None):
+def save_figure(project,result,figure_settings,name,session,*,figure_id=None,expected_version=None,settings=None,update_source=False,default_key=None,export_origin=None):
     if project.get('read_only'):raise ValueError('只读项目不能修改图形历史')
     if not isinstance(name,str) or not name.strip() or len(name)>120:raise ValueError('请提供不超过120字的图形名称')
     validate_project(project);check_result(project,result);root,disk=_root(project);check_lock(root,session);root,disk=_root(project)
@@ -93,9 +93,12 @@ def save_figure(project,result,figure_settings,name,session,*,figure_id=None,exp
         stage=Path(tempfile.mkdtemp(prefix='.figure-stage-',dir=folder))
         try:
             data,figure=plot_results(result,stage,dimensions,figure_settings,project)
+            if export_origin is not None:
+                if not isinstance(export_origin,dict) or not isinstance(export_origin.get('path'),str) or export_origin.get('png_sha256')!=file_hash(stage/'plot.png'):raise ValueError('归档样式与实际导出图不一致，未写入图形历史')
+                export_origin=dict(path=export_origin['path'],png_sha256=export_origin['png_sha256'])
             atomic_json(stage/'source.json',dict(project=snapshot,result=result))
             version_id=uuid.uuid4().hex;figure_id=doc['id'] if doc else uuid.uuid4().hex
-            version=dict(version_id=version_id,name=name.strip(),source_revision=project['revision'],source_signature=signature,created_at=_now(),figure_settings=figure,plot_settings=dimensions,outputs={name:file_hash(stage/name) for name in ['source.json','plot.png','plot.svg']},notes=data['notes'])
+            version=dict(version_id=version_id,name=name.strip(),source_revision=project['revision'],source_signature=signature,created_at=_now(),figure_settings=figure,plot_settings=dimensions,outputs={name:file_hash(stage/name) for name in ['source.json','plot.png','plot.svg']},notes=data['notes'],export_origin=export_origin)
             atomic_json(stage/'figure.json',version)
             destination=folder/figure_id/version_id;destination.parent.mkdir(exist_ok=True);os.replace(stage,destination)
             if not doc:

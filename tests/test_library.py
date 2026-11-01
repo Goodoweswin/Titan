@@ -104,6 +104,16 @@ def test_failed_or_concurrent_figure_writes_cannot_replace_a_valid_document(tmp_
  with pytest.raises(ValueError):load_figure(p['project_path'],'../../escape',s)
  with pytest.raises(ValueError):save_figure({**p,'read_only':True},r,{},'read only',s)
 
+def test_export_archive_records_and_verifies_the_exact_exported_png(tmp_path):
+ from titan_wb.export import export_analysis
+ p,r,s=saved_fixture(tmp_path);destination=tmp_path/'export';audit=export_analysis(p,r,str(destination),figure_settings={'error':'sem'})
+ origin=dict(path=str(destination),png_sha256=audit['outputs']['plot.png'])
+ doc=save_figure(p,r,audit['figure_settings'],'exported',s,export_origin=origin)
+ loaded=load_figure(p['project_path'],doc['id'],s)
+ assert loaded['document']['export_origin']==origin
+ with pytest.raises(ValueError,match='导出图'):save_figure(p,r,{'error':'sd','title':'different'},'mismatch',s,export_origin=origin)
+ assert len(library_list(s)[0]['figures'])==1
+
 def test_style_only_revision_does_not_change_analytical_source_identity(tmp_path):
  p,r,s=saved_fixture(tmp_path);styled=copy.deepcopy(p);styled['revision']+=1;styled['figure_settings']={'colors':{'control':'#112233'}}
  for roi in styled['rois']:roi['reviewed_revision']=styled['revision']

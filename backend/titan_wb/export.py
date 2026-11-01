@@ -87,13 +87,16 @@ def export_analysis(project,result,destination,settings=None,figure_settings=Non
                 draw.rectangle([x0,y0,x1-1,y1-1],outline=color,width=1)
                 for x0,y0,x1,y1 in r['backgrounds']:draw.rectangle([x0,y0,x1-1,y1-1],outline='orange',width=1)
             canvas.save(stage/'overlays'/(a['id']+'.png'))
+        figure_data,figure=plot_results(result,stage,settings,figure_settings,project)
+        config.update(figure_settings=figure,plot_settings=settings)
         for k in ['project_path','saved_revision','read_only','upgrade_from']:config.pop(k,None)
         (stage/'project.json').write_text(json.dumps(config,ensure_ascii=False,indent=2,allow_nan=False),encoding='utf-8')
-        figure_data,figure=plot_results(result,stage,settings,figure_settings,project)
-        from .workbook import write_workbook
-        write_workbook(project,result,stage)
+        from .workbook import write_workbook,group_rows
+        write_workbook(config,result,stage,figure_data)
+        csv_file(stage/'group_summaries.csv',group_rows(figure_data))
+        for key in ['multigroup_omnibus','multigroup_comparisons']:csv_file(stage/(key+'.csv'),result.get(key,[]))
         manifest=dict(software='Titan WB '+__version__,project_id=project['id'],revision=project['revision'],
-          synthetic=bool(project.get('demo')),plot_settings=settings,figure_settings=figure,figure_data=figure_data,outputs={str(p.relative_to(stage)):file_hash(p) for p in stage.rglob('*') if p.is_file()},
+          synthetic=bool(project.get('demo') or project.get('synthetic')),plot_settings=settings,figure_settings=figure,figure_data=figure_data,outputs={str(p.relative_to(stage)):file_hash(p) for p in stage.rglob('*') if p.is_file()},
           limitations=['Digitally unclipped does not prove linear response','Human review and linearity fields are declarations','Real WB validation pending'])
         (stage/'audit.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2),encoding='utf-8')
         os.replace(stage,dest)
