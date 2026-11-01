@@ -73,7 +73,7 @@
 ### Task 5: Excel/审计/包交付
 **Files:** Modify workbook.py, scripts/verify_release.py, verify_lane_release.py; add fixture/standalone verification and report; version files0.3.0, guide/changelog/native checklist.
 **Interfaces:** Excel adds group summaries, multigroup omnibus and simultaneous pairwise comparisons as separate sheets; existing Holm sheet remains accurately labelled. Include figure settings/source/units, adjustedp and CI methods; missing remains blank and text literal. Archive record links exact exported figure.
-- [ ] RED: workbook fixed cells and source IDs, style+method metadata, snapshot export, PNG/Excel media match, p not0; legacy export still complete.
-- [ ] Implement export and docs, full pytest/Vitest/Rust/build/browser; one fresh scoped review of whole follow-up diff from a00d80b, fix Important once with regressions.
-- [ ] Build signed Mac0.3.0 onedir+App, independent cleanPATH checks of figures/statistics/library/Excel, ZIP extraction+signature/hash, collect notices/font license. Keep0.2.1 and user's installed0.2.0 unchanged.
-- [ ] Record exact checks and remaining Prism/native/Windows/real-WB evidence limits, link ready update package. No push/publish/merge or installation.
+- [x] RED: workbook fixed cells and source IDs, style+method metadata, snapshot export, PNG/Excel media match, p not0; legacy export still complete.
+- [x] Implement export and docs, full pytest/Vitest/Rust/build/browser; one fresh scoped review of whole follow-up diff from a00d80b, fix Important once with regressions.
+- [x] Build signed Mac0.3.0 onedir+App, independent cleanPATH checks of figures/statistics/library/Excel, ZIP extraction+signature/hash, collect notices/font license. Keep0.2.1 and user's installed0.2.0 unchanged.
+- [x] Record exact checks and remaining Prism/native/Windows/real-WB evidence limits, link ready update package. No push/publish/merge or installation.

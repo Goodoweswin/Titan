@@ -1,0 +1,33 @@
+{
+  "version": "0.3.0",
+  "synthetic_only": true,
+  "clean_path": true,
+  "worker_starts": 1,
+  "ratios": [
+    1,
+    2,
+    3,
+    2,
+    3,
+    4,
+    4,
+    5,
+    6
+  ],
+  "ordinary_F": 7,
+  "ordinary_p": 0.027,
+  "welch_F": 6,
+  "welch_p": 0.0625,
+  "methods": {
+    "anova/control": 2,
+    "welch_anova/all": 3,
+    "welch_anova/control": 2
+  },
+  "excel_sheets": 12,
+  "preview_export_excel_png_equal": true,
+  "export_settings_match": true,
+  "archive_source_frozen": true,
+  "archive_export_png_link": true,
+  "portable_history_versions": 2,
+  "library_copies_distinct": true
+}

@@ -1,0 +1,21 @@
+{
+  "version": "0.3.0",
+  "source_commit": "07aa097",
+  "checked_at": "2026-11-01T03:57:17.397407+00:00",
+  "archive_sha256": "8b4b79251d1bc42f060558cc37c1c071cb14a551e144cd17abb02df70023915d",
+  "archive_bytes": 74003961,
+  "signature_verified": true,
+  "zip_extraction_verified": true,
+  "extracted_engine_version": "0.3.0",
+  "extracted_probe_net": 80,
+  "font_packaged": true,
+  "font_license_packaged": true,
+  "installed": false,
+  "user_chose_keep_package": true,
+  "installed_app_unchanged_since_observation": true,
+  "previous_0_2_1_archive_sha256": "9a434fbe16f2649dcbe558b80689a0a051c6c4a4312cb74ba395133f56f529a2",
+  "native_window_verified": false,
+  "windows_native_verified": false,
+  "prism_verified": false,
+  "real_wb_verified": false
+}
