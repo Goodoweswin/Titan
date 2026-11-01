@@ -65,6 +65,9 @@ def verify(binary,output):
         with zipfile.ZipFile(output/'export/results.xlsx') as z:assert z.read('xl/media/image1.png')==(output/'export/plot.png').read_bytes()
         for name,digest in exported['outputs'].items():assert hashlib.sha256((output/'export'/name).read_bytes()).hexdigest()==digest
         config=json.loads((output/'export/project.json').read_text());assert config['figure_settings']==exported['figure_settings'] and config['plot_settings']==dimensions
+        origin=dict(path=str(output/'export'),png_sha256=exported['outputs']['plot.png'])
+        archive=call('save_figure',project=p,result=result,settings=dimensions,figure_settings=figure,name='导出归档',export_origin=origin)
+        assert call('load_figure',path=p['project_path'],figure_id=archive['id'])['document']['export_origin']==origin
         restyled=call('save_figure',project=frozen['project'],result=result,settings=dimensions,figure_settings={**figure,'error':'ci95'},name='均值CI图',figure_id=doc['id'],expected_version=doc['current_version'])
         assert len(restyled['versions'])==2
         changed=copy.deepcopy(p);changed['name']='更新实验名';changed['revision']+=1
@@ -77,7 +80,7 @@ def verify(binary,output):
         restored=call('load_figure',path=copied['project_path'],figure_id=doc['id'])
         assert restored['result']==result and len(restored['document']['versions'])==2
         call('release_project',path=copied['project_path']);assert call('health')['worker_pid']==health['worker_pid']
-        report=dict(version=health['version'],synthetic_only=True,clean_path=True,worker_starts=1,ratios=values,ordinary_F=7,ordinary_p=.027,welch_F=6,welch_p=.0625,methods=checks,excel_sheets=12,preview_export_excel_png_equal=True,export_settings_match=True,archive_source_frozen=True,portable_history_versions=2,library_copies_distinct=True)
+        report=dict(version=health['version'],synthetic_only=True,clean_path=True,worker_starts=1,ratios=values,ordinary_F=7,ordinary_p=.027,welch_F=6,welch_p=.0625,methods=checks,excel_sheets=12,preview_export_excel_png_equal=True,export_settings_match=True,archive_source_frozen=True,archive_export_png_link=True,portable_history_versions=2,library_copies_distinct=True)
         (output/'publication-release-verification.json').write_text(json.dumps(report,ensure_ascii=False,indent=2));print(json.dumps(report,ensure_ascii=False,indent=2))
     finally:
         worker.stdin.close()

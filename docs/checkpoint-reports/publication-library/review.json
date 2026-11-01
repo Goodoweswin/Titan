@@ -1,0 +1,33 @@
+{
+  "reviewed_range": "a00d80b..f3066d7",
+  "read_only": true,
+  "fresh_review_count": 1,
+  "critical": 0,
+  "important": [
+    {
+      "issue": "Late history/source-update loads could restore an obsolete frozen document after navigation",
+      "reproduced_red": "2 delayed browser cases failed",
+      "fix": "Path, navigation generation and active frozen object checked after loads; stale failures ignored",
+      "green": "2 targeted cases passed in14.7s"
+    },
+    {
+      "issue": "Standalone PNG/SVG omitted fold denominator and comparison-family qualifications",
+      "reproduced_red": "Standalone caption text probe/test failed",
+      "fix": "Shared reserved footer includes denominator uncertainty, selected group family/display scope and no across-protein correction",
+      "green": "Full pytest174+5 passed; captions use human group names"
+    }
+  ],
+  "minor": [
+    {
+      "issue": "Dunnett numerical integration provenance",
+      "fix": "Seed0 approximation caveat and SciPy version in result/Excel/UI"
+    }
+  ],
+  "fix_commit": "de4cdaf",
+  "caption_readability_commit": "c3d77fc",
+  "declined": [
+    "Final package acceptance: separate independent checks",
+    "Native GUI/Prism agreement/real-WB/Windows: not executed in this review"
+  ],
+  "second_review_requested": false
+}
