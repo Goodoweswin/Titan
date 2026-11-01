@@ -2,7 +2,7 @@
 import itertools
 import math
 import numpy as np
-from scipy import stats
+from scipy import stats,__version__ as scipy_version
 
 
 def group_summary(values):
@@ -45,7 +45,7 @@ def compare_multigroup(values,spec):
     arrays=[np.asarray([v['value'] for v in selected if v['group']==group],dtype=float) for group in groups]
     if any(not np.isfinite(a).all() for a in arrays):raise ValueError('统计数据含非有限值，不能静默剔除')
     n_by_group={g:len(a) for g,a in zip(groups,arrays)}
-    base=dict(comparison_id=spec['id'],analyte=spec['analyte'],membrane_id=spec['membrane_id'],analysis_block=spec['membrane_id'],scale=spec['scale'],method=spec['method'],groups=groups,n_by_group=n_by_group,family_id=f"{spec['id']}:{spec['analyte']}:{spec['membrane_id']}")
+    base=dict(comparison_id=spec['id'],analyte=spec['analyte'],membrane_id=spec['membrane_id'],analysis_block=spec['membrane_id'],scale=spec['scale'],method=spec['method'],groups=groups,n_by_group=n_by_group,family_id=f"{spec['id']}:{spec['analyte']}:{spec['membrane_id']}",scipy_version=scipy_version)
     omnibus={**base,'status':'descriptive','statistic':None,'df_num':None,'df_den':None,'p_raw':None,'warnings':[]}
     if spec['method']=='descriptive':return dict(omnibus=omnibus,comparisons=[])
     if any(len(a)<2 for a in arrays):raise ValueError('每组至少需要2个有效独立单位；缺失不能补零或静默丢组（不代表样本量充分）')
@@ -80,5 +80,5 @@ def compare_multigroup(values,spec):
             rows.append(dict(group_a=groups[a],group_b=groups[b],effect=float(arrays[b].mean()-arrays[a].mean()),statistic=None,p_adjusted=float(test.pvalue[a,b]),ci95=[-float(ci.high[a,b]),-float(ci.low[a,b])],adjustment_method='tukey' if equal else 'games_howell',family_scope='all_pairs'))
     for row in rows:
         if not all(math.isfinite(v) for v in [row['effect'],row['p_adjusted'],*row['ci95']]) or not 0<=row['p_adjusted']<=1:raise ValueError('多重比较的效应、区间或p值数值退化')
-        row.update(base,display_scope=spec['scope'],p_raw=None,ci_method='simultaneous_95',alternative='two-sided',effect_ratio=_ratio(row['effect']) if spec['scale']=='log2' else None,ratio_ci95=[_ratio(v) for v in row['ci95']] if spec['scale']=='log2' else None,status='valid',warnings=[])
+        row.update(base,display_scope=spec['scope'],p_raw=None,ci_method='simultaneous_95',alternative='two-sided',effect_ratio=_ratio(row['effect']) if spec['scale']=='log2' else None,ratio_ci95=[_ratio(v) for v in row['ci95']] if spec['scale']=='log2' else None,status='valid',warnings=['Dunnett p和同时CI采用数值积分近似；固定随机种子0以便复现，不代表精确解析值。'] if row['adjustment_method']=='dunnett' else [])
     return dict(omnibus=omnibus,comparisons=rows)

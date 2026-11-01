@@ -1,5 +1,5 @@
 """A single offline PNG/SVG renderer shared by preview, Excel and archived figures."""
-import math
+import math,textwrap
 from pathlib import Path
 import numpy as np
 from .figures import resolve_figure_settings,figure_data,jitter_positions
@@ -30,6 +30,7 @@ def render_figure(result,root,plot_settings,figure_settings=None,project=None):
     with plt.rc_context(style):
         fig,axs=plt.subplots(1,max(1,len(panels)),figsize=(width,height),squeeze=False)
         try:
+            captions=[];caption_size=max(6,plot_settings['font_size']*.65)
             for ax,panel in zip(axs[0],panels):
                 positions=np.arange(len(panel['groups']))*(1+f['bar_gap']);labels=[]
                 for x,group in zip(positions,panel['groups']):
@@ -72,10 +73,20 @@ def render_figure(result,root,plot_settings,figure_settings=None,project=None):
                 if panel['comparisons']:
                     methods=sorted({r['adjustment_method']+'/'+r['scale'] for r in panel['comparisons']});legend+='; adjusted p: '+', '.join(methods)
                     if f['annotations']=='stars':legend+='; *<.05, **<.01, ***<.001, ****<.0001'
+                    families=dict.fromkeys((r.get('family_id',r['comparison_id']),r.get('family_scope',''),r.get('display_scope','')) for r in panel['comparisons'])
+                    for identity,scope,display in families:
+                        legend+='\nFamily '+identity+': '+{'all_pairs':'all pairs of selected groups','treatments_vs_control':'selected treatments vs control'}.get(scope,scope)+'; display: '+display
+                    legend+='\nNo across-protein correction.'
+                for note in data['notes']:
+                    legend+='\n'+('Fold and errors scaled by observed control mean; denominator uncertainty not propagated.' if f['value_mode']=='fold' else note)
                 if panel['warnings']:legend+='\n'+'; '.join(panel['warnings'])
-                ax.text(.5,-.38,legend,transform=ax.transAxes,ha='center',va='top',fontsize=max(6,plot_settings['font_size']*.65),wrap=True)
+                columns=max(25,int((plot_settings['panel_width']-.3)*72/(caption_size*.65)))
+                captions.append('\n'.join(textwrap.fill(line,width=columns,break_long_words=True,break_on_hyphens=False) for line in legend.splitlines()))
             if not panels:axs[0,0].text(.5,.5,'No eligible values',ha='center');axs[0,0].set_axis_off()
-            fig.tight_layout()
+            footer=(max((text.count('\n')+1 for text in captions),default=0)*caption_size*1.3/72+.18)/height if captions else 0
+            if footer>.55:raise ValueError('图注较长，请增大图表高度或减少同时标注的比较设置')
+            for i,caption in enumerate(captions):fig.text((i+.5)/len(captions),.025,caption,ha='center',va='bottom',fontsize=caption_size)
+            fig.tight_layout(rect=(0,footer,1,1))
             fig.savefig(root/'plot.png',dpi=plot_settings['dpi'])
             fig.savefig(root/'plot.svg')
         finally:plt.close(fig)

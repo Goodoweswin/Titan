@@ -42,6 +42,7 @@ def test_dunnett_published_example_and_reproducible_integration():
  assert [r['statistic'] for r in rows]==pytest.approx([.90874545,-.05007117],abs=1e-7)
  assert [r['p_adjusted'] for r in rows]==pytest.approx([.58325114,.99819341],abs=5e-4)
  assert all(r['rng_seed']==0 and r['adjustment_method']=='dunnett' for r in rows)
+ assert all(r['scipy_version'] and any('数值积分' in w for w in r['warnings']) for r in rows)
 
 def test_games_howell_control_display_keeps_full_pairwise_family():
  values=units(dict(A=[1,2,4],B=[2,4,8,9],C=[3,7,15]))

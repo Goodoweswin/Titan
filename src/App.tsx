@@ -162,7 +162,7 @@ export default function App(){
    }
    if(token!==projectNavigation.current)return
    void library.remember(path)
-   if(figureId){const loaded=await callEngine<FrozenFigure>('load_figure',{path,figure_id:figureId});if(token!==projectNavigation.current)return;setShowExport(false);figurePreview.current=null;frozenRef.current=loaded;setFrozen(loaded);navigation.current++;setTab('results')}
+   if(figureId){const view=navigation.current,loaded=await callEngine<FrozenFigure>('load_figure',{path,figure_id:figureId});if(token!==projectNavigation.current||view!==navigation.current||current.current?.project_path!==path)return;setShowExport(false);figurePreview.current=null;frozenRef.current=loaded;setFrozen(loaded);navigation.current++;setTab('results')}
    else{if(view==='workspace')setActiveSetId(current.current?.band_sets.find(g=>g.role==='reference')?.id??'');navigate(view,true)}
   }catch(e){if(token===projectNavigation.current)setMessage(String(e))}
   finally{if(token===projectNavigation.current)setSwitching(false)}
@@ -190,7 +190,7 @@ export default function App(){
   if(!project||project.read_only)return;const p=project
   setCandidates(null)
   const boxes=await execute<Rect[]>('识别候选条带',()=>callEngine('detect',{project:p,image_id:imageId,window,settings:{}}));if(!boxes)return
-  if(current.current?.revision!==p.revision||current.current?.id!==p.id){setMessage('输入已变化，旧识别结果已丢弃。');return}
+  if(!sameProjectContext(current.current,p)||current.current?.revision!==p.revision){setMessage('输入已变化，旧识别结果已丢弃。');return}
   if(!boxes.length){setMessage('此区域没有识别到候选条带，请调整范围或手动画框。');return}
   setCandidates({projectId:p.id,revision:p.revision,imageId,analyte,role,boxes,included:boxes.map((_,i)=>i)})
   setMessage('候选尚未加入项目。请排除不需要的框，再确认加入。')
@@ -215,6 +215,7 @@ export default function App(){
   window.addEventListener('keydown',listener);return()=>window.removeEventListener('keydown',listener)
  },[project,past,future,busy])
  function onFigurePreview(value:LiveFigurePreview|null){figurePreview.current=value}
+ function stillViewingFigure(history:FrozenFigure,token:number,view:number){return projectNavigation.current===token&&navigation.current===view&&frozenRef.current===history&&current.current?.project_path===history.project.project_path}
  function openExport(){
   const history=frozenRef.current,p=history?.project??current.current,r=history?.result??resultRef.current;if(!p||!r)return
   const preview=figurePreview.current
@@ -223,7 +224,7 @@ export default function App(){
   setExportContext({project:p,result:r,settings:matching?.ready?data?.settings:matching?.settings,figure:matching?.ready?data?.figure_settings:matching?.figure_settings,frozenId:history?.document.id,frozenVersion:history?.document.selected_version,preview:data});setShowExport(true)
  }
  async function archiveFigure(request:ArchiveFigureRequest){
-  const activeAtStart=frozenRef.current
+  const activeAtStart=frozenRef.current,token=projectNavigation.current,view=navigation.current
   let p=request.project,r=request.result
   if(!request.frozen){
    if(!sameProjectContext(current.current,p))throw new Error('当前实验已切换，本次图表未写入新项目')
@@ -235,14 +236,15 @@ export default function App(){
   const doc=await callEngine<FigureDocumentMetadata>('save_figure',{...request,project:p,result:r})
   if(current.current?.project_path!==p.project_path)await callEngine('release_project',{path:p.project_path}).catch(()=>{})
   await library.refresh()
-  if(request.frozen&&activeAtStart&&frozenRef.current?.document.id===activeAtStart.document.id&&frozenRef.current?.document.selected_version===activeAtStart.document.selected_version&&current.current?.project_path===p.project_path){const loaded=await callEngine<FrozenFigure>('load_figure',{path:p.project_path,figure_id:doc.id});frozenRef.current=loaded;setFrozen(loaded)}
+  if(request.frozen&&activeAtStart&&stillViewingFigure(activeAtStart,token,view)){const loaded=await callEngine<FrozenFigure>('load_figure',{path:p.project_path,figure_id:doc.id});if(stillViewingFigure(activeAtStart,token,view)){frozenRef.current=loaded;setFrozen(loaded)}}
   return doc
  }
  async function updateFigureSource(){
   const history=frozenRef.current,p=current.current,r=resultRef.current;if(!history||!p||!r)return
-  try{if(!await flushCurrent())return;const preview=figurePreview.current?.data;const doc=await archiveFigure({project:current.current!,result:r,figure_settings:preview?.figure_settings??history.figure_settings,settings:preview?.settings??history.settings,name:history.document.name,figure_id:history.document.id,expected_version:history.document.current_version,update_source:true});if(doc){const loaded=await callEngine<FrozenFigure>('load_figure',{path:p.project_path,figure_id:doc.id});frozenRef.current=loaded;setFrozen(loaded);setMessage('已用当前分析更新源数据，旧版本仍保留。')}}catch(e){setMessage(String(e))}
+  const token=++projectNavigation.current,view=navigation.current
+  try{if(!await flushCurrent()||!stillViewingFigure(history,token,view))return;const preview=figurePreview.current?.data;const doc=await archiveFigure({project:current.current!,result:r,figure_settings:preview?.figure_settings??history.figure_settings,settings:preview?.settings??history.settings,name:history.document.name,figure_id:history.document.id,expected_version:history.document.current_version,update_source:true});if(doc&&stillViewingFigure(history,token,view)){const loaded=await callEngine<FrozenFigure>('load_figure',{path:p.project_path,figure_id:doc.id});if(!stillViewingFigure(history,token,view))return;frozenRef.current=loaded;setFrozen(loaded);setMessage('已用当前分析更新源数据，旧版本仍保留。')}}catch(e){if(stillViewingFigure(history,token,view))setMessage(String(e))}
  }
- async function openFigureVersion(version:string){const history=frozenRef.current;if(!history||!await canLeaveFigure())return;try{const loaded=await callEngine<FrozenFigure>('load_figure',{path:history.project.project_path,figure_id:history.document.id,version_id:version});figurePreview.current=null;frozenRef.current=loaded;setFrozen(loaded);setShowExport(false)}catch(e){setMessage(String(e))}}
+ async function openFigureVersion(version:string){const history=frozenRef.current,token=++projectNavigation.current,view=navigation.current;if(!history||!await canLeaveFigure()||!stillViewingFigure(history,token,view))return;try{const loaded=await callEngine<FrozenFigure>('load_figure',{path:history.project.project_path,figure_id:history.document.id,version_id:version});if(!stillViewingFigure(history,token,view))return;figurePreview.current=null;frozenRef.current=loaded;setFrozen(loaded);setShowExport(false)}catch(e){if(stillViewingFigure(history,token,view))setMessage(String(e))}}
  async function exportResult(settings:PlotSettings,figure:FigureSettings){
   const context=exportContext;if(!context)return
   const path=await save({defaultPath:`${context.project.name}-结果`,title:'选择新的结果目录'});if(!path)return

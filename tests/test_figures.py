@@ -69,6 +69,23 @@ def test_annotations_only_use_selected_adjusted_pairwise_records():
  data=figure_data(p,r,{'annotations':'p','comparison_ids':[comparison_key(row)]})
  assert data['panels'][0]['comparisons'][0]['p_adjusted']==.04
 
+def test_standalone_caption_retains_fold_uncertainty_and_full_comparison_family(tmp_path,monkeypatch):
+ from matplotlib.text import Text
+ from titan_wb.export import plot_results
+ from titan_wb.figures import comparison_key
+ p,r=project_and_result()
+ for value in r['biological']:value['fold']=value['value']
+ row=dict(comparison_id='multi',family_id='multi:X:M1',analyte='蛋白X',membrane_id='M1',group_a='A',group_b='B',p_adjusted=.04,scale='raw',status='valid',adjustment_method='games_howell',family_scope='all_pairs',display_scope='control',groups=['A','B','C'])
+ r['multigroup_comparisons']=[row]
+ texts=[];original=Text.set_text
+ def capture(self,text):texts.append(str(text));return original(self,text)
+ monkeypatch.setattr(Text,'set_text',capture)
+ plot_results(r,tmp_path,dict(panel_width=5,height=4,font_size=11,dpi=100),{'value_mode':'fold','annotations':'p','comparison_ids':[comparison_key(row)]},p)
+ caption=' '.join(' '.join(texts).split())
+ assert 'denominator uncertainty' in caption and 'not propagated' in caption
+ assert 'multi:X:M1' in caption and 'all pairs' in caption and 'display: control' in caption
+ assert 'no across-protein' in caption.lower()
+
 def test_custom_axis_truncation_is_visible_in_figure_metadata():
  p,r=project_and_result();data=figure_data(p,r,{'y_min':1,'y_max':5})
  assert any('零基线' in w for w in data['panels'][0]['warnings'])
