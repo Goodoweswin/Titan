@@ -27,6 +27,9 @@ jobs:
         with:
           python-version: '3.11'
           architecture: ${{ matrix.platform == 'windows-x64' && 'x64' || 'arm64' }}
+      - name: Read application version
+        shell: bash
+        run: node -p "'APP_VERSION=' + require('./package.json').version" >> "$GITHUB_ENV"
       - name: Windows build
         if: runner.os == 'Windows'
         shell: pwsh
@@ -34,8 +37,8 @@ jobs:
           rustup default stable-x86_64-pc-windows-msvc
           ./packaging/build_windows.ps1
           New-Item -ItemType Directory -Force dist-release | Out-Null
-          Copy-Item 'src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*-setup.exe' 'dist-release/Titan-WB-0.1.0-windows-x64-setup.exe'
-          .venv/Scripts/python.exe scripts/package_notices.py dist-release/Titan-WB-0.1.0-windows-x64-third-party.zip
+          Copy-Item 'src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*-setup.exe' 'dist-release/Titan-${{ env.APP_VERSION }}-windows-x64-setup.exe'
+          .venv/Scripts/python.exe scripts/package_notices.py dist-release/Titan-${{ env.APP_VERSION }}-windows-x64-third-party.zip
       - name: macOS build and bundled verification
         if: runner.os == 'macOS'
         run: |
@@ -49,10 +52,10 @@ jobs:
           .venv/bin/python scripts/collect_notices.py
           .venv/bin/python packaging/build_engine.py
           npm run desktop:build -- --target aarch64-apple-darwin --bundles app,dmg
-          .venv/bin/python scripts/verify_release.py --app 'src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Titan WB.app' --output artifacts/release-verification
-          cp src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg dist-release/Titan-WB-0.1.0-macos-arm64.dmg
-          ditto -c -k --sequesterRsrc --keepParent 'src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Titan WB.app' dist-release/Titan-WB-0.1.0-macos-arm64.app.zip
-          .venv/bin/python scripts/package_notices.py dist-release/Titan-WB-0.1.0-macos-arm64-third-party.zip
+          .venv/bin/python scripts/verify_release.py --app 'src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Titan.app' --output artifacts/release-verification
+          cp src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg dist-release/Titan-${{ env.APP_VERSION }}-macos-arm64.dmg
+          ditto -c -k --sequesterRsrc --keepParent 'src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Titan.app' dist-release/Titan-${{ env.APP_VERSION }}-macos-arm64.app.zip
+          .venv/bin/python scripts/package_notices.py dist-release/Titan-${{ env.APP_VERSION }}-macos-arm64-third-party.zip
       - uses: actions/upload-artifact@v4
         with:
           name: release-${{ matrix.platform }}
@@ -79,4 +82,4 @@ jobs:
           cd dist-release
           sha256sum * > SHA256SUMS.txt
           cd ..
-          gh release create "$GITHUB_REF_NAME" dist-release/* --prerelease --title "Titan WB $GITHUB_REF_NAME" --notes-file "docs/releases/$GITHUB_REF_NAME.md"
+          gh release create "$GITHUB_REF_NAME" dist-release/* --prerelease --title "Titan $GITHUB_REF_NAME" --notes-file "docs/releases/$GITHUB_REF_NAME.md"

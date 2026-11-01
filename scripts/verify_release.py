@@ -7,6 +7,7 @@ from contextlib import ExitStack
 import base64
 import hashlib
 import json
+import plistlib
 import os
 import shutil
 import subprocess
@@ -19,7 +20,7 @@ from pathlib import Path
 def verify(app,output):
     output=Path(output);output.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='titan-release-') as tmp, ExitStack() as stack:
-        root=Path(tmp);copied=root/'Titan WB.app';shutil.copytree(app,copied,symlinks=True)
+        root=Path(tmp);copied=root/'Titan.app';shutil.copytree(app,copied,symlinks=True)
         binary=copied/'Contents/Resources/engine/wb-engine/wb-engine'
         session=dict(pid=os.getpid(),token='release-verification')
         worker=subprocess.Popen([str(binary),'--stdio-server'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,
@@ -38,7 +39,11 @@ def verify(app,output):
             worker.stdin.write(json.dumps(dict(request_id=request_id,command=command,payload=payload or {},session=session))+'\n');worker.stdin.flush()
             response=json.loads(worker.stdout.readline());assert response['request_id']==request_id and response['ok'],response.get('error')
             return response['data']
+        expected_version=json.loads((Path(__file__).resolve().parents[1]/'package.json').read_text())['version']
+        with (copied/'Contents/Info.plist').open('rb') as stream:bundle_metadata=plistlib.load(stream)
+        assert bundle_metadata['CFBundleShortVersionString']==expected_version, 'Application bundle version does not match source'
         health=call('health');assert health['protocol']==1
+        assert health['version']==expected_version, 'Packaged engine version does not match application'
         assert call('probe')['corrected_sum']==80
         project=call('demo');result=call('analyze',dict(project=project))
         assert len(result['measurements'])==24
@@ -66,7 +71,7 @@ def verify(app,output):
         sig=subprocess.run(['codesign','--verify','--deep','--strict',str(copied)],capture_output=True,text=True)
         assert sig.returncode==0,sig.stderr
         assert call('health')['worker_pid']==health['worker_pid']
-        report=dict(worker_starts=1,engine_protocol=health['protocol'],clean_path=True,source_independent_copy=True,
+        report=dict(version=expected_version,worker_starts=1,engine_protocol=health['protocol'],clean_path=True,source_independent_copy=True,
              measurements=24,targets=12,blocked=1,biological_units=6,save_reopen=True,export_files=len(exported['outputs']),
              signature_verify_exit=sig.returncode,signature_verify_message=sig.stderr,
              profile_matches_measurement=True,preview_matches_export=True,

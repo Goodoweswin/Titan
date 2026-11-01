@@ -10,7 +10,8 @@
     "tauri": "tauri",
     "desktop:dev": "tauri dev",
     "desktop:build": "tauri build",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "brand:icons": "node scripts/generate_brand_assets.mjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

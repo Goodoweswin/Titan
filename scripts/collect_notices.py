@@ -61,5 +61,5 @@ for m in cargo['packages']:
         sources.append(folder / m['license_file'])
     add('cargo', m['name'], m['version'], m.get('license'), sources)
 (OUT / 'inventory.json').write_text(json.dumps(records, ensure_ascii=False, indent=2),encoding='utf-8')
-(OUT / 'README.txt').write_text('Titan WB dependency notices\nInventory includes development/test/inactive platform packages. See inventory.json for package versions, declared licenses and copied license text paths. Dependencies are locked in requirements.lock, package-lock.json and Cargo.lock. This collection does not replace distribution license review.\n',encoding='utf-8')
+(OUT / 'README.txt').write_text('Titan dependency notices\nInventory includes development/test/inactive platform packages. See inventory.json for package versions, declared licenses and copied license text paths. Dependencies are locked in requirements.lock, package-lock.json and Cargo.lock. This collection does not replace distribution license review.\n',encoding='utf-8')
 print(f'{len(records)} dependency records; notices: {OUT}')

@@ -1,9 +1,9 @@
-# Titan WB
+# Titan
 
 [![CI](https://github.com/Goodoweswin/Titan/actions/workflows/ci.yml/badge.svg)](https://github.com/Goodoweswin/Titan/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-本地运行的 Western blot 图像定量桌面工具。使用 React / TypeScript 构建界面，Tauri 提供桌面能力，Python 负责原始像素定量与统计。
+本地运行的实验图像分析应用。当前提供 Western blot 定量分析，免疫荧光图像分析待开发。使用 React / TypeScript 构建界面，Tauri 提供桌面能力，Python 负责原始像素定量与统计。
 
 **当前状态：测试版。** 已有自动化测试和合成数据验证；真实 WB 定量准确性与完整原生桌面操作验收仍待完成。适合试用、方法核对和共同改进。它不能自动判断抗体特异性、曝光线性或实验设计是否有效。
 
@@ -13,18 +13,21 @@
 
 | 系统 | 下载文件 | 安装方式 |
 | --- | --- | --- |
-| macOS 14+，Apple Silicon（M 系列） | `*-macos-arm64.dmg` | 打开磁盘映像，将 Titan WB 拖入 Applications |
+| macOS 14+，Apple Silicon（M 系列） | `*-macos-arm64.dmg` | 打开磁盘映像，将应用拖入 Applications |
 | Windows 10/11，x64 | `*-windows-x64-setup.exe` | 运行安装向导，支持中文 |
 
 安装包包含 Python 计算引擎。Windows 缺少 WebView2 时会联网安装该运行库。当前未提供 Intel Mac、Windows ARM 或 Linux 安装包；macOS 包采用临时签名，尚未完成 Apple 公证，Windows 包未配置商业签名。
 
 发布页面提供 `SHA256SUMS.txt` 和第三方许可归档。正式发布资产与短期保留的 Actions 构建产物分别管理。
 
-![Titan WB 强度与背景检查，合成示例、非实验数据](docs/assets/workspace.png)
+![Titan 的 Western blot 强度与背景检查，合成示例、非实验数据](docs/assets/workspace.png)
 
 ## 主要能力
 
 - 导入单通道 TIFF / PNG，保留原始位深；显示预览与定量数据分离。
+- 内参→目标→结果的泳道优先流程，支持稳定泳道布局、未检出状态及逐目标关联。
+- 自动保存的本地项目库、冻结图表与版本历史。
+- 论文图样式、多组 ANOVA / Welch ANOVA 及相应多重比较，导出含嵌图的 Excel 工作簿。
 - 手动画框、批量编辑与撤销；自动识别候选先预览，确认后加入项目。
 - 原图、ROI、泳道强度曲线及局部背景联动，扣背景积分保留负值。
 - 样本、技术重复、生物学重复、参考条带与跨膜 IBC 显式映射。
@@ -85,4 +88,4 @@ npm run desktop:build
 
 ## 许可
 
-Titan WB 原创代码与项目文档采用 [MIT License](LICENSE)。第三方依赖保留各自许可证；许可清单由发布环境生成，并随发布包附带。
+Titan 原创代码与项目文档采用 [MIT License](LICENSE)。第三方依赖保留各自许可证；许可清单由发布环境生成，并随发布包附带。
