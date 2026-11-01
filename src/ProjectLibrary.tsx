@@ -1,0 +1,17 @@
+import {useEffect,useState} from 'react'
+import {ChevronRight,Folder,FileBarChart2,FlaskConical,Search,Table2} from 'lucide-react'
+import type {LibraryEntry,Project} from './types'
+export default function ProjectLibrary({entries,project,activeFigure,currentView,error,onOpen,onRelocate,onRetry}:{entries:LibraryEntry[];project:Project|null;activeFigure:string;currentView:'workspace'|'results';error:string;onOpen:(entry:LibraryEntry,view:'workspace'|'results',figureId?:string)=>void;onRelocate:(entry:LibraryEntry)=>void;onRetry:()=>void}){
+ const [query,setQuery]=useState(''),[expanded,setExpanded]=useState<string[]>([])
+ useEffect(()=>{const active=entries.find(e=>e.path===project?.project_path);if(active)setExpanded(v=>v.includes(active.entry_id)?v:[...v,active.entry_id])},[project?.project_path,entries])
+ const q=query.trim().toLocaleLowerCase(),visible=entries.filter(e=>!q||e.name.toLocaleLowerCase().includes(q)||e.figures.some(f=>f.name.toLocaleLowerCase().includes(q)))
+ return <nav className="project-library" aria-label="实验项目库"><label className="library-search"><Search size={14}/><input aria-label="搜索项目或图表" placeholder="搜索项目或图表" value={query} onChange={e=>setQuery(e.target.value)}/></label><div className="sidebar-label">项目</div>
+ {error&&<div className="library-error" role="alert"><p>项目列表暂不可用：{error}</p><button onClick={onRetry}>重试</button></div>}
+ {!entries.length&&!error&&<p className="hint library-empty">新实验会自动保存在这里。</p>}
+ {visible.map(entry=>{const active=entry.path===project?.project_path,isOpen=q||expanded.includes(entry.entry_id);return <div className="library-project" key={entry.entry_id}>
+ <div className={active?'library-root active':'library-root'}><button className="library-chevron" aria-label={`${isOpen?'收起':'展开'}项目 ${entry.name}`} aria-expanded={!!isOpen} onClick={()=>setExpanded(v=>v.includes(entry.entry_id)?v.filter(id=>id!==entry.entry_id):[...v,entry.entry_id])}><ChevronRight size={13} style={{transform:isOpen?'rotate(90deg)':undefined}}/></button><button className="library-title" title={entry.path} aria-label={`打开项目 ${entry.name}`} onClick={()=>entry.available?onOpen(entry,'workspace'):onRelocate(entry)}><Folder size={15}/><span>{entry.name}</span>{!entry.available&&<small>需定位</small>}</button></div>
+ {isOpen&&<div className="library-children"><button className={active&&!activeFigure&&currentView==='workspace'?'selected':''} onClick={()=>onOpen(entry,'workspace')} disabled={!entry.available}><FlaskConical size={14}/>分析工作台</button><button className={active&&!activeFigure&&currentView==='results'?'selected':''} onClick={()=>onOpen(entry,'results')} disabled={!entry.available}><Table2 size={14}/>结果表</button>{entry.figures.map(figure=><button key={figure.id} className={active&&activeFigure===figure.id?'selected':''} title={`${figure.name} · 源版本 ${figure.source_revision}`} aria-label={`打开图表 ${figure.name}`} onClick={()=>onOpen(entry,'results',figure.id)}><FileBarChart2 size={14}/><span>{figure.name}</span>{figure.source_stale&&<small>旧版本</small>}</button>)}{entry.figure_error&&<p className="library-error">{entry.figure_error}</p>}{!entry.available&&<button onClick={()=>onRelocate(entry)}>重新定位项目</button>}</div>}
+ </div>})}
+ {q&&!visible.length&&<p className="hint library-empty">没有匹配的项目或图表。</p>}
+ </nav>
+}

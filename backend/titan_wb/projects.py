@@ -1,7 +1,7 @@
 """Portable project folders, atomic manifests and session-owned writer locks."""
 import copy
 import time
-from contextlib import contextmanager
+from contextlib import contextmanager,nullcontext
 import json
 import os
 import re
@@ -68,15 +68,19 @@ def save_project(project,path,expected_revision,session):
         a['path']=dest.relative_to(root).as_posix()
     if previous and previous!=root:
         # Portable figures can reference originals no longer present in the current image list.
-        for folder in ['originals','figures']:
-            source_folder=previous/folder
-            if source_folder.is_dir():
-                for item in source_folder.rglob('*'):
-                    if item.is_symlink():raise ValueError('项目历史包含符号链接，不能安全另存')
-                    if item.is_file() and item.name not in ['.catalog.lock']:
-                        target=root/folder/item.relative_to(source_folder);target.parent.mkdir(parents=True,exist_ok=True)
-                        if target.exists() and file_hash(target)!=file_hash(item):raise ValueError('副本历史文件冲突')
-                        if not target.exists():shutil.copy2(item,target)
+        figures=previous/'figures'
+        with operation_lock(figures,'.catalog.lock') if figures.is_dir() else nullcontext():
+            for folder in ['originals','figures']:
+                source_folder=previous/folder
+                if source_folder.is_dir():
+                    for item in source_folder.rglob('*'):
+                        relative=item.relative_to(source_folder)
+                        if any(part.startswith('.figure-stage-') for part in relative.parts):continue
+                        if item.is_symlink():raise ValueError('项目历史包含符号链接，不能安全另存')
+                        if item.is_file() and item.name!='.catalog.lock':
+                            target=root/folder/relative;target.parent.mkdir(parents=True,exist_ok=True)
+                            if target.exists() and file_hash(target)!=file_hash(item):raise ValueError('副本历史文件冲突')
+                            if not target.exists():shutil.copy2(item,target)
     for key in ['project_path','saved_revision','read_only','upgrade_from']:p.pop(key,None)
     if manifest.exists():
         (root/'backups').mkdir(exist_ok=True)

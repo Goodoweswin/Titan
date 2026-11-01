@@ -144,7 +144,7 @@ test('keyboard nudging is reversible and inspector selection returns to the top'
  for(const width of [1080,768,390]){
   await page.setViewportSize({width,height:940})
   await page.getByLabel('显示字号').selectOption('large')
-  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
   await page.screenshot({path:`artifacts/checkpoints/workflow-large-${width}.png`})
  }
 })

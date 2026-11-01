@@ -82,6 +82,11 @@ def test_multigroup_does_not_run_before_explicit_design_confirmation(tmp_path):
  assert r['multigroup_omnibus'][0]['status']=='blocked' and r['multigroup_comparisons']==[]
  assert r['statistics']==[]
 
+def test_duplicate_comparison_ids_cannot_ambiguously_identify_annotations():
+ from titan_wb.models import new_project,validate_project
+ p=new_project('ambiguous');p['settings']['multigroup_comparisons']=[spec(),spec()]
+ with pytest.raises(ValueError,match='比较ID'):validate_project(p)
+
 @pytest.mark.parametrize('method',['anova','welch_anova'])
 def test_last_group_as_control_keeps_B_minus_A_and_family(method):
  values=units(dict(A=[1,2,3],B=[2,3,4],C=[4,5,6]))

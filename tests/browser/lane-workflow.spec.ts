@@ -119,7 +119,7 @@ test('reference re-identification reuses explicit lane template instead of guess
  await page.getByTitle('删除条带',{exact:true}).click()
  const savePath=path.join(root,'delete-reidentify.titanwb')
  await page.evaluate((dest:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async(c:string)=>{if(c==='plugin:dialog|save')return dest;throw Error(c)}}},savePath)
- await page.getByRole('button',{name:'保存实验',exact:true}).click()
+ await page.getByRole('button',{name:'另存副本',exact:true}).click()
  await expect(page.getByText('实验已保存；保存期间的新修改仍保留。',{exact:true})).toBeVisible()
  let disk=JSON.parse(readFileSync(path.join(savePath,'project.json'),'utf8'))
  expect(disk.band_sets[0].assignments[0]).toMatchObject({roi_id:null,status:'pending'})

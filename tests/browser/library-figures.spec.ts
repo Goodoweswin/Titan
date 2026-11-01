@@ -1,0 +1,111 @@
+import {test,expect} from '@playwright/test'
+
+test('new experiments autosave and remain in the left project tree after reload',async({page})=>{
+ await page.goto('/?integration=1')
+ await page.getByRole('button',{name:'新建实验',exact:true}).first().click()
+ const name='自动保存验收 '+Date.now()
+ await page.getByLabel('实验名称').fill(name)
+ await expect(page.getByRole('button',{name:'打开项目 '+name,exact:true})).toBeVisible({timeout:10000})
+ await page.getByRole('button',{name:'新建实验',exact:true}).first().click()
+ await expect(page.getByLabel('实验名称')).toHaveValue('未命名实验')
+ await page.reload()
+ await page.getByRole('button',{name:'打开项目 '+name,exact:true}).click()
+ await expect(page.getByLabel('实验名称')).toHaveValue(name)
+ await expect(page.getByRole('navigation',{name:'实验项目库'}).getByRole('button',{name:'结果表',exact:true}).first()).toBeVisible()
+})
+
+async function rpc(page:any,command:string,payload:object={}){
+ const response=await page.request.post('/test-engine',{data:{command,payload}}),envelope=await response.json();expect(envelope.ok,envelope.error).toBe(true);return envelope.data
+}
+async function seedThreeGroups(page:any){
+ const created=await rpc(page,'library_create',{name:'三组柱图 · 合成验收 '+Date.now()});let p=await rpc(page,'demo')
+ delete p.demo;p.synthetic=true;p.id=created.project.id;p.name=created.project.name;p.project_path=created.project.project_path;p.saved_revision=0
+ p.samples.forEach((s:any,i:number)=>s.group=['WT','KO','Rescue'][Math.floor(i/2)])
+ p.settings.control_group='WT';p.settings.design_confirmed=true
+ const layout={id:'qa-layout',image_id:p.images[0].id,membrane_id:'M1',window:[0,0,520,160],columns:p.lanes.map((l:any)=>{const r=p.rois.find((r:any)=>r.lane_id===l.id);return {lane_id:l.id,rect:[r.rect[0],0,r.rect[2],160]}}),excluded_regions:[],source_layout_id:null,confirmed_revision:p.revision}
+ p.lane_layouts=[layout]
+ p.band_sets=['reference','target'].map(role=>({id:role,layout_id:layout.id,analyte:role==='target'?'TARGET':'Loading control',role,window:role==='target'?[0,20,520,80]:[0,80,520,140],reference_set_id:role==='target'?'reference':null,assignments:p.lanes.map((l:any)=>({lane_id:l.id,roi_id:p.rois.find((r:any)=>r.lane_id===l.id&&r.role===role).id,status:'accepted'}))}))
+ p.rois.forEach((r:any)=>{r.band_set_id=r.role;r.lane_layout_id=layout.id})
+ p=await rpc(page,'save_project',{project:p,path:p.project_path,expected_revision:0});await rpc(page,'library_register',{path:p.project_path});return p
+}
+
+test('three-group figures expose methods/colors and preserve frozen sources in the sidebar',async({page})=>{
+ await page.goto('/?integration=1');const source=await seedThreeGroups(page);await page.reload()
+ await page.getByRole('button',{name:'打开项目 '+source.name,exact:true}).click()
+ await page.getByRole('button',{name:'结果',exact:true}).click()
+ await expect(page.getByRole('img',{name:'当前结果图表',exact:true})).toBeVisible({timeout:15000})
+ await page.getByText('统计分析与方法说明',{exact:true}).click()
+ await page.getByRole('button',{name:'添加多组分析',exact:true}).click()
+ await page.getByLabel('多组统计方法',{exact:true}).selectOption('anova')
+ const table=page.getByRole('table',{name:'多组两两比较结果',exact:true})
+ await expect(table.locator('tbody tr')).toHaveCount(2)
+ await expect(table).toContainText('dunnett')
+ await page.getByLabel('多重比较范围',{exact:true}).selectOption('all')
+ await expect(table.locator('tbody tr')).toHaveCount(3);await expect(table).toContainText('tukey')
+ await page.getByLabel('多组统计方法',{exact:true}).selectOption('welch_anova')
+ await expect(table).toContainText('games_howell')
+ await expect(page.getByLabel('统计方法解释')).toContainText('全两两校正家族')
+ await page.getByLabel('多组统计方法',{exact:true}).selectOption('anova');await expect(table).toContainText('tukey')
+ await page.getByText('图形设置',{exact:true}).click()
+ await page.getByLabel('误差线类型',{exact:true}).selectOption('sem')
+ await page.getByLabel('颜色 WT',{exact:true}).fill('#55aa77')
+ await page.getByText('文字、坐标与图形细节',{exact:true}).click()
+ await page.getByLabel('Y轴标题',{exact:true}).fill('Norm. expression')
+ await page.getByRole('button',{name:'应用样式到项目',exact:true}).click()
+ await expect(page.getByText('24 已复核',{exact:false})).toBeVisible()
+ await page.getByLabel('图表名称',{exact:true}).fill('三组均值柱图')
+ await page.getByRole('button',{name:/用当前结果更新图表|保存当前图表|^保存图表$/}).click()
+ await expect(page.getByRole('button',{name:'打开图表 三组均值柱图',exact:true})).toBeVisible({timeout:15000})
+ await page.screenshot({path:'artifacts/checkpoints/publication-figure-controls.png',fullPage:true})
+ await page.getByRole('button',{name:'打开图表 三组均值柱图',exact:true}).click()
+ await expect(page.getByRole('heading',{name:'三组均值柱图',exact:true})).toBeVisible()
+ const entries=await rpc(page,'library_list'),entry=entries.find((e:any)=>e.path===source.project_path),doc=entry.figures.find((f:any)=>f.name==='三组均值柱图')
+ const frozen=await rpc(page,'load_figure',{path:source.project_path,figure_id:doc.id})
+ expect(frozen.figure_settings.colors.WT).toBe('#55aa77');expect(frozen.figure_settings.error).toBe('sem')
+ expect(frozen.result.multigroup_comparisons).toHaveLength(3)
+ await page.getByRole('button',{name:'返回分析工作台',exact:true}).click()
+ await page.getByRole('button',{name:'L1',exact:true}).click()
+ await page.getByLabel('样本名称',{exact:true}).fill('修改后的样本别名')
+ await page.getByRole('button',{name:'打开图表 三组均值柱图',exact:true}).click()
+ await expect(page.getByText('当前实验已变化，这张图保留原数据。',{exact:false})).toBeVisible({timeout:15000})
+ const prior=await rpc(page,'load_figure',{path:source.project_path,figure_id:doc.id})
+ expect(prior.project.samples[0].name).toBeUndefined()
+ await page.getByRole('button',{name:'用当前分析更新源数据',exact:true}).click()
+ await expect(page.getByText('已用当前分析更新源数据，旧版本仍保留。',{exact:true})).toBeVisible({timeout:15000})
+ const updated=await rpc(page,'load_figure',{path:source.project_path,figure_id:doc.id})
+ expect(updated.project.samples[0].name).toBe('修改后的样本别名')
+ expect(updated.document.versions.length).toBeGreaterThanOrEqual(3)
+ await expect(page.getByRole('img',{name:'当前结果图表',exact:true})).toBeVisible()
+ await page.screenshot({path:'artifacts/checkpoints/project-library-figures.png',fullPage:true})
+})
+
+test('invalid drafts remain editable, cancelling navigation preserves them, and late previews cannot cross projects',async({page})=>{
+ await page.goto('/?integration=1');const source=await seedThreeGroups(page);await page.reload()
+ await page.getByRole('button',{name:'打开项目 '+source.name,exact:true}).click()
+ await page.getByRole('button',{name:'结果',exact:true}).click()
+ await expect(page.getByRole('img',{name:'当前结果图表',exact:true})).toBeVisible({timeout:15000})
+ await page.getByText('图形设置',{exact:true}).click();await page.getByLabel('HEX WT',{exact:true}).fill('#bad')
+ await expect(page.getByRole('alert')).toContainText('#RRGGBB')
+ await page.getByRole('button',{name:'导出 Excel 与图表',exact:true}).click()
+ const modal=page.getByRole('dialog');await modal.getByText('图形样式、配色与标记',{exact:true}).click()
+ await modal.getByLabel('HEX WT',{exact:true}).fill('#334455')
+ await expect(modal.getByRole('img',{name:'实际导出图表'})).toBeVisible({timeout:15000})
+ await modal.getByRole('button',{name:'关闭预览',exact:true}).click()
+ expect(await page.getByLabel('HEX WT',{exact:true}).inputValue()).toBe('#bad')
+ page.once('dialog',d=>d.dismiss());await page.getByRole('button',{name:'内参',exact:true}).click()
+ await expect(page.getByLabel('HEX WT',{exact:true})).toHaveValue('#bad')
+ await page.getByLabel('HEX WT',{exact:true}).fill('#334455')
+ let release!:()=>void,received!:()=>void
+ const held=new Promise<void>(resolve=>release=resolve),waiting=new Promise<void>(resolve=>received=resolve)
+ await page.route('**/test-engine',async route=>{
+  const body=route.request().postDataJSON()
+  if(body.command==='export_preview'&&body.payload.figure_settings?.error==='sem'){
+   const response=await route.fetch();received();await held;await route.fulfill({response})
+  }else await route.continue()
+ })
+ await page.getByLabel('误差线类型',{exact:true}).selectOption('sem');await waiting
+ page.once('dialog',d=>d.accept());await page.getByRole('button',{name:'新建实验',exact:true}).first().click()
+ await expect(page.getByLabel('实验名称')).toHaveValue('未命名实验')
+ release();await expect(page.getByRole('img',{name:'当前结果图表',exact:true})).toHaveCount(0)
+ await expect(page.getByLabel('实验名称')).toHaveValue('未命名实验')
+})

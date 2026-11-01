@@ -554,3 +554,72 @@ dialog.source-dialog::backdrop { background: #24365066; }
 .result-figure>p { color:var(--muted); padding:40px 20px; }
 .export-contents { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px 16px; margin:16px 0; }
 .export-contents p { line-height:1.7; margin:4px 0; }
+
+:root { --sidebar-width:260px; }
+.sidebar { padding-top:24px; }
+.sidebar .brand { padding-bottom:20px; }
+.project-library { flex:1; min-height:120px; overflow:auto; padding:12px 0; }
+.library-search { display:flex; align-items:center; gap:7px; padding:0 9px; margin:0 0 20px; color:var(--muted); }
+.library-search input { width:100%; font-size:var(--text-sm); padding:7px 8px; background:transparent; border-color:var(--border-strong); }
+.library-project { margin-bottom:5px; }
+.library-root { display:flex; align-items:center; border-radius:7px; min-height:35px; }
+.library-root:hover { background:#e2e8f2; }
+.library-root.active { color:var(--ink); font-weight:550; }
+.library-chevron { flex-shrink:0; padding:6px 3px; display:flex; }
+.library-title { display:flex; align-items:center; gap:8px; padding:7px 4px; text-align:left; min-width:0; flex:1; font-size:var(--text-base); }
+.library-title>span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.library-title>svg { flex-shrink:0; }
+.library-title small { font-size:.65rem; margin-left:auto; color:var(--warning); white-space:nowrap; }
+.library-children { margin:2px 0 10px 20px; border-left:1px solid var(--border-strong); padding-left:6px; }
+.library-children>button { display:flex; align-items:center; gap:7px; width:100%; padding:7px 8px; border-radius:7px; font-size:var(--text-sm); text-align:left; min-width:0; }
+.library-children>button>span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.library-children>button svg { flex-shrink:0; color:var(--muted); }
+.library-children>button:hover { background:#e2e8f2; }
+.library-children>button.selected { background:#dce6f8; color:#345fa4; }
+.library-children>button small { margin-left:auto; font-size:.65rem; white-space:nowrap; color:var(--warning); }
+.library-error { margin:6px 8px; color:var(--warning); font-size:var(--text-xs); overflow-wrap:anywhere; }
+.library-error button { text-decoration:underline; }
+.library-empty { margin:8px 12px; }
+.library-demo { flex-shrink:0; font-size:var(--text-sm); }
+.sidebar>.project-navigator { max-height:40vh; overflow:auto; flex-shrink:1; }
+.workspace-proteins { padding:0 26px 8px; }
+.workspace-proteins label { display:flex; gap:10px; align-items:center; font-size:var(--text-sm); color:var(--muted); }
+.workspace-proteins select { padding:6px 9px; max-width:360px; }
+.figure-editor { border:0; padding:0; margin:0; min-width:0; }
+.figure-common,.figure-fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:14px; margin:12px 0; }
+.figure-common label,.figure-fields label { display:flex; flex-direction:column; gap:6px; color:var(--text-secondary); font-size:var(--text-sm); }
+.figure-common select,.figure-fields input,.figure-fields select { width:100%; }
+.figure-fields .checkbox-label { flex-direction:row; align-items:center; align-self:end; padding-bottom:10px; }
+.figure-fields .checkbox-label input { width:auto; }
+.figure-details { border-top:1px solid var(--border); margin-top:18px; padding-top:12px; }
+.figure-details>summary { font-size:var(--text-base); color:var(--text-secondary); cursor:pointer; margin-bottom:12px; }
+.figure-colors { display:flex; flex-wrap:wrap; gap:12px 20px; margin:15px 0; }
+.figure-colors>label { display:flex; align-items:center; gap:7px; font-size:var(--text-sm); }
+.figure-colors input[type=color] { width:35px; height:33px; padding:3px; }
+.figure-colors input:not([type=color]) { width:90px; padding:6px; font-size:var(--text-sm); }
+.figure-group-labels>div { display:flex; gap:12px; align-items:end; flex-wrap:wrap; border-bottom:1px solid var(--border); padding:12px 0; }
+.figure-group-labels label { display:flex; flex-direction:column; gap:6px; font-size:var(--text-sm); }
+.figure-group-labels input[type=color] { width:50px; height:37px; padding:3px; }
+.figure-comparison-list { display:flex; flex-direction:column; gap:8px; max-height:230px; overflow:auto; margin:12px 0; }
+.figure-actions,.figure-save,.figure-document-actions { display:flex; align-items:end; flex-wrap:wrap; gap:10px; margin-top:16px; }
+.figure-save label,.figure-document-actions label { display:flex; flex-direction:column; gap:6px; font-size:var(--text-sm); }
+.figure-save input { min-width:240px; }
+.figure-source-note { border-left:3px solid var(--border-strong); color:var(--muted); padding:8px 12px; margin:12px 0; font-size:var(--text-sm); }
+.multi-spec { border:1px solid var(--border); border-radius:8px; padding:16px; margin:18px 0; min-width:0; }
+.multi-groups { display:flex; flex-wrap:wrap; gap:12px; margin:15px 0; }
+.method-explanation { background:#edf2f8; border-radius:6px; padding:14px 16px; font-size:var(--text-sm); line-height:1.8; }
+.method-explanation p { margin-top:8px; }
+.omnibus-result { font-size:var(--text-base); margin:16px 0; font-weight:550; }
+.header-actions { flex-wrap:wrap; justify-content:flex-end; }
+@media(max-width:1100px){:root{--sidebar-width:235px}.figure-common,.figure-fields{grid-template-columns:repeat(2,minmax(0,1fr))}.figure-save input{min-width:160px}}
+@media(max-width:800px){
+ :root{--sidebar-width:0px}
+ .app-shell{flex-direction:column}
+ .sidebar{position:static;width:100%;padding:14px 18px;align-items:stretch;border-right:0;border-bottom:1px solid var(--border)}
+ .sidebar .brand{padding:0 0 10px}.brand-name{display:block}
+ .sidebar .nav{width:auto;font-size:var(--text-base);justify-content:flex-start;gap:10px}
+ .project-library{max-height:180px;min-height:0;flex:auto;padding:6px 0}.library-search{margin-bottom:8px}
+ .sidebar-bottom,.sidebar-divider{display:none}
+ .header-actions{min-width:0;max-width:100%;flex-shrink:1}
+}
+@media(max-width:520px){.header-actions{justify-content:flex-start}.figure-common,.figure-fields{grid-template-columns:1fr}}

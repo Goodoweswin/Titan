@@ -16,6 +16,9 @@ def validate_project(p):
     if p.get('schema_version')!=2:raise ValueError('不支持此项目版本，请使用兼容版本打开')
     if not isinstance(p.get('revision'),int) or p['revision']<0:raise ValueError('项目版本无效')
     if not p.get('id') or not p.get('name','').strip():raise ValueError('项目身份缺失')
+    multi=p.get('settings',{}).get('multigroup_comparisons',[])
+    if not isinstance(multi,list) or any(not isinstance(s,dict) or not isinstance(s.get('id'),str) or not s['id'].strip() for s in multi):raise ValueError('多组比较ID缺失或格式无效')
+    if len({s['id'] for s in multi})!=len(multi):raise ValueError('多组比较ID不能重复')
     maps={}
     for key in ['images','samples','lanes','rois']:
         rows=p.get(key)

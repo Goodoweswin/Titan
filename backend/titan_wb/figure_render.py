@@ -63,7 +63,9 @@ def render_figure(result,root,plot_settings,figure_settings=None,project=None):
                 for i,row in enumerate(panel['comparisons']):
                     a=positions[keys.index(row['group_a'])];b=positions[keys.index(row['group_b'])];y=hi+span*(.08+.12*i);cap=span*.025
                     ax.plot([a,a,b,b],[y,y+cap,y+cap,y],color='#202020',linewidth=.8,clip_on=False)
-                    p=row['p_adjusted'];text=('****' if p<.0001 else '***' if p<.001 else '**' if p<.01 else '*' if p<.05 else 'ns') if f['annotations']=='stars' else 'p_adj='+format(p,'.3g')
+                    p=row['p_adjusted'];text=('****' if p<.0001 else '***' if p<.001 else '**' if p<.01 else '*' if p<.05 else 'ns') if f['annotations']=='stars' else ('p_adj below numerical precision' if p==0 else 'p_adj='+format(p,'.3g'))
+                    abbreviation={'tukey':'Tukey','dunnett':'Dunnett','games_howell':'GH'}.get(row['adjustment_method'],row['adjustment_method'])
+                    text+=' ['+abbreviation+'/'+row['scale']+']'
                     ax.text((a+b)/2,y+cap*1.2,text,ha='center',va='bottom',fontsize=plot_settings['font_size']*.8)
                     if f['y_max'] is not None and y+cap>upper and '显著性括号超出自定义Y轴范围' not in panel['warnings']:panel['warnings'].append('显著性括号超出自定义Y轴范围')
                 legend=('per-lane ratios' if data['unit']=='lane' else 'mean'+(' +/- '+f['error'].upper() if f['error']!='none' else ''))+'; '+panel['analysis_block']

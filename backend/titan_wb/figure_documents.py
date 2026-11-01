@@ -42,7 +42,7 @@ def _catalog(root):
 def _public(doc,current_signature=None,version_id=None):
     version=next(v for v in doc['versions'] if v['version_id']==(version_id or doc['current_version']))
     history=[{k:v.get(k) for k in ['version_id','source_revision','created_at','name']} for v in doc['versions']]
-    return dict(id=doc['id'],name=version['name'],current_version=doc['current_version'],selected_version=version['version_id'],source_revision=version['source_revision'],source_signature=version['source_signature'],source_stale=current_signature is not None and version['source_signature']!=current_signature,created_at=doc['created_at'],updated_at=version['created_at'],kind=version['figure_settings']['kind'],panel_key=version['figure_settings']['panel_key'],versions=history)
+    return dict(id=doc['id'],name=version['name'],current_version=doc['current_version'],selected_version=version['version_id'],source_revision=version['source_revision'],source_signature=version['source_signature'],source_stale=current_signature is not None and version['source_signature']!=current_signature,created_at=doc['created_at'],updated_at=version['created_at'],kind=version['figure_settings']['kind'],panel_key=version['figure_settings']['panel_key'],default_key=doc.get('default_key'),versions=history)
 
 
 def figure_catalog_metadata(root,current_signature=None):

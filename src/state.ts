@@ -48,10 +48,10 @@ export function restoreHistory(current:Project,old:Project):Project{
  carryReviews(current,p);return p
 }
 export function acceptReview(current:Project|null,input:Project,checked:Project):Project|null{
- return current?.id===input.id&&current.revision===input.revision?checked:null
+ return current?.id===input.id&&current.project_path===input.project_path&&current.revision===input.revision?checked:null
 }
 export function mergeImported(current:Project|null,base:Project,incoming:Project):Project|null{
- if(!current||current.id!==base.id)return current
+ if(!current||current.id!==base.id||current.project_path!==base.project_path)return current
  const added=incoming.images.filter(a=>!base.images.some(b=>a.id===b.id))
  return editProject(current,p=>{for(const a of added)if(!p.images.some(b=>b.id===a.id))p.images.push(a)})
 }

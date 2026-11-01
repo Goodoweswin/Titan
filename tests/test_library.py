@@ -79,6 +79,22 @@ def test_figure_snapshot_is_portable_with_whole_project_copy(tmp_path):
  assert analyze(loaded['project'])['lane_results'][0]['normalized']==4
  assert loaded['png'].startswith('data:image/png;base64,')
 
+def test_save_as_waits_for_figure_transaction_and_omits_uncommitted_stages(tmp_path):
+ import threading,time
+ from titan_wb.projects import operation_lock
+ p,r,s=saved_fixture(tmp_path);doc=save_figure(p,r,{},'chart',s)
+ figures=Path(p['project_path'])/'figures';stage=figures/'.figure-stage-uncommitted';stage.mkdir();(stage/'partial').write_text('incomplete')
+ started=threading.Event()
+ def copy_project():
+  started.set();return save_project(p,str(tmp_path/'copy.titanwb'),None,s)
+ with ThreadPoolExecutor(max_workers=1) as pool:
+  with operation_lock(figures,'.catalog.lock'):
+   future=pool.submit(copy_project);assert started.wait(1);time.sleep(.12)
+   assert not future.done(),'Save as must wait for the source figure catalog transaction'
+  copied=future.result(timeout=5)
+ assert not (Path(copied['project_path'])/'figures'/stage.name).exists()
+ assert load_figure(copied['project_path'],doc['id'],s)['document']['id']==doc['id']
+
 def test_failed_or_concurrent_figure_writes_cannot_replace_a_valid_document(tmp_path):
  p,r,s=saved_fixture(tmp_path);doc=save_figure(p,r,{},'chart',s)
  with pytest.raises(ValueError):save_figure(p,r,{'colors':{'x':'invalid'}},'bad',s)

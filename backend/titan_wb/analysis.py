@@ -50,6 +50,7 @@ def analyze(project):
             identity={k:spec.get(k) for k in ['id','analyte','membrane_id','method','scale']} if isinstance(spec,dict) else {}
             omnibus.append({**identity,'comparison_id':identity.pop('id',None),'status':'blocked','p_raw':None,'statistic':None,'df_num':None,'df_den':None,'warnings':[str(e)]})
     from .lane_results import lane_result_rows
+    from .figure_documents import source_signature
     return dict(project_id=project['id'],input_revision=project['revision'],measurements=measurements,
                 normalized=rows,biological=bio,statistics=statistics,lane_results=lane_result_rows(project,measurements,rows),
-                multigroup_omnibus=omnibus,multigroup_comparisons=pairwise)
+                multigroup_omnibus=omnibus,multigroup_comparisons=pairwise,source_signature=source_signature(project))
