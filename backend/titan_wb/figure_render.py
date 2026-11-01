@@ -73,9 +73,10 @@ def render_figure(result,root,plot_settings,figure_settings=None,project=None):
                 if panel['comparisons']:
                     methods=sorted({r['adjustment_method']+'/'+r['scale'] for r in panel['comparisons']});legend+='; adjusted p: '+', '.join(methods)
                     if f['annotations']=='stars':legend+='; *<.05, **<.01, ***<.001, ****<.0001'
-                    families=dict.fromkeys((r.get('family_id',r['comparison_id']),r.get('family_scope',''),r.get('display_scope','')) for r in panel['comparisons'])
-                    for identity,scope,display in families:
-                        legend+='\nFamily '+identity+': '+{'all_pairs':'all pairs of selected groups','treatments_vs_control':'selected treatments vs control'}.get(scope,scope)+'; display: '+display
+                    families={r.get('family_id',r['comparison_id']):r for r in panel['comparisons']}
+                    for index,row in enumerate(families.values(),1):
+                        scope=row.get('family_scope','');groups=', '.join(row.get('groups',keys))
+                        legend+='\nFamily '+str(index)+' ('+groups+'): '+{'all_pairs':'all pairs of selected groups','treatments_vs_control':'selected treatments vs control'}.get(scope,scope)+'; display: '+row.get('display_scope','')
                     legend+='\nNo across-protein correction.'
                 for note in data['notes']:
                     legend+='\n'+('Fold and errors scaled by observed control mean; denominator uncertainty not propagated.' if f['value_mode']=='fold' else note)

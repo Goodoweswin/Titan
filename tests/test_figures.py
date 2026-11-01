@@ -83,7 +83,7 @@ def test_standalone_caption_retains_fold_uncertainty_and_full_comparison_family(
  plot_results(r,tmp_path,dict(panel_width=5,height=4,font_size=11,dpi=100),{'value_mode':'fold','annotations':'p','comparison_ids':[comparison_key(row)]},p)
  caption=' '.join(' '.join(texts).split())
  assert 'denominator uncertainty' in caption and 'not propagated' in caption
- assert 'multi:X:M1' in caption and 'all pairs' in caption and 'display: control' in caption
+ assert 'Family 1 (A, B, C)' in caption and 'all pairs' in caption and 'display: control' in caption
  assert 'no across-protein' in caption.lower()
 
 def test_custom_axis_truncation_is_visible_in_figure_metadata():
