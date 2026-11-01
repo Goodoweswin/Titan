@@ -1,0 +1,19 @@
+{
+  "installed_at": "2026-11-01T04:00:52.835147+00:00",
+  "version": "0.3.0",
+  "previous_version": "0.1.0",
+  "application_path": "/Applications/Titan.app",
+  "backup_path": "/Users/janus/.codex/worktrees/titan-lane-first/Titan/release/publication-library/previous-installation/20261101-120052/Titan.app",
+  "signature_verified": true,
+  "user_authorized_install": true,
+  "source_commit": "14dba8b",
+  "version_label_from_package": true,
+  "staged_application": "/Users/janus/.codex/worktrees/titan-lane-first/Titan/release/publication-library/installed-0.3.0/Titan WB 0.3.0.app",
+  "native_home_verified": true,
+  "native_ui_version": "0.3.0",
+  "native_engine_status": "本地引擎就绪",
+  "native_full_workflow_verified": false,
+  "existing_projects_modified": false,
+  "updated_archive_path": "/Users/janus/.codex/worktrees/titan-lane-first/Titan/release/publication-library/installed-0.3.0/Titan-WB-0.3.0-macos-arm64.zip",
+  "updated_archive_sha256": "45754d029efc1576a182855a80174bb059dacdd49fadb930585003c4e0f41d62"
+}
