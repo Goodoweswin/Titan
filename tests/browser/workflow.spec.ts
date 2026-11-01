@@ -86,7 +86,7 @@ test('batch copy, sample paste and UI size are usable and undoable',async({page}
  await page.getByTitle('撤销',{exact:true}).click()
  await expect(page.getByRole('heading',{name:'条带区域 24'})).toBeVisible()
  await page.getByRole('button',{name:'样本与分析设置',exact:true}).click()
- await page.getByText('从 Excel 粘贴样本表',{exact:true}).click()
+ await page.getByRole('button',{name:'粘贴样本表',exact:true}).click()
  await page.getByLabel('样本表 TSV').fill('L1\tS1\tB1\tcustom\t\tM1\nL2\tS1\tB1\tcustom\t\tM1')
  await page.getByRole('button',{name:'应用样本表',exact:true}).click()
  await expect(page.getByLabel('group L1',{exact:true})).toHaveValue('custom')
