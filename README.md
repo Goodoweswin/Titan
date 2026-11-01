@@ -9,7 +9,7 @@
 
 ## 下载与安装
 
-当前版本为 **[0.3.1 测试版](https://github.com/Goodoweswin/Titan/releases/tag/v0.3.1-beta.2)**，包含最新泳道微调、撤销与旋转参考线。下载安装包：
+当前版本为 **[0.3.2 测试版](https://github.com/Goodoweswin/Titan/releases/tag/v0.3.2-beta.1)**，新增分栏结果工作区、紧凑样本表和图表设置侧栏。下载安装包：
 
 | 系统 | 下载文件 | 安装方式 |
 | --- | --- | --- |
@@ -81,7 +81,7 @@ npm run desktop:build
 ## 文档与参与
 
 - [贡献指南](CONTRIBUTING.md) · [问题反馈](https://github.com/Goodoweswin/Titan/issues) · [安全报告](SECURITY.md)
-- [版本记录](CHANGELOG.md) · [发布验证记录](docs/releases/v0.3.1-beta.2-verification.json) · [待办与验证重点](docs/ROADMAP.md)
+- [版本记录](CHANGELOG.md) · [本版发布说明与验证范围](docs/releases/v0.3.2-beta.1.md) · [待办与验证重点](docs/ROADMAP.md)
 - [原生验收清单](docs/NATIVE_ACCEPTANCE.md) · [验证记录索引](docs/checkpoints.md)
 - [第三方许可](docs/THIRD_PARTY_NOTICES.md) · [研究资料与独立参考实现](wb_research/README.md)
 - 历史设计、实施计划和检查点保留于 `docs/`，其中部分内容描述早期版本，不代表当前已实现或已验证的能力。

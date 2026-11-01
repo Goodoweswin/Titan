@@ -1,0 +1,26 @@
+{
+  "tag": "v0.3.2-beta.1",
+  "application_version": "0.3.2",
+  "date": "2026-11-01",
+  "implementation_commit": "1458bc79335eb19ff0c9a2d5c40fc57c4b3aa8c0",
+  "local_checks": {
+    "python_tests": {
+      "passed": 182,
+      "subtests_passed": 5
+    },
+    "frontend_tests": {
+      "passed": 58
+    },
+    "browser_tests": {
+      "passed": 36
+    },
+    "production_build": "passed",
+    "version_consistency": "passed",
+    "diff_check": "passed"
+  },
+  "release_url": "https://github.com/Goodoweswin/Titan/releases/tag/v0.3.2-beta.1",
+  "release_workflow_status": "pending",
+  "assets_verified": false,
+  "native_window_verified": false,
+  "real_wb_verified": false
+}
