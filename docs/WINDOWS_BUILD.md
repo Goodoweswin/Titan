@@ -23,7 +23,7 @@ powershell -ExecutionPolicy Bypass -File packaging/build_windows.ps1
 
 ## 当前公开版本
 
-请从 [GitHub Releases](https://github.com/Goodoweswin/Titan/releases/tag/v0.3.1-beta.1) 下载当前预发布包，并使用发布附件 SHA256SUMS.txt 核对。下面的首次构建记录仅为历史记录，其 hash 不用于新版。
+请从 [GitHub Releases](https://github.com/Goodoweswin/Titan/releases/tag/v0.3.1-beta.2) 下载当前预发布包，并使用发布附件 SHA256SUMS.txt 核对。下面的首次构建记录仅为历史记录，其 hash 不用于新版。
 
 ## 首次 Windows 安装包
 
