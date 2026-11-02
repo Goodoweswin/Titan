@@ -11,16 +11,16 @@
   --text-base: .875rem;
   --text-md: .9375rem;
   --text-lg: 1rem;
-  --background: #f6f8fc;
-  --sidebar: #edf1f7;
+  --background: #ffffff;
+  --sidebar: #f6f6f5;
   --surface: #ffffff;
-  --ink: #26354b;
-  --text-secondary: #53647d;
-  --muted: #5d6f88;
-  --border: #e3e9f2;
-  --border-strong: #cbd5e5;
-  --accent: #406de4;
-  --accent-soft: #e8efff;
+  --ink: #202123;
+  --text-secondary: #505255;
+  --muted: #6b6d6b;
+  --border: #e6e7e5;
+  --border-strong: #d7d9d6;
+  --accent: #4167c4;
+  --accent-soft: #eef1f8;
   --warning: #a67639;
   --plot-secondary: #ab7c51;
   --sidebar-width: 232px;
@@ -66,10 +66,10 @@ small { font-size: var(--text-base); color: var(--muted); }
 .connection i { width: 5px; height: 5px; background: #9eacbf; border-radius: 50%; }
 .connection .online { background: #5c9e8a; box-shadow: 0 0 0 3px #5c9e8a0e; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 9px 14px; border-radius: 8px; font-size: var(--text-base); font-weight: 500; white-space: nowrap; }
-.primary { border: 1px solid #3864db; background: var(--accent); color: #fff; box-shadow: inset 0 1px 0 #ffffff24, 0 3px 6px #406de415; }
-.primary:hover:not(:disabled) { background: #345ece; border-color: #345ece; }
-.secondary { border: 1px solid #d6dfed; background: #fff; color: #536783; box-shadow: 0 1px 2px #23447304; }
-.secondary:hover:not(:disabled) { background: #eef3fc; border-color: #bacce8; }
+.primary { border: 1px solid var(--ink); background: var(--ink); color: #fff; box-shadow:none; }
+.primary:hover:not(:disabled) { background: #393b3d; border-color: #393b3d; }
+.secondary { border: 1px solid var(--border); background: #fff; color: var(--ink); box-shadow:none; }
+.secondary:hover:not(:disabled) { background: #f5f5f4; border-color:var(--border-strong); }
 .icon-btn { display: inline-grid; place-items: center; padding: 8px; border-radius: 7px; color: #5e6b7b; }
 .icon-btn:hover:not(:disabled) { background: #e8eef9; color: var(--accent); }
 .icon-btn.danger { color: #905d53; }
@@ -527,7 +527,7 @@ dialog.source-dialog::backdrop { background: #24365066; }
 .export-contents { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px 16px; margin:16px 0; }
 .export-contents p { line-height:1.7; margin:4px 0; }
 
-:root { --sidebar-width:260px; }
+:root { --sidebar-width:232px; }
 .sidebar { padding-top:24px; }
 .sidebar .brand { padding-bottom:20px; }
 .project-library { flex:1; min-height:120px; overflow:auto; padding:12px 0; }

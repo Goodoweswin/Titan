@@ -1,0 +1,157 @@
+import {test,expect} from '@playwright/test'
+
+async function rpc(page:any,command:string,payload:object={}){
+ const envelope=await (await page.request.post('/test-engine',{data:{command,payload}})).json()
+ expect(envelope.ok,envelope.error).toBe(true);return envelope.data
+}
+async function seed(page:any){
+ const created=await rpc(page,'library_create',{name:'WB组图验收 '+Date.now()});let p=await rpc(page,'demo')
+ p.id=created.project.id;p.name=created.project.name;p.project_path=created.project.project_path;p.saved_revision=0
+ delete p.demo;p.synthetic=true;p.rois=[];p.lanes=[];p.samples=[];p.lane_layouts=[];p.band_sets=[]
+ p=await rpc(page,'save_project',{project:p,path:p.project_path,expected_revision:0})
+ await rpc(page,'library_register',{path:p.project_path});return p
+}
+
+test('WB figure without quantification saves, reopens and exports a portable assembly',async({page})=>{
+ await page.goto('/?integration=1');const p=await seed(page);await page.reload()
+ await page.getByRole('button',{name:'打开项目 '+p.name,exact:true}).click()
+ await page.getByRole('button',{name:'WB 组图',exact:true}).click()
+ await page.getByRole('button',{name:'新建组图',exact:true}).first().click()
+ await page.getByLabel('组图名称',{exact:true}).fill('AKT 与内参')
+ await page.getByLabel('蛋白名称',{exact:true}).fill('AKT')
+ await page.getByLabel('预期分子量 kDa',{exact:true}).fill('60')
+ await page.getByLabel('裁剪 X0',{exact:true}).fill('20')
+ await page.getByLabel('裁剪 Y0',{exact:true}).fill('20')
+ await page.getByLabel('裁剪 X1',{exact:true}).fill('500')
+ await page.getByLabel('裁剪 Y1',{exact:true}).fill('80')
+ await page.getByRole('button',{name:'确认本行裁剪',exact:true}).click()
+ await page.getByRole('button',{name:'添加顶部标签',exact:true}).click()
+ await page.getByLabel('顶部标签 1',{exact:true}).fill('Ctrl')
+ await page.getByRole('button',{name:'添加蛋白行',exact:true}).click()
+ await page.getByLabel('蛋白名称',{exact:true}).fill('β-actin')
+ await page.getByLabel('预期分子量 kDa',{exact:true}).fill('42')
+ await page.getByLabel('裁剪 X0',{exact:true}).fill('20')
+ await page.getByLabel('裁剪 Y0',{exact:true}).fill('85')
+ await page.getByLabel('裁剪 X1',{exact:true}).fill('500')
+ await page.getByLabel('裁剪 Y1',{exact:true}).fill('140')
+ await page.getByRole('button',{name:'确认本行裁剪',exact:true}).click()
+ await expect(page.getByRole('img',{name:'WB 组图预览',exact:true})).toBeVisible()
+ await page.getByRole('button',{name:'保存组图',exact:true}).click()
+ await expect(page.getByRole('status').filter({hasText:'组图已保存'})).toBeVisible()
+ await page.reload();await page.getByRole('button',{name:'打开项目 '+p.name,exact:true}).click()
+ await page.getByRole('button',{name:'WB 组图',exact:true}).click()
+ await page.getByLabel('已保存的组图',{exact:true}).selectOption({label:'AKT 与内参'})
+ await expect(page.getByLabel('蛋白名称',{exact:true})).toHaveValue('AKT')
+ await expect(page.getByLabel('预期分子量 kDa',{exact:true})).toHaveValue('60')
+ await expect(page.getByLabel('裁剪 Y1',{exact:true})).toHaveValue('80')
+ await expect(page.getByRole('img',{name:'WB 组图预览',exact:true})).toBeVisible()
+ await expect(page.getByRole('img',{name:'原图裁剪画布',exact:true}).locator('image')).toHaveAttribute('href',/^data:image/)
+ await expect(page.getByRole('button',{name:'导出组图',exact:true})).toBeEnabled()
+ await page.screenshot({path:'artifacts/wb-assembly-workspace.png',fullPage:true})
+ const docs=await rpc(page,'wb_list',{project:p}),doc=await rpc(page,'wb_load',{project:p,document_id:docs[0].id})
+ expect(doc.labels[0].text).toBe('Ctrl')
+ expect(doc.rows).toHaveLength(2)
+ const destination=p.project_path+'/browser-export'
+ const output=await rpc(page,'wb_export',{project:p,document:doc,destination})
+ expect(Object.keys(output.outputs)).toEqual(expect.arrayContaining(['figure.png','figure.svg','source.json']))
+ await page.getByLabel('蛋白名称',{exact:true}).fill('unsaved')
+ page.once('dialog',dialog=>dialog.dismiss())
+ await page.getByRole('button',{name:'内参',exact:true}).click()
+ await expect(page.getByLabel('蛋白名称',{exact:true})).toHaveValue('unsaved')
+})
+
+test('crop dragging, markers and document switching keep independent drafts',async({page})=>{
+ await page.goto('/?integration=1');const p=await seed(page);await page.reload()
+ await page.getByRole('button',{name:'打开项目 '+p.name,exact:true}).click()
+ await page.getByRole('button',{name:'WB 组图',exact:true}).click()
+ await page.getByRole('button',{name:'新建组图',exact:true}).first().click()
+ const canvas=page.getByRole('img',{name:'原图裁剪画布',exact:true})
+ await expect(canvas.locator('image')).toHaveAttribute('href',/^data:image/)
+ const box=(await canvas.boundingBox())!
+ await page.mouse.move(box.x+box.width*.1,box.y+box.height*.1);await page.mouse.down()
+ await page.mouse.move(box.x+box.width*.9,box.y+box.height*.45);await page.mouse.up()
+ await expect(page.getByLabel('裁剪 X0',{exact:true})).toHaveValue('52')
+ await expect(page.getByLabel('裁剪 X1',{exact:true})).toHaveValue('468')
+ await page.getByLabel('组图名称',{exact:true}).fill('first')
+ await page.getByLabel('蛋白名称',{exact:true}).fill('A')
+ await page.getByText('Marker 标注（原图位置）',{exact:true}).click()
+ await page.getByRole('button',{name:'添加 Marker 标注',exact:true}).click()
+ await page.getByLabel('Marker 1 分子量',{exact:true}).fill('75')
+ await page.getByRole('button',{name:'确认本行裁剪',exact:true}).click()
+ await page.getByRole('button',{name:'保存组图',exact:true}).click()
+ await expect(page.getByRole('status').filter({hasText:'组图已保存'})).toBeVisible()
+ await page.getByRole('button',{name:'新建组图',exact:true}).click()
+ await page.getByLabel('组图名称',{exact:true}).fill('second')
+ await page.getByLabel('蛋白名称',{exact:true}).fill('B')
+ await page.getByRole('button',{name:'确认本行裁剪',exact:true}).click()
+ await page.getByRole('button',{name:'保存组图',exact:true}).click()
+ await expect(page.getByRole('status').filter({hasText:'组图已保存'})).toBeVisible()
+ await page.getByLabel('已保存的组图',{exact:true}).selectOption({label:'first'})
+ await expect(page.getByLabel('蛋白名称',{exact:true})).toHaveValue('A')
+ await expect(page.getByLabel('裁剪 X0',{exact:true})).toHaveValue('52')
+ await page.getByLabel('已保存的组图',{exact:true}).selectOption({label:'second'})
+ await expect(page.getByLabel('蛋白名称',{exact:true})).toHaveValue('B')
+ await expect(page.getByLabel('裁剪 X0',{exact:true})).toHaveValue('0')
+ await page.getByLabel('蛋白名称',{exact:true}).fill('B revised')
+ await page.getByRole('button',{name:'保存组图',exact:true}).click()
+ await expect(page.getByRole('status').filter({hasText:'组图已保存'})).toBeVisible()
+ await page.getByRole('button',{name:'撤销组图修改',exact:true}).click()
+ await expect(page.getByLabel('蛋白名称',{exact:true})).toHaveValue('B')
+ const undoSave=page.waitForResponse(response=>response.url().endsWith('/test-engine')&&response.request().postDataJSON().command==='wb_save')
+ await page.getByRole('button',{name:'保存组图',exact:true}).click()
+ expect((await (await undoSave).json()).ok).toBe(true)
+ await expect(page.getByRole('status').filter({hasText:'组图已保存'})).toBeVisible()
+})
+
+test('saving an unsaved experiment also saves its WB figure on the first attempt',async({page})=>{
+ await page.goto('/?integration=1')
+ const created=await rpc(page,'library_create',{name:'first-save-path'}),destination=created.project.project_path+'-manual.titanwb'
+ await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await page.getByRole('button',{name:'WB 组图',exact:true}).click()
+ await page.getByRole('button',{name:'新建组图',exact:true}).first().click()
+ await page.getByLabel('蛋白名称',{exact:true}).fill('Initial save')
+ await expect(page.getByRole('img',{name:'原图裁剪画布',exact:true}).locator('image')).toHaveAttribute('href',/^data:image/)
+ await page.getByRole('button',{name:'确认本行裁剪',exact:true}).click()
+ await page.evaluate((path:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async(command:string)=>{
+  if(command==='plugin:dialog|save')return path
+  throw new Error(command)
+ }}},destination)
+ await page.getByRole('button',{name:'保存组图',exact:true}).click()
+ await expect(page.getByRole('status').filter({hasText:'组图已保存'})).toBeVisible({timeout:8000})
+ await expect(page.getByLabel('蛋白名称',{exact:true})).toHaveValue('Initial save')
+ const p=await rpc(page,'open_project',{path:destination}),docs=await rpc(page,'wb_list',{project:p})
+ expect(docs).toHaveLength(1)
+ const d=await rpc(page,'wb_load',{project:p,document_id:docs[0].id})
+ expect(d.rows[0].source.path).toContain(destination+'/originals/')
+})
+
+test('copy and WB loads cannot overlap or reintroduce paths from the original project',async({page})=>{
+ await page.goto('/?integration=1');const p=await seed(page)
+ const d=await rpc(page,'wb_new',{project:p});d.name='saved';d.rows[0].confirmed=true
+ const saved=await rpc(page,'wb_save',{project:p,document:d})
+ await page.reload();await page.getByRole('button',{name:'打开项目 '+p.name,exact:true}).click()
+ await page.getByRole('button',{name:'WB 组图',exact:true}).click()
+ let releaseLoad!:()=>void,releaseCopy!:()=>void
+ const loadGate=new Promise<void>(r=>releaseLoad=r),copyGate=new Promise<void>(r=>releaseCopy=r)
+ const destination=p.project_path+'-copy.titanwb'
+ await page.route('**/test-engine',async route=>{
+  const request=route.request().postDataJSON()
+  if(request.command==='wb_load'){const response=await route.fetch();await loadGate;await route.fulfill({response});return}
+  if(request.command==='save_project'&&request.payload.path===destination){const response=await route.fetch();await copyGate;await route.fulfill({response});return}
+  await route.continue()
+ })
+ await page.getByLabel('已保存的组图',{exact:true}).selectOption(saved.id)
+ try{await expect(page.getByRole('button',{name:'另存副本',exact:true})).toBeDisabled({timeout:2000})}finally{releaseLoad()}
+ await expect(page.getByLabel('蛋白名称',{exact:true})).toBeVisible()
+ await page.evaluate((path:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async()=>path}},destination)
+ await page.getByRole('button',{name:'另存副本',exact:true}).click()
+ try{await expect(page.getByLabel('已保存的组图',{exact:true})).toBeDisabled({timeout:2000})}finally{releaseCopy()}
+ await expect(page.getByText('实验已保存；保存期间的新修改仍保留。',{exact:true})).toBeVisible()
+ await page.getByLabel('已保存的组图',{exact:true}).selectOption(saved.id)
+ await expect(page.getByRole('button',{name:'导出组图',exact:true})).toBeEnabled()
+ await page.getByLabel('蛋白名称',{exact:true}).fill('copy edited')
+ await page.getByRole('button',{name:'保存组图',exact:true}).click()
+ await expect(page.getByRole('status').filter({hasText:'组图已保存'})).toBeVisible()
+ const copied=await rpc(page,'open_project',{path:destination}),doc=await rpc(page,'wb_load',{project:copied,document_id:saved.id})
+ expect(doc.rows[0].source.path).toContain(destination+'/originals/')
+})

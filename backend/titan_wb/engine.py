@@ -11,6 +11,16 @@ def dispatch(request):
     command = request.get('command')
     payload=request.get('payload') or {}
     session=request.get('session') or {'pid':0,'token':'cli'}
+    if command in ('wb_new','wb_preview','wb_source_preview','wb_list','wb_save','wb_load','wb_export'):
+        from . import wb_figures as wb
+        project=payload['project']
+        if command=='wb_new':return wb.new_document(project)
+        if command=='wb_preview':return wb.preview_document(project,payload['document'])
+        if command=='wb_source_preview':return wb.source_preview(project,payload['source'])
+        if command=='wb_list':return wb.list_documents(project)
+        if command=='wb_save':return wb.save_document(project,payload['document'],session,payload.get('expected_version'))
+        if command=='wb_load':return wb.load_document(project,payload['document_id'],payload.get('version_id'))
+        if command=='wb_export':return wb.export_document(project,payload['document'],payload['destination'])
     if command == 'health':
         return {'protocol': 1, 'transport_version':2,'worker_pid':os.getpid(),'version': __version__, 'engine': 'Python / NumPy'}
     if command == 'probe':
