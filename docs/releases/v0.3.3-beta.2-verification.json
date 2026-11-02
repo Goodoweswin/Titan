@@ -37,8 +37,8 @@
       "real_wb_verified": false
     }
   },
-  "release_workflow_status": "pending",
-  "assets_verified": false,
+  "release_workflow_status": "success",
+  "assets_verified": true,
   "native_window_verified": false,
   "real_wb_verified": false,
   "previous_attempt": {
@@ -47,5 +47,361 @@
     "conclusion": "failure",
     "assets_published": false,
     "reason": "Windows frozen worker did not honor the system UTF-8 default for WB document reads; explicit UTF-8 and a cp1252 regression test added."
-  }
+  },
+  "assets": [
+    {
+      "name": "SHA256SUMS.txt",
+      "size": 504,
+      "sha256": "a3ee8041b9dc16c397d92b86b88e09187aabed908aeb5a09d8b9843bb810cd5d",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.3.3-beta.2/SHA256SUMS.txt"
+    },
+    {
+      "name": "Titan-0.3.3-macos-arm64-third-party.zip",
+      "size": 1819712,
+      "sha256": "42bf5aa58412788f1cea1e1d95cb6ec7c6e729e6174962237ab3ad026de080d7",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.3.3-beta.2/Titan-0.3.3-macos-arm64-third-party.zip"
+    },
+    {
+      "name": "Titan-0.3.3-macos-arm64.app.zip",
+      "size": 77148779,
+      "sha256": "3783c46aba1fe9490d4567a10477fce87156596cec5f85c306828af6702d6039",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.3.3-beta.2/Titan-0.3.3-macos-arm64.app.zip"
+    },
+    {
+      "name": "Titan-0.3.3-macos-arm64.dmg",
+      "size": 76166250,
+      "sha256": "c3dd8960a0042f8e0d898c85aa1d4ac3ece3a5eae765dd712cdd71753ad7851a",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.3.3-beta.2/Titan-0.3.3-macos-arm64.dmg"
+    },
+    {
+      "name": "Titan-0.3.3-windows-x64-setup.exe",
+      "size": 61445109,
+      "sha256": "f17a63caef5710787e81ce32ad471936deef1829a5e5d4f02e81067b36bc0fe4",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.3.3-beta.2/Titan-0.3.3-windows-x64-setup.exe"
+    },
+    {
+      "name": "Titan-0.3.3-windows-x64-third-party.zip",
+      "size": 1921559,
+      "sha256": "56e98575fdb2aeec67501152abc4a519bbc0333663870c8c23d7bb3e2d395492",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.3.3-beta.2/Titan-0.3.3-windows-x64-third-party.zip"
+    }
+  ],
+  "downloaded_hashes_match_manifest": true,
+  "downloaded_hashes_match_github_asset_digests": true,
+  "mac_dmg_trailer_valid": true,
+  "windows_installer_pe_valid": true,
+  "zip_integrity_valid": true,
+  "mac_bundle_version_verified": "0.3.3",
+  "source_commit": "6f6bcfb0dfd386e1ee9ef6ccd0fff0263e9c14e4",
+  "verified_at": "2026-11-02T09:15:47.443991+00:00",
+  "ci": {
+    "run_id": 41417678535,
+    "conclusion": "success",
+    "url": "https://github.com/Goodoweswin/Titan/actions/runs/41417678535"
+  },
+  "release_workflow": {
+    "run_id": 41417678946,
+    "conclusion": "success",
+    "url": "https://github.com/Goodoweswin/Titan/actions/runs/41417678946"
+  },
+  "release_jobs": [
+    {
+      "name": "build (macos-14, macos-arm64)",
+      "conclusion": "success",
+      "url": "https://github.com/Goodoweswin/Titan/actions/runs/41417678946/job/125185403024"
+    },
+    {
+      "name": "build (windows-2022, windows-x64)",
+      "conclusion": "success",
+      "url": "https://github.com/Goodoweswin/Titan/actions/runs/41417678946/job/125185403390"
+    },
+    {
+      "name": "publish",
+      "conclusion": "success",
+      "url": "https://github.com/Goodoweswin/Titan/actions/runs/41417678946/job/125189257740"
+    }
+  ],
+  "packaged_verification": {
+    "windows": {
+      "lane-verification/lane-release-verification.json": {
+        "version": {
+          "protocol": 1,
+          "transport_version": 2,
+          "worker_pid": 3700,
+          "version": "0.3.3",
+          "engine": "Python / NumPy"
+        },
+        "compressed_miniswhite": [
+          {
+            "page_index": 0,
+            "dtype": "uint8",
+            "display_inverted": true,
+            "raw_sum_matches": true,
+            "background_matches": true
+          },
+          {
+            "page_index": 0,
+            "dtype": "uint16",
+            "display_inverted": true,
+            "raw_sum_matches": true,
+            "background_matches": true
+          }
+        ],
+        "source_pages": [],
+        "source_hash_unchanged": false,
+        "target_raw": 48000,
+        "target_net": 32000,
+        "reference_net": 8000,
+        "ratio": 4,
+        "missing_lane": null,
+        "display_changes_numerics": false,
+        "save_reopen_export": true,
+        "worker_starts": 1,
+        "excel_numeric_and_missing_verified": true,
+        "excel_embedded_plot_matches": true
+      },
+      "publication-verification/publication-release-verification.json": {
+        "version": "0.3.3",
+        "synthetic_only": true,
+        "clean_path": true,
+        "worker_starts": 1,
+        "ratios": [
+          1,
+          2,
+          3,
+          2,
+          3,
+          4,
+          4,
+          5,
+          6
+        ],
+        "ordinary_F": 7,
+        "ordinary_p": 0.027,
+        "welch_F": 6,
+        "welch_p": 0.0625,
+        "methods": {
+          "anova/control": 2,
+          "welch_anova/all": 3,
+          "welch_anova/control": 2
+        },
+        "excel_sheets": 12,
+        "preview_export_excel_png_equal": true,
+        "export_settings_match": true,
+        "archive_source_frozen": true,
+        "archive_export_png_link": true,
+        "portable_history_versions": 2,
+        "library_copies_distinct": true
+      },
+      "rotation-verification/rotation-release-verification.json": {
+        "version": "0.3.3",
+        "original_hash_unchanged": true,
+        "original_area_px": 13,
+        "raw_sum": 260,
+        "profile_matches": true,
+        "save_reopen": true
+      },
+      "wb-verification/wb-release-verification.json": {
+        "version": "0.3.3",
+        "synthetic_only": true,
+        "clean_path": true,
+        "wb_document_without_analysis": true,
+        "project_unchanged": true,
+        "save_reopen": true,
+        "version_conflict_rejected": true,
+        "historical_version_preserved": true,
+        "portable_copy_after_original_removed": true,
+        "preview_equals_png_export": true,
+        "editable_svg_text": true,
+        "embedded_strip_images": 1,
+        "outputs_sha256": {
+          "figure.png": "1e67acc8c3c8ca1ce0edca68fe62dd7f669968c12c445129e253e5a6a1cd3a76",
+          "figure.svg": "3542da2fbce9a5c8c73bf3a5967b36a728995406ca7bdf4875e920f6495fba83",
+          "source.json": "0f52bd2e391131cdeca95f50b5e0f6b651ce05e7fecc1c9e3c651cb7faca6d8f"
+        },
+        "real_wb_verified": false
+      }
+    },
+    "macos": {
+      "lane-verification/lane-release-verification.json": {
+        "version": {
+          "protocol": 1,
+          "transport_version": 2,
+          "worker_pid": 8183,
+          "version": "0.3.3",
+          "engine": "Python / NumPy"
+        },
+        "compressed_miniswhite": [
+          {
+            "page_index": 0,
+            "dtype": "uint8",
+            "display_inverted": true,
+            "raw_sum_matches": true,
+            "background_matches": true
+          },
+          {
+            "page_index": 0,
+            "dtype": "uint16",
+            "display_inverted": true,
+            "raw_sum_matches": true,
+            "background_matches": true
+          }
+        ],
+        "source_pages": [],
+        "source_hash_unchanged": false,
+        "target_raw": 48000,
+        "target_net": 32000,
+        "reference_net": 8000,
+        "ratio": 4,
+        "missing_lane": null,
+        "display_changes_numerics": false,
+        "save_reopen_export": true,
+        "worker_starts": 1,
+        "excel_numeric_and_missing_verified": true,
+        "excel_embedded_plot_matches": true
+      },
+      "publication-verification/publication-release-verification.json": {
+        "version": "0.3.3",
+        "synthetic_only": true,
+        "clean_path": true,
+        "worker_starts": 1,
+        "ratios": [
+          1,
+          2,
+          3,
+          2,
+          3,
+          4,
+          4,
+          5,
+          6
+        ],
+        "ordinary_F": 7,
+        "ordinary_p": 0.027,
+        "welch_F": 6,
+        "welch_p": 0.0625,
+        "methods": {
+          "anova/control": 2,
+          "welch_anova/all": 3,
+          "welch_anova/control": 2
+        },
+        "excel_sheets": 12,
+        "preview_export_excel_png_equal": true,
+        "export_settings_match": true,
+        "archive_source_frozen": true,
+        "archive_export_png_link": true,
+        "portable_history_versions": 2,
+        "library_copies_distinct": true
+      },
+      "release-verification/release-verification.json": {
+        "version": "0.3.3",
+        "worker_starts": 1,
+        "engine_protocol": 1,
+        "clean_path": true,
+        "source_independent_copy": true,
+        "measurements": 24,
+        "targets": 12,
+        "blocked": 1,
+        "biological_units": 6,
+        "save_reopen": true,
+        "export_files": 14,
+        "signature_verify_exit": 0,
+        "signature_verify_message": "",
+        "profile_matches_measurement": true,
+        "preview_matches_export": true,
+        "native_window_verified": false,
+        "real_wb_verified": false,
+        "excel_workbook_verified": true,
+        "excel_embedded_plot_matches": true
+      },
+      "rotation-verification/rotation-release-verification.json": {
+        "version": "0.3.3",
+        "original_hash_unchanged": true,
+        "original_area_px": 13,
+        "raw_sum": 260,
+        "profile_matches": true,
+        "save_reopen": true
+      },
+      "wb-verification/wb-release-verification.json": {
+        "version": "0.3.3",
+        "synthetic_only": true,
+        "clean_path": true,
+        "wb_document_without_analysis": true,
+        "project_unchanged": true,
+        "save_reopen": true,
+        "version_conflict_rejected": true,
+        "historical_version_preserved": true,
+        "portable_copy_after_original_removed": true,
+        "preview_equals_png_export": true,
+        "editable_svg_text": true,
+        "embedded_strip_images": 1,
+        "outputs_sha256": {
+          "source.json": "67bafa047ddf04f261fe674294a932130297c85bd1a583e4957eea06c910f976",
+          "figure.svg": "a8da3801a996dea34d879c8293e810109c80ebf8177ee386ed5b2b7c8fe8f0eb",
+          "figure.png": "1e67acc8c3c8ca1ce0edca68fe62dd7f669968c12c445129e253e5a6a1cd3a76"
+        },
+        "real_wb_verified": false
+      }
+    }
+  },
+  "local_installation": {
+    "installed_path": "/Applications/Titan.app",
+    "version": "0.3.3",
+    "source_commit": "6f6bcfb0dfd386e1ee9ef6ccd0fff0263e9c14e4",
+    "signature_verified": true,
+    "installed_app_and_engine_match_build": true,
+    "hashes": {
+      "Contents/MacOS/titan-wb": "6e8053942a78aaaf37f8d30e4af6c4d23ebff7cecea928654ef0072b8980efbc",
+      "Contents/Resources/engine/wb-engine/wb-engine": "f8e0fb720b5ee675ad05e3dec2e631af1940c81fc35b249405d7ec6ae5e9eece"
+    },
+    "native_smoke_checks": [
+      "Official Release workflow Mac App launched",
+      "Previously saved experiment reopened",
+      "Large text preference preserved",
+      "Local engine ready",
+      "WB assembly workspace and import/create controls visible",
+      "About Titan reports Version 0.3.3 (0.3.3)"
+    ],
+    "native_window_verified": false,
+    "native_window_verification_scope": "Launch, saved experiment reopening, About version and WB workspace smoke check only; complete native edit/export acceptance remains unverified.",
+    "build_origin": "Official GitHub Release workflow Mac app ZIP; archive matched against the published SHA256SUMS.txt and GitHub asset digest.",
+    "old_app_backup_preserved": true,
+    "installed_engine_wb_checks": {
+      "version": "0.3.3",
+      "synthetic_only": true,
+      "clean_path": true,
+      "wb_document_without_analysis": true,
+      "project_unchanged": true,
+      "save_reopen": true,
+      "version_conflict_rejected": true,
+      "historical_version_preserved": true,
+      "portable_copy_after_original_removed": true,
+      "preview_equals_png_export": true,
+      "editable_svg_text": true,
+      "embedded_strip_images": 1,
+      "outputs_sha256": {
+        "source.json": "ce13b0051e38b6afc9a5363a06a963f20960a33b6188839e2bfa9d1408b515c9",
+        "figure.svg": "a8da3801a996dea34d879c8293e810109c80ebf8177ee386ed5b2b7c8fe8f0eb",
+        "figure.png": "1e67acc8c3c8ca1ce0edca68fe62dd7f669968c12c445129e253e5a6a1cd3a76"
+      },
+      "real_wb_verified": false
+    },
+    "official_assets_saved_to": "release/0.3.3/"
+  },
+  "verification_limits": [
+    "Synthetic packaged-engine and automated UI checks do not establish real WB scientific accuracy.",
+    "Native window checks cover launch, saved experiment reopening, About version, engine-ready status and WB workspace only; full native edit/export and Windows installation acceptance remain unverified."
+  ],
+  "verification_artifacts": [
+    {
+      "id": 13129075166,
+      "name": "verification-macos-arm64",
+      "digest": "sha256:53d87da18a69b6313eda6639c9b2f8921dffddd4aa1f93c679d9e99f7e37a841"
+    },
+    {
+      "id": 13128468912,
+      "name": "verification-windows-x64",
+      "digest": "sha256:c7d70870d74bb668168dc9758fd5d38f2f53ec222fc90abcfe72832673b9ba28"
+    }
+  ]
 }
