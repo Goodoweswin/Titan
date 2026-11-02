@@ -45,6 +45,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Packaged publication verification failed' }
           .venv/Scripts/python.exe scripts/verify_rotation_release.py --binary $engine --output artifacts/rotation-verification
           if ($LASTEXITCODE -ne 0) { throw 'Packaged rotation verification failed' }
+          .venv/Scripts/python.exe scripts/verify_wb_release.py --binary $engine --output artifacts/wb-verification
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged WB assembly verification failed' }
           New-Item -ItemType Directory -Force dist-release | Out-Null
           Copy-Item 'src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*-setup.exe' 'dist-release/Titan-${{ env.APP_VERSION }}-windows-x64-setup.exe'
           .venv/Scripts/python.exe scripts/package_notices.py dist-release/Titan-${{ env.APP_VERSION }}-windows-x64-third-party.zip
@@ -66,6 +68,7 @@ jobs:
           .venv/bin/python scripts/verify_lane_release.py --binary "$ENGINE" --output artifacts/lane-verification
           .venv/bin/python scripts/verify_publication_release.py "$ENGINE" artifacts/publication-verification
           .venv/bin/python scripts/verify_rotation_release.py --binary "$ENGINE" --output artifacts/rotation-verification
+          .venv/bin/python scripts/verify_wb_release.py --binary "$ENGINE" --output artifacts/wb-verification
           cp src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg dist-release/Titan-${{ env.APP_VERSION }}-macos-arm64.dmg
           ditto -c -k --sequesterRsrc --keepParent 'src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Titan.app' dist-release/Titan-${{ env.APP_VERSION }}-macos-arm64.app.zip
           .venv/bin/python scripts/package_notices.py dist-release/Titan-${{ env.APP_VERSION }}-macos-arm64-third-party.zip

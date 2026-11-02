@@ -1,0 +1,64 @@
+{
+  "tag": "v0.3.3-beta.1",
+  "application_version": "0.3.3",
+  "date": "2026-11-02",
+  "base_commit": "6e5944a737f35741120413902861ccbc80565645",
+  "release_url": "https://github.com/Goodoweswin/Titan/releases/tag/v0.3.3-beta.1",
+  "local_checks": {
+    "python_tests": 194,
+    "python_subtests": 5,
+    "frontend_tests": 62,
+    "browser_tests": 45,
+    "production_build": "passed",
+    "version_consistency": "passed",
+    "mac_app_and_dmg_build": "passed",
+    "mac_bundle_version": "0.3.3"
+  },
+  "local_packaged_checks": {
+    "base": {
+      "version": "0.3.3",
+      "worker_starts": 1,
+      "engine_protocol": 1,
+      "clean_path": true,
+      "source_independent_copy": true,
+      "measurements": 24,
+      "targets": 12,
+      "blocked": 1,
+      "biological_units": 6,
+      "save_reopen": true,
+      "export_files": 14,
+      "signature_verify_exit": 0,
+      "signature_verify_message": "",
+      "profile_matches_measurement": true,
+      "preview_matches_export": true,
+      "native_window_verified": false,
+      "real_wb_verified": false,
+      "excel_workbook_verified": true,
+      "excel_embedded_plot_matches": true
+    },
+    "wb_assembly": {
+      "version": "0.3.3",
+      "synthetic_only": true,
+      "clean_path": true,
+      "wb_document_without_analysis": true,
+      "project_unchanged": true,
+      "save_reopen": true,
+      "version_conflict_rejected": true,
+      "historical_version_preserved": true,
+      "portable_copy_after_original_removed": true,
+      "preview_equals_png_export": true,
+      "editable_svg_text": true,
+      "embedded_strip_images": 1,
+      "outputs_sha256": {
+        "source.json": "61d91a58cb6cd0ad896e07f65c30e0f00709d4348b24eddbdf85ddc0769cc5da",
+        "figure.svg": "a8da3801a996dea34d879c8293e810109c80ebf8177ee386ed5b2b7c8fe8f0eb",
+        "figure.png": "1e67acc8c3c8ca1ce0edca68fe62dd7f669968c12c445129e253e5a6a1cd3a76"
+      },
+      "real_wb_verified": false
+    }
+  },
+  "release_workflow_status": "pending",
+  "assets_verified": false,
+  "native_window_verified": false,
+  "real_wb_verified": false
+}
