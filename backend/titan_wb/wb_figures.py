@@ -118,7 +118,7 @@ def source_preview(project, source):
 def _root(project):
     if not project.get('project_path'):raise ValueError('请先保存实验')
     root=Path(project['project_path']).resolve()
-    if json.loads((root/'project.json').read_text())['id']!=project['id']:raise ValueError('组图与磁盘实验不匹配')
+    if json.loads((root/'project.json').read_text(encoding='utf-8'))['id']!=project['id']:raise ValueError('组图与磁盘实验不匹配')
     return root
 
 
@@ -126,7 +126,7 @@ def _catalog(root):
     path=root/'figures/wb/catalog.json'
     if not path.exists():return dict(version=1,documents=[])
     try:
-        catalog=json.loads(path.read_text());assert catalog['version']==1 and isinstance(catalog['documents'],list)
+        catalog=json.loads(path.read_text(encoding='utf-8'));assert catalog['version']==1 and isinstance(catalog['documents'],list)
         ids=[]
         for doc in catalog['documents']:
             ids.append(_id(doc['id']));_id(doc['version'])
@@ -166,7 +166,7 @@ def load_document(project, document_id, version_id=None):
     version=_id(version_id or entry['version']);record=next((v for v in entry['versions'] if v['version']==version),None)
     path=root/'figures/wb'/id/(version+'.json')
     if not record or not path.resolve().is_relative_to(root/'figures/wb') or not path.is_file() or file_hash(path)!=record['sha256']:raise ValueError('组图文档缺失或hash不匹配')
-    d=json.loads(path.read_text())
+    d=json.loads(path.read_text(encoding='utf-8'))
     for row in d['rows']:
         source=row['source'];path=(root/source['path'].replace('\\','/')).resolve()
         if not path.is_relative_to(root/'originals'):raise ValueError('组图原图路径越界')

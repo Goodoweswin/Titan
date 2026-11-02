@@ -57,8 +57,19 @@
       "real_wb_verified": false
     }
   },
-  "release_workflow_status": "pending",
+  "release_workflow_status": "failure",
   "assets_verified": false,
   "native_window_verified": false,
-  "real_wb_verified": false
+  "real_wb_verified": false,
+  "release_workflow": {
+    "run_id": 41415807032,
+    "conclusion": "failure",
+    "url": "https://github.com/Goodoweswin/Titan/actions/runs/41415807032"
+  },
+  "failure": {
+    "platform": "windows-x64",
+    "command": "wb_save",
+    "reason": "WB JSON reads used locale encoding in the frozen Windows worker; Chinese content raised a charmap decode error."
+  },
+  "superseded_by": "v0.3.3-beta.2"
 }

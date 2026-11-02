@@ -19,6 +19,25 @@ def fixture(tmp_path):
     return p,d,s
 
 
+def test_chinese_wb_documents_round_trip_with_non_utf8_default(tmp_path,monkeypatch):
+    p,d,s=fixture(tmp_path)
+    p['name']='中文实验'
+    p=save_project(p,p['project_path'],p['saved_revision'],s)
+    d['name']='中文条带组图';d['rows'][0]['protein']='蛋白 AKT'
+    original=Path.read_text
+    def locale_read(path,encoding=None,errors=None):
+        return original(path,encoding=encoding or 'cp1252',errors=errors)
+    monkeypatch.setattr(Path,'read_text',locale_read)
+    saved=save_document(p,d,s)
+    assert saved['name']=='中文条带组图'
+    assert load_document(p,saved['id'])['rows'][0]['protein']=='蛋白 AKT'
+    assert list_documents(p)[0]['name']=='中文条带组图'
+    saved['name']='修订后的组图'
+    updated=save_document(p,saved,s,expected_version=saved['version'])
+    assert updated['name']=='修订后的组图'
+    assert load_document(p,saved['id'],saved['version'])['name']=='中文条带组图'
+
+
 def test_crop_pixels_layout_svg_text_and_dpi_share_one_definition(tmp_path):
     p,d,s=fixture(tmp_path);d['labels']=[dict(text='Ctrl < &',x=.25)]
     preview=preview_document(p,d)
