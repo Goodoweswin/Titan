@@ -1,6 +1,6 @@
 # Neutral Workspace Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Deliver the approved neutral, compact Titan chrome and WB assembly surface, then install the verified local App.
 
@@ -32,10 +32,10 @@
 
 **Interfaces:** Header consumes project/name/read-only/dirty, text-size setting, busy flags, and App's existing save/copy/import/analyze/export/undo handlers. It cannot mutate project data directly. Main navigation keeps existing button names for guided/manual modes and uses current-page semantics without step numbers.
 
-- [ ] Add failing browser assertions: single compact experiment heading, unnumbered navigation, correct view actions, large text and long-name desktop/narrow layout, save/copy accessible names.
-- [ ] Run targeted browser test and confirm baseline fails before implementation.
-- [ ] Extract header, consolidate title/actions and protein navigation, move status metadata to footer, update neutral tokens and shared control styles; maintain handlers and guards.
-- [ ] Run frontend unit tests, production build and targeted shell browser cases; inspect rendered workbench and results screenshots; commit.
+- [x] Add failing browser assertions: single compact experiment heading, unnumbered navigation, correct view actions, large text and long-name desktop/narrow layout, save/copy accessible names.
+- [x] Run targeted browser test and confirm baseline fails before implementation.
+- [x] Extract header, consolidate title/actions and protein navigation, move status metadata to footer, update neutral tokens and shared control styles; maintain handlers and guards.
+- [x] Run frontend unit tests, production build and targeted shell browser cases; inspect rendered workbench and results screenshots; commit.
 
 ## Task 2: WB document surface and visual acceptance
 
@@ -43,16 +43,18 @@
 
 **Interfaces:** Existing WB editor props/IPC and operation guards remain intact. Empty view has one create action, aligned group, conditional saved-document selector; editor view has local save/export toolbar.
 
-- [ ] Add failing empty-state/create-count/center-alignment tests and screenshot cases, including large text, edit/cancel navigation and narrow width.
-- [ ] Run tests to confirm the reported duplicate-action/alignment defects.
-- [ ] Replace dashed empty container and duplicate action; scope h3 alignment and neutralize WB inspector/text/line colors using shared tokens. Preserve effective DPI and integrity/confirmation messages.
-- [ ] Run targeted WB and chrome browser tests, inspect empty/editor screenshots and commit.
+- [x] Add failing empty-state/create-count/center-alignment tests and screenshot cases, including large text, edit/cancel navigation and narrow width.
+- [x] Run tests to confirm the reported duplicate-action/alignment defects.
+- [x] Replace dashed empty container and duplicate action; scope h3 alignment and neutralize WB inspector/text/line colors using shared tokens. Preserve effective DPI and integrity/confirmation messages.
+- [x] Run targeted WB and chrome browser tests, inspect empty/editor screenshots and commit.
 
 ## Task 3: Review, regression and local installation
 
 **Files:** Add `docs/checkpoint-reports/neutral-workspace.md`; update usage documentation only where commands visibly change.
 
-- [ ] Run all Python/frontend/browser suites, production build and diff checks; commission one fresh independent whole-change review.
-- [ ] Fix material review findings with failing regressions, rerun affected/full checks and capture final screenshot evidence.
-- [ ] Rebuild desktop app with existing packaged engine and notices; run packaged acceptance, stage signed App, preserve old /Applications/Titan.app backup, install and launch.
-- [ ] Verify actual native title/navigation/WB view and installed binary hashes. Record limited native-verification scope, mark plan complete, commit and leave App ready for use.
+- [x] Run all Python/frontend/browser suites, production build and diff checks; commission one fresh independent whole-change review.
+- [x] Fix material review findings with failing regressions, rerun affected/full checks and capture final screenshot evidence.
+- [x] Rebuild desktop app with existing packaged engine and notices; run packaged acceptance, stage signed App, preserve old /Applications/Titan.app backup, install and launch.
+- [x] Verify actual native title/navigation/WB view and installed binary hashes. Record limited native-verification scope, mark plan complete, commit and leave App ready for use.
+
+Completion: source changes committed in cf30d5f and 699b4e7. 194 Python tests + 5 subtests, 62 frontend tests, 45 browser tests, production/App builds and packaged acceptance passed. Local App installed and original saved experiment restored. One browser-only intermediate-width title-layout minor deferred; see checkpoint report.
