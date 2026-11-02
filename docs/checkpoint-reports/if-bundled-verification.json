@@ -1,0 +1,68 @@
+{
+  "engine": "/Users/janus/Desktop/Titan/src-tauri/target/release/bundle/macos/Titan.app/Contents/Resources/engine/wb-engine/wb-engine",
+  "health": {
+    "protocol": 1,
+    "transport_version": 2,
+    "worker_pid": 30988,
+    "version": "0.3.4",
+    "engine": "Python / NumPy"
+  },
+  "synthetic": true,
+  "wb_probe": true,
+  "fields": 6,
+  "nuclei": 9,
+  "portable_reopen": true,
+  "worker_subprocess": true,
+  "figure_files": [
+    "/Users/janus/.codex/worktrees/titan-immunofluorescence/Titan/artifacts/if/bundled-final/figure-e8b53403/figure.png",
+    "/Users/janus/.codex/worktrees/titan-immunofluorescence/Titan/artifacts/if/bundled-final/figure-e8b53403/figure.tiff",
+    "/Users/janus/.codex/worktrees/titan-immunofluorescence/Titan/artifacts/if/bundled-final/figure-e8b53403/figure.svg",
+    "/Users/janus/.codex/worktrees/titan-immunofluorescence/Titan/artifacts/if/bundled-final/figure-e8b53403/source.json"
+  ],
+  "result_files": [
+    "/Users/janus/.codex/worktrees/titan-immunofluorescence/Titan/artifacts/if/bundled-final/tables-0fdcde1a/objects.csv",
+    "/Users/janus/.codex/worktrees/titan-immunofluorescence/Titan/artifacts/if/bundled-final/tables-0fdcde1a/fields.csv",
+    "/Users/janus/.codex/worktrees/titan-immunofluorescence/Titan/artifacts/if/bundled-final/tables-0fdcde1a/samples.csv",
+    "/Users/janus/.codex/worktrees/titan-immunofluorescence/Titan/artifacts/if/bundled-final/tables-0fdcde1a/results.xlsx",
+    "/Users/janus/.codex/worktrees/titan-immunofluorescence/Titan/artifacts/if/bundled-final/tables-0fdcde1a/sample_scatter.png",
+    "/Users/janus/.codex/worktrees/titan-immunofluorescence/Titan/artifacts/if/bundled-final/tables-0fdcde1a/source.json"
+  ],
+  "real_if_verified": false,
+  "windows_native_verified": false,
+  "source_commit": "a2024d1",
+  "branch": "codex/immunofluorescence",
+  "tested_platform": "macOS-26.5-arm64-arm-64bit",
+  "native_window_smoke_verified": true,
+  "native_full_acceptance_verified": false,
+  "real_wb_verified": false,
+  "native_window_scenarios": [
+    "IF module entry",
+    "synthetic region measurement",
+    "independent figure preview",
+    "invalid scale bar removal",
+    "DAPI segmentation nine nuclei",
+    "explicit mask confirmation",
+    "nuclear measurement nine objects",
+    "native export dialog CSV/XLSX/scatter"
+  ],
+  "native_export_rows": {
+    "objects": 9,
+    "fields": 1,
+    "samples": 1
+  },
+  "automated_checks": {
+    "python_passed": 258,
+    "python_subtests_passed": 5,
+    "frontend_passed": 75,
+    "browser_full_passed": 57,
+    "browser_affected_rerun_passed": 7,
+    "rust_passed": 6,
+    "imagej_same_mask_cases_passed": 9
+  },
+  "real_if_validation_required": {
+    "representative_fields": 20,
+    "biological_samples": 3,
+    "independent_nuclear_annotations": true
+  },
+  "release_ready": false
+}
