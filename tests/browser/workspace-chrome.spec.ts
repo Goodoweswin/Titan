@@ -102,3 +102,25 @@ test('an empty WB experiment offers import and readonly users can inspect saved 
  await expect(page.getByRole('button',{name:'保存组图',exact:true})).toBeDisabled()
  await expect(page.getByRole('button',{name:'导出组图',exact:true})).toBeEnabled()
 })
+
+test('an unfinished WB draft can import another source without losing labels or crops',async({page})=>{
+ const p=await openExperiment(page)
+ await page.getByRole('button',{name:'WB 组图',exact:true}).click()
+ await page.getByRole('button',{name:'新建组图',exact:true}).click()
+ await page.getByLabel('蛋白名称',{exact:true}).fill('未完成的 AKT')
+ await page.getByLabel('裁剪 X0',{exact:true}).fill('20')
+ await expect(page.getByRole('button',{name:'导出组图',exact:true})).toBeDisabled()
+ await expect(page.getByRole('button',{name:'导入图像',exact:true})).toBeVisible()
+ await page.evaluate((source:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async(command:string)=>{
+  if(command==='plugin:dialog|open')return [source]
+  throw new Error(command)
+ }}},p.images[0].path)
+ await page.getByRole('button',{name:'导入图像',exact:true}).click()
+ await expect(page.getByLabel('添加行的原图').locator('option')).toHaveCount(2)
+ await expect(page.getByLabel('蛋白名称',{exact:true})).toHaveValue('未完成的 AKT')
+ await expect(page.getByLabel('裁剪 X0',{exact:true})).toHaveValue('20')
+ await expect(page.getByRole('button',{name:'导出组图',exact:true})).toBeDisabled()
+ await page.getByLabel('添加行的原图').selectOption({index:1})
+ await page.getByRole('button',{name:'添加蛋白行',exact:true}).click()
+ await expect(page.locator('.wb-row-list>button')).toHaveCount(2)
+})

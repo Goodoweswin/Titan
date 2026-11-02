@@ -63,6 +63,7 @@
 .app-shell .signal-preview { border-color:var(--border); background:#f7f7f5; }
 .app-shell .welcome h1 { color:var(--ink); }
 .app-shell .welcome { padding-top:50px; }
+.app-shell .welcome-shell { padding-bottom:34px; }
 .app-shell .statusbar { height:34px; color:var(--muted); border-color:var(--border); background:#fafaf9; font-size:var(--text-xs); gap:20px; }
 .statusbar .status-summary { display:flex; gap:14px; align-items:center; min-width:0; overflow:hidden; white-space:nowrap; }
 .statusbar .status-system { display:flex; gap:18px; align-items:center; flex-shrink:0; }
