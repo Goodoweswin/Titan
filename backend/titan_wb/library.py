@@ -29,7 +29,7 @@ def _index(root):
 
 def _project(path):
     root=Path(path).expanduser().resolve()
-    if root.suffix!='.titanwb':raise ValueError('项目路径须为.titanwb文件夹')
+    if root.suffix not in ('.titanwb','.titanif'):raise ValueError('请选择 .titanwb 或 .titanif 项目文件夹')
     try:p=json.loads((root/'project.json').read_text(encoding='utf-8'))
     except (OSError,ValueError):raise ValueError('项目文件夹不存在、已移动或清单损坏，请重新定位')
     if not isinstance(p,dict) or not isinstance(p.get('id'),str) or not isinstance(p.get('name'),str):raise ValueError('项目清单身份无效')
@@ -37,11 +37,12 @@ def _project(path):
 
 
 def _public(entry):
-    row=dict(entry,available=True,figures=[])
+    row=dict(entry,module=entry.get('module','wb'),available=True,figures=[])
     try:
-        root,p=_project(entry['path']);row.update(name=p['name'],project_id=p['id'],revision=p.get('revision'))
-        try:row['figures']=figure_catalog_metadata(root,source_signature(p))
-        except ValueError as e:row['figure_error']=str(e)
+        root,p=_project(entry['path']);row.update(name=p['name'],project_id=p['id'],revision=p.get('revision'),module=p.get('module','wb'))
+        if row['module']=='wb':
+            try:row['figures']=figure_catalog_metadata(root,source_signature(p))
+            except ValueError as e:row['figure_error']=str(e)
     except ValueError as e:row.update(available=False,error=str(e))
     return row
 
@@ -62,7 +63,7 @@ def library_register(path,session,entry_id=None):
         else:entry=next((r for r in data['entries'] if r['path']==str(folder)),None)
         if not entry:
             entry=dict(entry_id=uuid.uuid4().hex,created_at=_now());data['entries'].append(entry)
-        entry.update(project_id=p['id'],name=p['name'],path=str(folder),last_opened=_now())
+        entry.update(project_id=p['id'],name=p['name'],path=str(folder),last_opened=_now(),module=p.get('module','wb'))
         atomic_json(root/'index.json',data)
     return _public(entry)
 

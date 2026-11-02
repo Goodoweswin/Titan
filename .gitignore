@@ -10,6 +10,7 @@ __pycache__/
 *.pyc
 .DS_Store
 *.titanwb/
+*.titanif/
 *.spec
 !packaging/*.spec
 test-results/

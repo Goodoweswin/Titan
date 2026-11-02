@@ -1,0 +1,314 @@
+{
+  "imagej_version": "1.54q",
+  "imagej_jar_sha256": "b61b298ad7540309553e81eb0a769bd26267c77adbfe732be5ca51c7ff7257b6",
+  "cases": [
+    {
+      "dtype": "uint8",
+      "shape": "rectangle",
+      "titan": {
+        "field_id": "88aac19b331643ad834c3f55e3f68ef8",
+        "channel_id": "762f31ef53b7470b9c5ef2b1346b6417",
+        "measurement_mode": "region",
+        "object_count": 1,
+        "area_px": 36,
+        "area_um2": 12.6,
+        "raw_sum": 3150,
+        "mean": 87.5,
+        "background_mean": 46.0,
+        "corrected_sum": 1494.0,
+        "positive_pixels": null,
+        "positive_area_fraction": null,
+        "positive_count": null,
+        "positive_fraction": null
+      },
+      "imagej": {
+        "area_px": 36,
+        "mean": 87.5,
+        "raw_sum": 3150.0,
+        "area_um2": 12.6,
+        "corrected_sum": 1494.0
+      },
+      "differences": {
+        "area_px": 0,
+        "mean": 0.0,
+        "raw_sum": 0.0,
+        "area_um2": 0.0,
+        "corrected_sum": 0.0
+      }
+    },
+    {
+      "dtype": "uint8",
+      "shape": "ellipse",
+      "titan": {
+        "field_id": "88aac19b331643ad834c3f55e3f68ef8",
+        "channel_id": "762f31ef53b7470b9c5ef2b1346b6417",
+        "measurement_mode": "region",
+        "object_count": 1,
+        "area_px": 32,
+        "area_um2": 11.2,
+        "raw_sum": 2800,
+        "mean": 87.5,
+        "background_mean": 46.0,
+        "corrected_sum": 1328.0,
+        "positive_pixels": null,
+        "positive_area_fraction": null,
+        "positive_count": null,
+        "positive_fraction": null
+      },
+      "imagej": {
+        "area_px": 32,
+        "mean": 87.5,
+        "raw_sum": 2800.0,
+        "area_um2": 11.2,
+        "corrected_sum": 1328.0
+      },
+      "differences": {
+        "area_px": 0,
+        "mean": 0.0,
+        "raw_sum": 0.0,
+        "area_um2": 0.0,
+        "corrected_sum": 0.0
+      }
+    },
+    {
+      "dtype": "uint8",
+      "shape": "polygon",
+      "titan": {
+        "field_id": "88aac19b331643ad834c3f55e3f68ef8",
+        "channel_id": "762f31ef53b7470b9c5ef2b1346b6417",
+        "measurement_mode": "region",
+        "object_count": 1,
+        "area_px": 26,
+        "area_um2": 9.1,
+        "raw_sum": 2203,
+        "mean": 84.73076923076923,
+        "background_mean": 46.0,
+        "corrected_sum": 1007.0,
+        "positive_pixels": null,
+        "positive_area_fraction": null,
+        "positive_count": null,
+        "positive_fraction": null
+      },
+      "imagej": {
+        "area_px": 26,
+        "mean": 84.73076923076923,
+        "raw_sum": 2203.0,
+        "area_um2": 9.1,
+        "corrected_sum": 1007.0
+      },
+      "differences": {
+        "area_px": 0,
+        "mean": 0.0,
+        "raw_sum": 0.0,
+        "area_um2": 0.0,
+        "corrected_sum": 0.0
+      }
+    },
+    {
+      "dtype": "uint16",
+      "shape": "rectangle",
+      "titan": {
+        "field_id": "9cfbbfb789b443598fe54d965df07dca",
+        "channel_id": "855727fbc4b14558a6c2ce530278df03",
+        "measurement_mode": "region",
+        "object_count": 1,
+        "area_px": 36,
+        "area_um2": 12.6,
+        "raw_sum": 3150,
+        "mean": 87.5,
+        "background_mean": 46.0,
+        "corrected_sum": 1494.0,
+        "positive_pixels": null,
+        "positive_area_fraction": null,
+        "positive_count": null,
+        "positive_fraction": null
+      },
+      "imagej": {
+        "area_px": 36,
+        "mean": 87.5,
+        "raw_sum": 3150.0,
+        "area_um2": 12.6,
+        "corrected_sum": 1494.0
+      },
+      "differences": {
+        "area_px": 0,
+        "mean": 0.0,
+        "raw_sum": 0.0,
+        "area_um2": 0.0,
+        "corrected_sum": 0.0
+      }
+    },
+    {
+      "dtype": "uint16",
+      "shape": "ellipse",
+      "titan": {
+        "field_id": "9cfbbfb789b443598fe54d965df07dca",
+        "channel_id": "855727fbc4b14558a6c2ce530278df03",
+        "measurement_mode": "region",
+        "object_count": 1,
+        "area_px": 32,
+        "area_um2": 11.2,
+        "raw_sum": 2800,
+        "mean": 87.5,
+        "background_mean": 46.0,
+        "corrected_sum": 1328.0,
+        "positive_pixels": null,
+        "positive_area_fraction": null,
+        "positive_count": null,
+        "positive_fraction": null
+      },
+      "imagej": {
+        "area_px": 32,
+        "mean": 87.5,
+        "raw_sum": 2800.0,
+        "area_um2": 11.2,
+        "corrected_sum": 1328.0
+      },
+      "differences": {
+        "area_px": 0,
+        "mean": 0.0,
+        "raw_sum": 0.0,
+        "area_um2": 0.0,
+        "corrected_sum": 0.0
+      }
+    },
+    {
+      "dtype": "uint16",
+      "shape": "polygon",
+      "titan": {
+        "field_id": "9cfbbfb789b443598fe54d965df07dca",
+        "channel_id": "855727fbc4b14558a6c2ce530278df03",
+        "measurement_mode": "region",
+        "object_count": 1,
+        "area_px": 26,
+        "area_um2": 9.1,
+        "raw_sum": 2203,
+        "mean": 84.73076923076923,
+        "background_mean": 46.0,
+        "corrected_sum": 1007.0,
+        "positive_pixels": null,
+        "positive_area_fraction": null,
+        "positive_count": null,
+        "positive_fraction": null
+      },
+      "imagej": {
+        "area_px": 26,
+        "mean": 84.73076923076923,
+        "raw_sum": 2203.0,
+        "area_um2": 9.1,
+        "corrected_sum": 1007.0
+      },
+      "differences": {
+        "area_px": 0,
+        "mean": 0.0,
+        "raw_sum": 0.0,
+        "area_um2": 0.0,
+        "corrected_sum": 0.0
+      }
+    },
+    {
+      "dtype": "float32",
+      "shape": "rectangle",
+      "titan": {
+        "field_id": "71570a94a55c49db927b5e274851d7df",
+        "channel_id": "43ad5bb1385b493c96785924ccd9b803",
+        "measurement_mode": "region",
+        "object_count": 1,
+        "area_px": 36,
+        "area_um2": 12.6,
+        "raw_sum": -630.0000019073486,
+        "mean": -17.500000052981907,
+        "background_mean": -23.428571383158367,
+        "corrected_sum": 213.42856788635254,
+        "positive_pixels": null,
+        "positive_area_fraction": null,
+        "positive_count": null,
+        "positive_fraction": null
+      },
+      "imagej": {
+        "area_px": 36,
+        "mean": -17.500000052981907,
+        "raw_sum": -630.0000019073486,
+        "area_um2": 12.6,
+        "corrected_sum": 213.42856788635254
+      },
+      "differences": {
+        "area_px": 0,
+        "mean": 0.0,
+        "raw_sum": 0.0,
+        "area_um2": 0.0,
+        "corrected_sum": 0.0
+      }
+    },
+    {
+      "dtype": "float32",
+      "shape": "ellipse",
+      "titan": {
+        "field_id": "71570a94a55c49db927b5e274851d7df",
+        "channel_id": "43ad5bb1385b493c96785924ccd9b803",
+        "measurement_mode": "region",
+        "object_count": 1,
+        "area_px": 32,
+        "area_um2": 11.2,
+        "raw_sum": -560.0000019073486,
+        "mean": -17.500000059604645,
+        "background_mean": -23.428571383158367,
+        "corrected_sum": 189.7142823537191,
+        "positive_pixels": null,
+        "positive_area_fraction": null,
+        "positive_count": null,
+        "positive_fraction": null
+      },
+      "imagej": {
+        "area_px": 32,
+        "mean": -17.500000059604645,
+        "raw_sum": -560.0000019073486,
+        "area_um2": 11.2,
+        "corrected_sum": 189.7142823537191
+      },
+      "differences": {
+        "area_px": 0,
+        "mean": 0.0,
+        "raw_sum": 0.0,
+        "area_um2": 0.0,
+        "corrected_sum": 0.0
+      }
+    },
+    {
+      "dtype": "float32",
+      "shape": "polygon",
+      "titan": {
+        "field_id": "71570a94a55c49db927b5e274851d7df",
+        "channel_id": "43ad5bb1385b493c96785924ccd9b803",
+        "measurement_mode": "region",
+        "object_count": 1,
+        "area_px": 26,
+        "area_um2": 9.1,
+        "raw_sum": -465.2857141494751,
+        "mean": -17.895604390364426,
+        "background_mean": -23.428571383158367,
+        "corrected_sum": 143.85714181264245,
+        "positive_pixels": null,
+        "positive_area_fraction": null,
+        "positive_count": null,
+        "positive_fraction": null
+      },
+      "imagej": {
+        "area_px": 26,
+        "mean": -17.895604390364426,
+        "raw_sum": -465.2857141494751,
+        "area_um2": 9.1,
+        "corrected_sum": 143.85714181264245
+      },
+      "differences": {
+        "area_px": 0,
+        "mean": 0.0,
+        "raw_sum": 0.0,
+        "area_um2": 0.0,
+        "corrected_sum": 0.0
+      }
+    }
+  ],
+  "passed": 9,
+  "scope": "Synthetic identical-mask arithmetic against ImageJ core; not full Fiji segmentation or real-image validation"
+}
