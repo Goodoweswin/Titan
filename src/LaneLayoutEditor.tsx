@@ -8,7 +8,7 @@ interface Props{asset:ImageAsset;region:Rect|null;columns:LaneColumn[];laneBound
 type Gesture={start:[number,number];kind:string;id?:string;rect?:Rect}
 export default function LaneLayoutEditor(p:Props){
  const svg=useRef<SVGSVGElement>(null),gesture=useRef<Gesture|null>(null),draftRef=useRef<Rect|null>(null)
- const viewport=useImageViewport(svg,[0,0,p.asset.width,p.asset.height],p.asset.id,p.asset.width),{view,setView}=viewport
+ const viewport=useImageViewport(svg,[0,0,p.asset.width,p.asset.height],p.asset.id),{view,setView}=viewport
  const [tool,setTool]=useState('region'),[draft,setDraft]=useState<Rect|null>(null)
  useEffect(()=>{setView([0,0,p.asset.width,p.asset.height]);setTool(p.columns.length?'lanes':'region')},[p.asset.id])
  useEffect(()=>{if(!p.region)return;const [x0,y0,x1,y1]=p.region,padX=(x1-x0)*.06,padY=Math.max((y1-y0)*.5,(x1-x0)*.12);setView([Math.max(0,x0-padX),Math.max(0,y0-padY),Math.min(p.asset.width,x1+padX),Math.min(p.asset.height,y1+padY)])},[p.region?.join(',')])

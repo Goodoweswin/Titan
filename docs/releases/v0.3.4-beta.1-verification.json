@@ -7,7 +7,7 @@
     "python_tests": 195,
     "python_subtests": 5,
     "frontend_tests": 62,
-    "browser_tests": 48,
+    "browser_tests": 50,
     "production_build": "passed",
     "version_consistency": {
       "package.json": "0.3.4",
@@ -24,10 +24,63 @@
       "Rotation guides and angle unaffected by view navigation",
       "Narrow rotation dialog has no horizontal overflow"
     ],
-    "browser_qa": "Playwright; Browser plugin not available"
+    "browser_qa": "Playwright; Browser plugin not available",
+    "mac_app_build": "passed",
+    "mac_dmg_build": "passed after normal detach/retry of a busy temporary build volume"
   },
   "release_workflow_status": "pending",
   "assets_verified": false,
   "native_window_verified": false,
-  "real_wb_verified": false
+  "real_wb_verified": false,
+  "local_packaged_checks": {
+    "local-base/release-verification.json": {
+      "version": "0.3.4",
+      "worker_starts": 1,
+      "engine_protocol": 1,
+      "clean_path": true,
+      "source_independent_copy": true,
+      "measurements": 24,
+      "targets": 12,
+      "blocked": 1,
+      "biological_units": 6,
+      "save_reopen": true,
+      "export_files": 14,
+      "signature_verify_exit": 0,
+      "signature_verify_message": "",
+      "profile_matches_measurement": true,
+      "preview_matches_export": true,
+      "native_window_verified": false,
+      "real_wb_verified": false,
+      "excel_workbook_verified": true,
+      "excel_embedded_plot_matches": true
+    },
+    "local-wb/wb-release-verification.json": {
+      "version": "0.3.4",
+      "synthetic_only": true,
+      "clean_path": true,
+      "wb_document_without_analysis": true,
+      "project_unchanged": true,
+      "save_reopen": true,
+      "version_conflict_rejected": true,
+      "historical_version_preserved": true,
+      "portable_copy_after_original_removed": true,
+      "preview_equals_png_export": true,
+      "editable_svg_text": true,
+      "embedded_strip_images": 1,
+      "outputs_sha256": {
+        "source.json": "edeb8454438c8a42cb3b6e6ab7c3c96d5a263e03e6792e01ccff329451382d95",
+        "figure.svg": "a8da3801a996dea34d879c8293e810109c80ebf8177ee386ed5b2b7c8fe8f0eb",
+        "figure.png": "1e67acc8c3c8ca1ce0edca68fe62dd7f669968c12c445129e253e5a6a1cd3a76"
+      },
+      "real_wb_verified": false
+    }
+  },
+  "code_review": {
+    "verdict": "approved after fixes and full regression pass",
+    "fixed_findings": [
+      "Rotation-aware fit extent sets monotonic zoom bounds for tall/wide sources",
+      "Clear Space modifier when focus leaves rotation preview"
+    ],
+    "native_webview_and_real_wb_not_covered_by_code_review": true
+  }
 }

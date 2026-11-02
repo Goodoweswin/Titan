@@ -9,7 +9,7 @@ export function rotationView(width:number,height:number,angle:number):Rect {
  return [(width-w)/2,(height-h)/2,(width+w)/2,(height+h)/2]
 }
 
-export default function useImageViewport(svg:RefObject<SVGSVGElement|null>,initial:Rect,key:string,baseWidth:number,wheelTarget?:RefObject<HTMLElement|null>){
+export default function useImageViewport(svg:RefObject<SVGSVGElement|null>,initial:Rect,key:string,wheelTarget?:RefObject<HTMLElement|null>){
  const [view,setState]=useState<Rect>(initial),current=useRef(view),initialRef=useRef(initial)
  initialRef.current=initial
  const [panMode,setPanMode]=useState(false),[spaceHeld,setSpaceHeld]=useState(false),[panning,setPanning]=useState(false)
@@ -17,7 +17,9 @@ export default function useImageViewport(svg:RefObject<SVGSVGElement|null>,initi
  function setView(next:Rect){current.current=next;setState(next)}
  function point(x:number,y:number){return new DOMPoint(x,y).matrixTransform(svg.current!.getScreenCTM()!.inverse())}
  function zoom(factor:number,anchor?:DOMPoint){
-  const v=current.current,w=v[2]-v[0],nextWidth=Math.max(baseWidth/16,Math.min(baseWidth*4,w/factor)),ratio=nextWidth/w
+  const v=current.current,w=v[2]-v[0],fitWidth=initialRef.current[2]-initialRef.current[0]
+  // Rotation can change the fitted extent; a new limit must never reverse a zoom step.
+  const nextWidth=Math.max(Math.min(w,fitWidth/16),Math.min(Math.max(w,fitWidth*4),w/factor)),ratio=nextWidth/w
   const at=anchor??new DOMPoint((v[0]+v[2])/2,(v[1]+v[3])/2)
   setView([at.x+(v[0]-at.x)*ratio,at.y+(v[1]-at.y)*ratio,at.x+(v[2]-at.x)*ratio,at.y+(v[3]-at.y)*ratio])
  }
@@ -37,7 +39,7 @@ export default function useImageViewport(svg:RefObject<SVGSVGElement|null>,initi
   node.addEventListener('wheel',wheel,{passive:false})
   window.addEventListener('blur',cancelPan)
   return ()=>{node.removeEventListener('wheel',wheel);window.removeEventListener('blur',cancelPan)}
- },[key,baseWidth,wheelTarget])
+ },[key,wheelTarget])
  function beginPan(e:PointerEvent){
   if(e.button!==1&&!(e.button===0&&(space.current||panMode)))return false
   e.preventDefault();e.stopPropagation();svg.current?.focus();svg.current?.setPointerCapture(e.pointerId)
@@ -59,5 +61,5 @@ export default function useImageViewport(svg:RefObject<SVGSVGElement|null>,initi
  }
  function onKeyUp(e:KeyboardEvent){if(e.code==='Space'){e.preventDefault();space.current=false;setSpaceHeld(false)}}
  return {view,setView,zoom,reset,point,panMode,setPanMode,beginPan,movePan,endPan,cancelPan,stopPan,onKeyDown,onKeyUp,
-  zoomPercent:Math.round(baseWidth/(view[2]-view[0])*100),cursor:panning?'grabbing':panMode||spaceHeld?'grab':undefined}
+  zoomPercent:Math.round((initialRef.current[2]-initialRef.current[0])/(view[2]-view[0])*100),cursor:panning?'grabbing':panMode||spaceHeld?'grab':undefined}
 }

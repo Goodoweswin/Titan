@@ -3,7 +3,7 @@ import {mkdtempSync,rmSync,readFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import path from 'node:path'
 import {execFileSync} from 'node:child_process'
-let root:string,file:string,targetFile:string
+let root:string,file:string,targetFile:string,portraitFile:string,wideFile:string
 test.beforeAll(()=>{
  root=mkdtempSync(path.join(tmpdir(),'titan-edit-'));file=path.join(root,'lanes.tif')
  execFileSync(path.resolve('.venv/bin/python'),['-c',`import sys,numpy as np,tifffile
@@ -15,6 +15,10 @@ tifffile.imwrite(sys.argv[1],a)`,file])
 a=np.full((260,480),1000,dtype=np.uint16)
 for x in [84,132,180,228,276]:a[195:207,x-12:x+12]=5000
 tifffile.imwrite(sys.argv[1],a)`,targetFile])
+ portraitFile=path.join(root,'portrait.tif');wideFile=path.join(root,'wide.tif')
+ execFileSync(path.resolve('.venv/bin/python'),['-c',`import sys,numpy as np,tifffile
+a=np.full((1000,100),1000,dtype=np.uint16)
+tifffile.imwrite(sys.argv[1],a);tifffile.imwrite(sys.argv[2],a.T)`,portraitFile,wideFile])
 })
 test.afterAll(()=>rmSync(root,{recursive:true,force:true}))
 async function drag(page:Page,a:number[],b:number[]){
@@ -77,6 +81,32 @@ test('rotation preview zooms at the pointer and pans without moving level guides
  await dialog.getByRole('button',{name:'取消',exact:true}).click()
  await expect(page.getByLabel('当前图像').locator('option')).toHaveCount(1)
  expect(errors).toEqual([])
+})
+
+test('rotated portrait and wide image fits never reverse the zoom buttons',async({page})=>{
+ for(const source of [portraitFile,wideFile]){
+  await page.goto('/?integration=1');await page.getByRole('button',{name:'新建实验',exact:true}).first().click()
+  await page.evaluate((source:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async()=>[source]}},source)
+  await page.getByRole('button',{name:'导入图像',exact:true}).click()
+  await page.getByRole('button',{name:'旋转校正',exact:true}).click()
+  const dialog=page.getByRole('dialog',{name:'旋转校正'}),canvas=dialog.getByLabel('旋转校正画布')
+  await dialog.getByLabel('旋转角度',{exact:true}).fill('90');await dialog.getByRole('button',{name:'适合窗口',exact:true}).click()
+  const fitted=Number((await canvas.getAttribute('viewBox'))!.split(' ')[2])
+  await dialog.getByRole('button',{name:'缩小图像',exact:true}).click()
+  expect(Number((await canvas.getAttribute('viewBox'))!.split(' ')[2])).toBeGreaterThan(fitted)
+  await dialog.getByRole('button',{name:'适合窗口',exact:true}).click();await dialog.getByRole('button',{name:'放大图像',exact:true}).click()
+  expect(Number((await canvas.getAttribute('viewBox'))!.split(' ')[2])).toBeLessThan(fitted)
+  await dialog.getByRole('button',{name:'取消',exact:true}).click()
+ }
+})
+
+test('Space released after leaving a guide never leaves image panning stuck',async({page})=>{
+ await setup(page);await page.getByRole('button',{name:'旋转校正',exact:true}).click()
+ const dialog=page.getByRole('dialog',{name:'旋转校正'}),horizontal=dialog.getByRole('slider',{name:'水平参考线',exact:true}),canvas=dialog.getByLabel('旋转校正画布')
+ await horizontal.focus();await page.keyboard.down('Space');await dialog.getByLabel('旋转角度',{exact:true}).click();await page.keyboard.up('Space')
+ const before=await canvas.getAttribute('viewBox'),bounds=(await page.locator('.rotation-preview').boundingBox())!,h=(await horizontal.boundingBox())!
+ await page.mouse.move(h.x+h.width*.25,h.y+h.height/2);await page.mouse.down();await page.mouse.move(bounds.x+bounds.width*.25,bounds.y+bounds.height*.7);await page.mouse.up()
+ await expect(horizontal).toHaveAttribute('aria-valuenow','70');await expect(canvas).toHaveAttribute('viewBox',before!)
 })
 
 test('lane mode ignores blank drags and drags confirmed lanes through their peak overlay',async({page})=>{
