@@ -12,6 +12,23 @@ async function seed(page:any){
  await rpc(page,'library_register',{path:p.project_path});return p
 }
 
+test('WB crop zoom and middle-button pan preserve crop data and draw in source pixels',async({page})=>{
+ await page.goto('/?integration=1');const p=await seed(page);await page.reload()
+ await page.getByRole('button',{name:'打开项目 '+p.name,exact:true}).click()
+ await page.getByRole('button',{name:'WB 组图',exact:true}).click();await page.getByRole('button',{name:'新建组图',exact:true}).first().click()
+ const area=page.locator('.wb-crop-view'),canvas=page.getByRole('img',{name:'原图裁剪画布',exact:true})
+ await expect(area.getByRole('button',{name:'放大图像',exact:true})).toBeVisible({timeout:2000})
+ const original=await page.getByLabel('裁剪 X0',{exact:true}).inputValue()
+ await area.getByRole('button',{name:'放大图像',exact:true}).click()
+ const b=(await canvas.boundingBox())!,before=await canvas.getAttribute('viewBox')
+ await page.mouse.move(b.x+b.width*.6,b.y+b.height*.6);await page.mouse.down({button:'middle'});await page.mouse.move(b.x+b.width*.6+20,b.y+b.height*.6+10,{steps:3});await page.mouse.up({button:'middle'})
+ await expect(canvas).not.toHaveAttribute('viewBox',before!)
+ await expect(page.getByLabel('裁剪 X0',{exact:true})).toHaveValue(original)
+ const positions=await canvas.evaluate(e=>[[100,30],[180,70]].map(xy=>{const p=new DOMPoint(...xy).matrixTransform((e as SVGSVGElement).getScreenCTM()!);return [p.x,p.y]}))
+ await page.mouse.move(positions[0][0],positions[0][1]);await page.mouse.down();await page.mouse.move(positions[1][0],positions[1][1],{steps:4});await page.mouse.up()
+ for(const [label,value] of [['裁剪 X0','100'],['裁剪 Y0','30'],['裁剪 X1','180'],['裁剪 Y1','70']])await expect(page.getByLabel(label,{exact:true})).toHaveValue(value)
+})
+
 test('WB figure without quantification saves, reopens and exports a portable assembly',async({page})=>{
  await page.goto('/?integration=1');const p=await seed(page);await page.reload()
  await page.getByRole('button',{name:'打开项目 '+p.name,exact:true}).click()

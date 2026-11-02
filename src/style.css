@@ -604,6 +604,14 @@ dialog.source-dialog::backdrop { background: #24365066; }
 .rotation-dialog { width:min(760px,calc(100vw - 32px)); }
 .rotation-preview { height:min(44vh,390px); background:#171b23; position:relative; overflow:hidden; display:grid; place-items:center; margin:18px 0; border-radius:8px; }
 .rotation-preview img { width:100%; height:100%; object-fit:contain; transition:transform .08s linear; }
+.rotation-preview svg:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+.image-view-bar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px 14px; padding:6px 12px; }
+.image-view-controls { display:flex; align-items:center; flex-wrap:wrap; gap:4px; font-size:var(--text-sm); }
+.image-view-controls output { min-width:50px; text-align:center; font-variant-numeric:tabular-nums; }
+.image-view-controls .tool { display:inline-flex; align-items:center; gap:5px; }
+.image-view-bar .hint { margin:0; }
+.wb-crop-view>.image-view-controls { margin:8px 0; }
+.wb-crop-frame svg { max-height:540px; }
 .rotation-grid { position:absolute; inset:0; pointer-events:none; background:repeating-linear-gradient(0deg,transparent 0,transparent 39px,#ffffff25 40px),repeating-linear-gradient(90deg,transparent 0,transparent 39px,#ffffff25 40px); }
 .rotation-controls { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
 .rotation-controls label { display:flex; align-items:center; gap:8px; margin:0; }

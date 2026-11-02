@@ -1,0 +1,33 @@
+{
+  "tag": "v0.3.4-beta.1",
+  "application_version": "0.3.4",
+  "date": "2026-11-02",
+  "release_url": "https://github.com/Goodoweswin/Titan/releases/tag/v0.3.4-beta.1",
+  "local_checks": {
+    "python_tests": 195,
+    "python_subtests": 5,
+    "frontend_tests": 62,
+    "browser_tests": 48,
+    "production_build": "passed",
+    "version_consistency": {
+      "package.json": "0.3.4",
+      "package-lock.json": "0.3.4",
+      "src-tauri/tauri.conf.json": "0.3.4",
+      "cargo": "0.3.4",
+      "cargo_lock": "0.3.4",
+      "python": "0.3.4"
+    },
+    "viewport_cases": [
+      "Space and middle-button pan do not edit selected regions",
+      "Pointer anchored wheel zoom",
+      "Zoomed region and WB crops use source pixel coordinates",
+      "Rotation guides and angle unaffected by view navigation",
+      "Narrow rotation dialog has no horizontal overflow"
+    ],
+    "browser_qa": "Playwright; Browser plugin not available"
+  },
+  "release_workflow_status": "pending",
+  "assets_verified": false,
+  "native_window_verified": false,
+  "real_wb_verified": false
+}
