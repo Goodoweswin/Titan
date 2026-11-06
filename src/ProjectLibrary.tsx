@@ -60,7 +60,7 @@ export default function ProjectLibrary({entries,projects,project,activeFigure,cu
      onClick={()=>setExpandedEntries(previous=>toggle(previous,entry.entry_id))}><ChevronRight size={13} className={open?'expanded':''}/></button>
     <button className="library-title" title={entry.path} aria-label={`打开项目 ${entry.name}`}
      disabled={busy} onClick={()=>entry.available?onOpen(entry):onRelocate(entry)}>
-     <FlaskConical size={14}/><span>{entry.name}</span><small>{entry.module==='if'?'IF':'WB'}</small>
+     <FlaskConical size={14}/><span>{entry.name}</span><small>{entry.module==='stats'?'统计':entry.module==='if'?'IF':'WB'}</small>
      {!entry.available&&<small>需定位</small>}
     </button>
     {popup('entry-'+entry.entry_id,'分析菜单 '+entry.name,<>
@@ -69,9 +69,9 @@ export default function ProjectLibrary({entries,projects,project,activeFigure,cu
     </>)}
    </div>
    {open&&<div className="library-children">
-    <button className={selected&&!activeFigure&&currentView==='workspace'?'selected':''} onClick={()=>onOpen(entry,'workspace')} disabled={busy||!entry.available}><FlaskConical size={14}/>分析工作台</button>
+    <button className={selected&&!activeFigure&&currentView==='workspace'?'selected':''} onClick={()=>onOpen(entry,'workspace')} disabled={busy||!entry.available}><FlaskConical size={14}/>{entry.module==='stats'?'数据表':'分析工作台'}</button>
     <button className={selected&&!activeFigure&&currentView==='results'?'selected':''} onClick={()=>onOpen(entry,'results')} disabled={busy||!entry.available}><Table2 size={14}/>结果表</button>
-    <button className={selected&&!activeFigure&&currentView==='wb'?'selected':''} onClick={()=>onOpen(entry,'wb')} disabled={busy||!entry.available}><Images size={14}/>{entry.module==='if'?'IF 论文组图':'条带组图'}</button>
+    <button className={selected&&!activeFigure&&currentView==='wb'?'selected':''} onClick={()=>onOpen(entry,'wb')} disabled={busy||!entry.available}><Images size={14}/>{entry.module==='stats'?'当前统计图':entry.module==='if'?'IF 论文组图':'条带组图'}</button>
     {entry.figure_error&&<p className="library-error">{entry.figure_error}</p>}
     {!entry.available&&<button onClick={()=>onRelocate(entry)}>重新定位项目</button>}
    </div>}
@@ -97,6 +97,7 @@ export default function ProjectLibrary({entries,projects,project,activeFigure,cu
     {collection&&popup(id,'项目菜单 '+name,<>
      <button onClick={()=>action(()=>onDialog({kind:'wb',collectionId:id}))}>新建 WB 分析</button>
      <button onClick={()=>action(()=>onDialog({kind:'if',collectionId:id}))}>新建 IF 分析</button>
+     <button onClick={()=>action(()=>onDialog({kind:'stats',collectionId:id}))}>新建统计分析</button>
      <button onClick={()=>action(()=>onDialog({kind:'rename',project:collection}))}>重命名</button>
      <button onClick={()=>action(()=>onPin(collection))}>{collection.pinned?'取消置顶':'置顶'}</button>
      <button onClick={()=>action(()=>onDialog({kind:'remove',project:collection}))}>移出项目列表</button>
@@ -115,7 +116,7 @@ export default function ProjectLibrary({entries,projects,project,activeFigure,cu
       <FileBarChart2 size={14}/><span>{figure.name}<small>{entry.name}</small></span>{figure.source_stale&&<small>旧版本</small>}
      </button>)}
      {outputs.map(({entry,artifact})=>{
-      const isDocument=artifact.kind==='wb_figure'
+      const isDocument=artifact.kind==='wb_figure'||artifact.kind==='stats_plot'
       const disabled=busy||(isDocument?!entry.available:!artifact.available&&!artifact.document_id)
       return <div className="library-artifact-row" key={entry.entry_id+':'+artifact.id}>
        <button className={active?.entry_id===entry.entry_id&&(activeFigure===artifact.id||activeFigure===artifact.document_id)?'selected':''}
@@ -146,6 +147,7 @@ export default function ProjectLibrary({entries,projects,project,activeFigure,cu
     <button onClick={()=>action(()=>onDialog({kind:'collection'}))}>新建项目</button>
     <button onClick={()=>action(()=>onDialog({kind:'wb'}))}>新建 WB 分析</button>
     <button onClick={()=>action(()=>onDialog({kind:'if'}))}>新建 IF 分析</button>
+    <button onClick={()=>action(()=>onDialog({kind:'stats'}))}>新建统计分析</button>
     <button onClick={()=>action(onOpenFile)}>打开已有分析</button>
    </div>}
   </div></div>

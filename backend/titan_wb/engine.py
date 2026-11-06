@@ -14,6 +14,9 @@ def dispatch(request):
     if isinstance(command,str) and command.startswith('if_'):
         from titan_if.service import dispatch as dispatch_if
         return dispatch_if(command,payload,session)
+    if isinstance(command,str) and command.startswith('stats_'):
+        from titan_stats.service import dispatch as stats_dispatch
+        return stats_dispatch(command,payload,session)
     if command in ('wb_new','wb_preview','wb_source_preview','wb_list','wb_save','wb_load','wb_export'):
         from . import wb_figures as wb
         project=payload['project']

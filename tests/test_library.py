@@ -343,3 +343,30 @@ def test_malformed_wb_plot_catalog_does_not_hide_unaffected_entries(tmp_path):
     rows = {entry['name']:entry for entry in library_workspace(s)['entries']}
     assert rows['Unaffected']['available']
     assert rows['Malformed']['available'] and rows['Malformed']['figure_error']
+
+
+def test_stats_analysis_shares_collection_and_indexes_frozen_graph_and_export(tmp_path):
+    from titan_wb.engine import dispatch
+
+    s = session(tmp_path)
+    def call(command, **payload):
+        return dispatch(dict(command=command, payload=payload, session=s))
+
+    group = call('library_create_collection', name='联合课题')
+    stats = call('stats_new', name='独立统计', collection_id=group['id'])
+    call('library_create', name='WB', collection_id=group['id'])
+    call('if_new', name='IF', collection_id=group['id'])
+    dataset = call('stats_import', text='A\tB\n1\t2\n3\t4')['dataset']
+    stats['datasets'] = [dataset]
+    stats['figures'] = [dict(id='snapshot-1', name='冻结图', dataset=dataset, style=dataset['style'], run=None)]
+    stats['revision'] += 1
+    stats = call('stats_save', project=stats)
+    call('stats_export', project=stats, dataset=dataset, style=dataset['style'], destination=str(tmp_path/'out'))
+    entries = call('library_workspace')['entries']
+    assert {row['collection_id'] for row in entries} == {group['id']}
+    assert {row['module'] for row in entries} == {'wb', 'if', 'stats'}
+    entry = next(row for row in entries if row['module']=='stats')
+    assert {row['kind'] for row in entry['artifacts']} == {'stats_plot', 'result_export'}
+    call('library_set_resume', entry_id=entry['entry_id'], resume={'view':'figure','artifact_id':'stats:snapshot-1','dataset_id':dataset['id']})
+    assert call('stats_open', path=stats['project_path'], entry_id=entry['entry_id'])['figures'][0]['id'] == 'snapshot-1'
+    assert call('library_workspace')['entries'][0]['resume']['dataset_id'] == dataset['id']

@@ -35,7 +35,7 @@ export interface FigureGroup{key:string;label:string;color:string;border:string;
 export interface FigureData{unit:'lane'|'biological';value_mode:string;error:string;notes:string[];group_registry?:{key:string;label:string;color:string}[];panels:{key:string;analyte:string;analysis_block:string;groups:FigureGroup[];comparisons:MultiGroupComparison[];warnings:string[];limits:number[]}[]}
 
 export interface FigureDocumentMetadata{id:string;name:string;current_version:string;selected_version:string;source_revision:number;source_signature:string;source_stale:boolean;created_at:string;updated_at:string;kind:FigureSettings['kind'];panel_key:string;default_key?:string|null;export_origin?:{path:string;png_sha256:string}|null;versions:{version_id:string;source_revision:number;created_at:string;name:string}[]}
-export interface LibraryEntry{module?:'wb'|'if';collection_id?:string|null;resume?:LibraryResume;entry_id:string;project_id:string;name:string;path:string;last_opened:string;created_at:string;available:boolean;revision?:number;error?:string;figure_error?:string;artifacts?:LibraryArtifact[];figures:FigureDocumentMetadata[]}
+export interface LibraryEntry{module?:'wb'|'if'|'stats';collection_id?:string|null;resume?:LibraryResume;entry_id:string;project_id:string;name:string;path:string;last_opened:string;created_at:string;available:boolean;revision?:number;error?:string;figure_error?:string;artifacts?:LibraryArtifact[];figures:FigureDocumentMetadata[]}
 export interface FrozenFigure{document:FigureDocumentMetadata;project:Project;result:AnalysisResult;figure_settings:FigureSettings;settings:PlotSettings;png:string}
 
 export interface LibraryCollection {
@@ -49,6 +49,7 @@ export interface LibraryResume {
  view: 'workspace' | 'results' | 'figure'
  artifact_id?: string
  version_id?: string
+ dataset_id?: string
 }
 
 export interface LibraryWorkspace {
@@ -60,7 +61,7 @@ export interface LibraryArtifact {
  id:string
  entry_id:string
  title:string
- kind:'wb_plot'|'wb_figure'|'wb_figure_export'|'if_figure_export'|'result_export'
+ kind:'stats_plot'|'wb_plot'|'wb_figure'|'wb_figure_export'|'if_figure_export'|'result_export'
  source_revision:number|null
  document_id?:string
  version_id?:string
@@ -73,7 +74,7 @@ export interface LibraryExportReceipt {
  library_export_retry?:{
   project_path:string
   project_id:string
-  record:Pick<LibraryArtifact,'destination'|'files'|'title'|'kind'|'source_revision'>
+  record:Pick<LibraryArtifact,'destination'|'files'|'title'|'kind'|'source_revision'|'version_id'>
  }
  library_export_error?:string
 }

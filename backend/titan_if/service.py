@@ -2,7 +2,6 @@
 import base64
 import io
 import math
-import json
 import uuid
 from pathlib import Path
 
@@ -10,7 +9,7 @@ import numpy as np
 import tifffile
 from PIL import Image
 
-from titan_wb.library import library_root,library_register,create_managed_analysis,register_published_export,library_check_path
+from titan_wb.library import library_root,library_register,create_managed_analysis,register_published_export,open_registered_analysis,entry_for_path
 from . import projects,jobs
 from .models import new_project
 
@@ -77,24 +76,15 @@ def dispatch(command,payload,session):
     if command=="if_new":return _create(payload["name"],session,collection_id=payload.get("collection_id"),new_collection_name=payload.get("new_collection_name"))
     if command=="if_demo":return _demo(session)
     if command=="if_open":
-        path = library_check_path(payload["path"], payload.get("entry_id"), session)
-        try:
-            already_owned = json.loads((Path(path) / ".writer.lock").read_text()) == projects.writer_identity(session)
-        except FileNotFoundError:
-            already_owned = False
-        p = projects.open_project(path, session, True) if payload.get("read_only") else projects.recover_project(path, session)
-        try:
-            library_register(p["project_path"], session, payload.get("entry_id"))
-        except (ValueError, OSError):
-            if not already_owned and not p.get("read_only"):
-                projects.release_project(p["project_path"], session)
-            raise
-        return p
+        load = (lambda path, session: projects.open_project(path, session, True)) if payload.get("read_only") else projects.recover_project
+        return open_registered_analysis(payload["path"], load, session, payload.get("entry_id"))
     if command=="if_save":
         p=payload["project"];path=payload.get("path",p.get("project_path"))
         expected=payload.get("expected_revision",p.get("saved_revision")) if path==p.get("project_path") else None
-        p=projects.save_project(p,path,expected,session)
-        library_register(p["project_path"],session,source_entry_id=payload.get("source_entry_id"),touch_opened=payload.get("touch_opened",False));return p
+        source = entry_for_path(p.get("project_path"), session) if path != p.get("project_path") else None
+        p = projects.save_project(p, path, expected, session)
+        library_register(p["project_path"], session, source_entry_id=source and source["entry_id"], touch_opened=source is not None)
+        return p
     if command=="if_release":projects.release_project(payload["path"],session);return True
     if command=="if_inspect":
         from .images import inspect_image

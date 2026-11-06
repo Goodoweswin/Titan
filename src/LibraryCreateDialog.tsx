@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react'
 import type {LibraryCollection,LibraryEntry} from './types'
 
-export type CreationKind='collection'|'wb'|'if'
+export type CreationKind='collection'|'wb'|'if'|'stats'
 export interface AnalysisCreation {
  name:string
  collection_id?:string|null
@@ -18,6 +18,7 @@ export const creationLabels:Record<CreationKind,string>={
  collection:'新建项目',
  wb:'新建 WB 分析',
  if:'新建 IF 分析',
+ stats:'新建统计分析',
 }
 
 export default function LibraryCreateDialog({mode,projects,onClose,onSubmit}:{
@@ -30,11 +31,11 @@ export default function LibraryCreateDialog({mode,projects,onClose,onSubmit}:{
  const [name,setName]=useState(mode.kind==='rename'?mode.project.name:'')
  const [collectionId,setCollectionId]=useState(
   mode.kind==='move'?mode.entry.collection_id??'':
-  mode.kind==='wb'||mode.kind==='if'?mode.collectionId??'':'')
+  mode.kind==='wb'||mode.kind==='if'||mode.kind==='stats'?mode.collectionId??'':'')
  const [newCollection,setNewCollection]=useState('')
  const [busy,setBusy]=useState(false)
  const [error,setError]=useState('')
- const creating=mode.kind==='wb'||mode.kind==='if'
+ const creating=mode.kind==='wb'||mode.kind==='if'||mode.kind==='stats'
  const needsName=creating||mode.kind==='collection'||mode.kind==='rename'
  const needsProject=creating||mode.kind==='move'
  const title=mode.kind==='rename'?'重命名项目':mode.kind==='move'?'移到项目':mode.kind==='remove'?'移出项目':creationLabels[mode.kind]

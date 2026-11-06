@@ -55,7 +55,7 @@ test('module navigation resumes WB and opens saved projects from either module',
  await expect(page.getByRole('button',{name:'新建组图',exact:true})).toBeVisible()
  await page.getByRole('button',{name:'打开项目 '+ifName,exact:true}).click()
  await expect(page.getByLabel('IF 实验名称')).toHaveValue(ifName)
- await page.getByRole('button',{name:'打开项目 '+wb.name,exact:true}).click()
+ await page.locator('.if-shell').getByRole('button',{name:'打开项目 '+wb.name,exact:true}).click()
  await expect(page.getByLabel('实验名称',{exact:true})).toHaveValue(wb.name)
 })
 

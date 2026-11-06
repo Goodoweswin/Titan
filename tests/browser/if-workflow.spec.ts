@@ -60,7 +60,7 @@ test('explicit metadata import and batch biological summaries export through the
  const saving=page.waitForRequest(request=>request.url().endsWith('/test-engine')&&request.postDataJSON().command==='if_save')
  await createAnalysis(page,'if',false)
  await saving
- const importButton=page.getByRole('button',{name:'导入 IF 视野',exact:true}).first()
+ const importButton=page.locator('.if-shell button').filter({hasText:'导入 IF 视野'}).first()
  try{await expect(importButton).toBeDisabled()}finally{releaseSave()}
  await expect(page.getByRole('dialog',{name:'新建 IF 分析',exact:true})).toHaveCount(0)
  await expect(page.getByLabel('IF 实验名称')).toHaveValue('未命名 IF 实验')

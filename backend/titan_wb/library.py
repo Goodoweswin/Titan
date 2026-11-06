@@ -7,7 +7,7 @@ from datetime import datetime,timezone
 from pathlib import Path
 from .models import new_project
 from .images import file_hash
-from .projects import atomic_json,save_project,operation_lock
+from .projects import atomic_json,save_project,operation_lock,release_project,writer_identity
 from .figure_documents import save_figure,load_figure,source_signature,figure_catalog_metadata
 
 
@@ -44,7 +44,7 @@ def _index(root):
 
 def _project(path):
     root=Path(path).expanduser().resolve()
-    if root.suffix not in ('.titanwb','.titanif'):raise ValueError('请选择 .titanwb 或 .titanif 项目文件夹')
+    if root.suffix not in ('.titanwb','.titanif','.titanstats'):raise ValueError('请选择 .titanwb、.titanif 或 .titanstats 项目文件夹')
     try:p=json.loads((root/'project.json').read_text(encoding='utf-8'))
     except (OSError,ValueError):raise ValueError('项目文件夹不存在、已移动或清单损坏，请重新定位')
     if not isinstance(p,dict) or not isinstance(p.get('id'),str) or not isinstance(p.get('name'),str):raise ValueError('项目清单身份无效')
@@ -73,6 +73,16 @@ def _public(entry):
             except (ValueError, OSError, KeyError) as e:
                 row['figure_error'] = ' · '.join(filter(None, [row.get('figure_error'), str(e)]))
             _include_archived_exports(row, root)
+        if row['module'] == 'stats':
+            for figure in p.get('figures', []):
+                if not isinstance(figure, dict) or not all(isinstance(figure.get(key), str) for key in ('id', 'name')):
+                    row['figure_error'] = '统计图形记录损坏'
+                    continue
+                row['artifacts'].append(dict(
+                    id='stats:'+figure['id'], kind='stats_plot', title=figure['name'],
+                    document_id=figure['id'], version_id=figure['id'],
+                    source_revision=figure.get('source_revision'), available=True,
+                ))
     except ValueError as e:row.update(available=False,error=str(e))
     for artifact in row['artifacts']:
         artifact['entry_id'] = entry['entry_id']
@@ -196,6 +206,11 @@ def library_set_resume(entry_id, resume, session):
         if 'artifact_id' not in value or not isinstance(version, str) or not 0 < len(version) <= 120:
             raise ValueError('图表版本无效')
         value['version_id'] = version
+    if 'dataset_id' in resume:
+        dataset_id = resume['dataset_id']
+        if not isinstance(dataset_id, str) or not 0 < len(dataset_id) <= 120:
+            raise ValueError('数据表续做位置无效')
+        value['dataset_id'] = dataset_id
     with _edit_index(session) as data:
         _entry(data, entry_id)['resume'] = value
     return True
@@ -222,6 +237,30 @@ def library_check_path(path, entry_id, session):
     folder, manifest = _project(path)
     _registered_entry(_index(library_root(session)), folder, manifest, entry_id)
     return str(folder)
+
+
+def open_registered_analysis(path, load, session, entry_id=None):
+    path = library_check_path(path, entry_id, session)
+    try:
+        owned = json.loads((Path(path) / '.writer.lock').read_text()) == writer_identity(session)
+    except FileNotFoundError:
+        owned = False
+    project = load(path, session)
+    try:
+        library_register(project['project_path'], session, entry_id)
+    except (ValueError, OSError):
+        if not owned and not project.get('read_only'):
+            release_project(project['project_path'], session)
+        raise
+    return project
+
+
+def entry_for_path(path, session):
+    if not path:
+        return None
+    canonical = str(Path(path).resolve())
+    data = _index(library_root(session))
+    return next((entry for entry in data['entries'] if entry['path'] == canonical), None)
 
 
 def _register(data, folder, manifest, *, entry_id=None, source_entry_id=None, touch_opened=True):
@@ -288,7 +327,7 @@ def library_remove(entry_id, session):
 
 
 _EXPORT_KINDS = {'result_export', 'if_figure_export', 'wb_figure_export'}
-_OUTPUT_SUFFIXES = {'.png', '.tif', '.tiff', '.svg', '.pdf', '.xlsx', '.csv', '.json'}
+_OUTPUT_SUFFIXES = {'.png', '.tif', '.tiff', '.svg', '.pdf', '.xlsx', '.csv', '.json', '.txt'}
 
 
 def _primary_file(files):
@@ -350,7 +389,10 @@ def library_record_export(project_path, project_id, record, session):
     if primary is None or not expected_sha256 or file_hash(primary) != expected_sha256:
         raise ValueError('导出主文件已变化，无法登记到原版本')
     revision = record['source_revision']
-    if type(revision) is not int or revision < 0:
+    version_id = record.get('version_id')
+    if version_id is not None and (not isinstance(version_id, str) or not 0 < len(version_id) <= 120):
+        raise ValueError('导出文档版本无效')
+    if not (type(revision) is int and revision >= 0) and not (revision is None and version_id):
         raise ValueError('导出来源版本无效')
     canonical = str(Path(project_path).resolve())
     with _edit_index(session) as data:
@@ -360,19 +402,19 @@ def library_record_export(project_path, project_id, record, session):
         exports = entry.setdefault('exports', [])
         previous = next((item for item in exports if item['kind'] == record['kind'] and item['destination'] == str(destination)), None)
         if previous is not None:
-            if previous['source_revision'] == revision and previous.get('primary_sha256') == expected_sha256:
+            if previous['source_revision'] == revision and previous.get('version_id') == version_id and previous.get('primary_sha256') == expected_sha256:
                 return _output_state(previous)
             exports.remove(previous)
         artifact = dict(id='export:'+uuid.uuid4().hex, title=_name(record['title']),
                         kind=record['kind'], source_revision=revision,
                         destination=str(destination), files=[str(f) for f in checked],
                         primary_file=str(primary), primary_sha256=expected_sha256,
-                        plot_sha256=record.get('plot_sha256'))
+                        plot_sha256=record.get('plot_sha256'), version_id=version_id)
         exports.append(artifact)
         return _output_state(artifact)
 
 
-def register_published_export(project, result, destination, kind, title, revision, session):
+def register_published_export(project, result, destination, kind, title, revision, session, *, version_id=None):
     """Record only successful publications, without making a catalog failure an export failure."""
     if not project.get('project_path') or not session.get('library_root'):
         return result
@@ -380,6 +422,7 @@ def register_published_export(project, result, destination, kind, title, revisio
     files = result.get('files')
     if files is None:
         files = [str(path / name) for name in result['outputs']]
+    files = [str(path / file) if not Path(file).is_absolute() else file for file in files]
     primary = _primary_file(files)
     hashes = result.get('outputs', {})
     primary_sha256 = None
@@ -391,7 +434,7 @@ def register_published_export(project, result, destination, kind, title, revisio
             pass
     record = dict(destination=str(path), files=files, kind=kind,
                   title=title.strip()[:120] or path.name[:120], source_revision=revision,
-                  primary_sha256=primary_sha256, plot_sha256=hashes.get('plot.png'))
+                  primary_sha256=primary_sha256, plot_sha256=hashes.get('plot.png'), version_id=version_id)
     request = dict(project_path=project['project_path'], project_id=project['id'], record=record)
     try:
         library_record_export(**request, session=session)

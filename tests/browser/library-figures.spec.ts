@@ -145,7 +145,7 @@ for(const operation of ['history','source-update'])test(`late ${operation} docum
  await expect(page.getByRole('img',{name:'当前结果图表',exact:true})).toHaveCount(0)
 })
 
-test('a project groups WB and IF analyses and restores the last IF view', async ({page}) => {
+test('a project groups WB, IF and stats analyses and restores the last IF view', async ({page}) => {
  await page.goto('/?integration=1')
  const library = page.getByRole('navigation', {name:'实验项目库'})
  const projectName = '皮肤衰老 '+Date.now()
@@ -181,11 +181,14 @@ test('a project groups WB and IF analyses and restores the last IF view', async 
  await library.getByRole('button',{name:'展开课题 '+nextName,exact:true}).click()
  await library.getByRole('button',{name:'打开项目 '+ifName,exact:true}).click()
  await expect(page.getByRole('button',{name:'IF 定量结果',exact:true})).toHaveAttribute('aria-current','page')
+ const statsName='独立统计 '+Date.now()
+ await create('新建统计分析',statsName,first.id)
+ await expect(page.getByLabel('统计项目名称',{exact:true})).toHaveValue(statsName)
  await library.getByRole('button',{name:'新建或打开',exact:true}).click()
  await library.getByRole('button',{name:'新建 WB 分析',exact:true}).click()
  await page.getByRole('dialog').getByRole('button',{name:'取消',exact:true}).click()
  const after = await rpc(page, 'library_workspace')
- expect(after.entries.filter((entry:any)=>entry.collection_id===first.id||entry.collection_id===second.id)).toHaveLength(2)
+ expect(after.entries.filter((entry:any)=>entry.collection_id===first.id||entry.collection_id===second.id)).toHaveLength(3)
 })
 
 test('IF save failure keeps the current view and dirty inputs when opening a WB analysis', async ({page})=>{

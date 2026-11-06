@@ -1,15 +1,16 @@
 import {invoke} from '@tauri-apps/api/core'
 import {useEffect,useRef,useState} from 'react'
+import StatsWorkspace,{type StatsLibraryActions} from './stats/StatsWorkspace'
 import IFWorkspace,{type IFLibraryActions} from './if/IFWorkspace'
 import LibraryCreateDialog,{type AnalysisCreation,type LibraryDialog} from './LibraryCreateDialog'
 import {open,save,confirm} from '@tauri-apps/plugin-dialog'
 import {getCurrentWindow} from '@tauri-apps/api/window'
-import {Activity,ArrowDownToLine,CircleHelp,Copy,FolderOpen,ImagePlus,Microscope,Plus,Save,ScanLine,ShieldCheck,Sparkles,Undo2,Redo2} from 'lucide-react'
+import {Activity,ArrowDownToLine,BarChart3,CircleHelp,Copy,FolderOpen,ImagePlus,Microscope,Plus,Save,ScanLine,ShieldCheck,Sparkles,Undo2,Redo2} from 'lucide-react'
 import appIcon from '../assets/brand/titan-app-icon-128.png'
 import gorillaHead from '../assets/brand/titan-head.svg'
 import {callEngine} from './bridge'
 import {createProject,editProject,commitResult,mergeSaved,restoreHistory,acceptReview,mergeImported,retainResult} from './state'
-import type {Project,AnalysisResult,Rect,PlotSettings,DetectionPreview,ImageInspection,LibraryEntry,FrozenFigure,FigureSettings,FigureDocumentMetadata,PlotPreview,LibraryCollection,LibraryArtifact,LibraryExportReceipt} from './types'
+import type {Project,AnalysisResult,Rect,PlotSettings,DetectionPreview,ImageInspection,LibraryEntry,FrozenFigure,FigureSettings,FigureDocumentMetadata,PlotPreview,LibraryCollection,LibraryArtifact,LibraryExportReceipt,LibraryResume} from './types'
 import ImagePagePicker from './ImagePagePicker'
 import Workspace from './Workspace'
 import LaneSetup, {type CanvasHistory} from './LaneSetup'
@@ -34,16 +35,37 @@ import WbImageGuide from './WbImageGuide'
 const native=()=>Boolean((window as any).__TAURI_INTERNALS__)
 async function ask(text:string){return native()?await confirm(text,{title:'Titan',kind:'warning'}):window.confirm(text)}
 export default function App(){
- const [module,setModule]=useState<'wb'|'if'>('wb'),moduleRef=useRef(module);moduleRef.current=module
+ const [module,setModule]=useState<'wb'|'if'|'stats'>('wb'),moduleRef=useRef(module);moduleRef.current=module
  const ifClose=useRef<()=>Promise<boolean>>(async()=>true)
  const ifLibrary=useRef<IFLibraryActions|null>(null)
+ const statsLibrary=useRef<StatsLibraryActions|null>(null)
+ const statsClose=useRef<()=>Promise<boolean>>(async()=>true)
  const [libraryDialog,setLibraryDialog]=useState<LibraryDialog|null>(null)
  const [libraryBusy,setLibraryBusy]=useState(false),libraryFlight=useRef(false)
  const [libraryNotice,setLibraryNotice]=useState('')
  const [exportRetries,setExportRetries]=useState<NonNullable<LibraryExportReceipt['library_export_retry']>[]>([])
- async function enterIF(){
-  if(libraryFlight.current||switching||!await canLeaveFigure()||!await flushCurrent())return
-  setModule('if')
+ async function prepareModule(target:'wb'|'if'|'stats'){
+  const source=moduleRef.current
+  if(source===target)return true
+  if(source==='wb')return await canLeaveFigure()&&await flushCurrent()
+  if(source==='if')return !!await ifLibrary.current?.prepareLeave()
+  return !!await statsLibrary.current?.prepareLeave()
+ }
+ function enterModule(target:'wb'|'if'|'stats'){
+  void guardLibrary(async()=>{
+   if(!await prepareModule(target))return false
+   if(target==='wb')openWbHome()
+   else setModule(target)
+   return true
+  }).catch(error=>setLibraryNotice(String(error)))
+ }
+ async function sendStats(){
+  await guardLibrary(async()=>{
+   if(!await prepareModule('stats')||!current.current)return false
+   if(!await statsLibrary.current?.fromWB(current.current))return false
+   setModule('stats')
+   return true
+  }).catch(error=>setLibraryNotice(String(error)))
  }
 
 
@@ -263,33 +285,36 @@ export default function App(){
    if(mode.kind==='rename'){await library.change('library_update_collection',{id:mode.project.id,patch:{name:input.name}});return true}
    if(mode.kind==='remove'){await library.change('library_remove_collection',{id:mode.project.id});return true}
    if(mode.kind==='move'){await library.change('library_assign',{entry_id:mode.entry.entry_id,collection_id:input.collection_id});return true}
-   if(mode.kind==='wb'){
-    if(moduleRef.current==='if'&&!await ifLibrary.current?.prepareLeave())return false
-    if(!await newExperiment(input))return false
-    setModule('wb')
-   }else{
-    if(moduleRef.current==='wb'&&(!await canLeaveFigure()||!await flushCurrent()))return false
-    if(!await ifLibrary.current?.create(input))return false
-    setModule('if')
-   }
+   if(!await prepareModule(mode.kind))return false
+   const created=mode.kind==='wb'?await newExperiment(input):
+    mode.kind==='if'?await ifLibrary.current?.create(input):await statsLibrary.current?.create(input)
+   if(!created)return false
+   setModule(mode.kind)
    return true
   })
  }
  async function openAnalysis(entry:Pick<LibraryEntry,'path'|'module'|'figures'|'resume'|'artifacts'> & {entry_id?:string},view?:LibraryView,figureId?:string,path=entry.path,artifact?:LibraryArtifact){
   const saved=entry.resume
+  const module=entry.module??'wb'
   const savedId=!view&&saved?.view==='figure'?saved.artifact_id:undefined
-  const strip=entry.artifacts?.find(item=>item.kind==='wb_figure'&&item.id===savedId)
-  const targetArtifact=artifact??(strip?{...strip,version_id:saved?.version_id??strip.version_id}:undefined)
+  const document=entry.artifacts?.find(item=>(item.kind==='wb_figure'||item.kind==='stats_plot')&&item.id===savedId)
+  const targetArtifact=artifact??(document?{...document,version_id:saved?.version_id??document.version_id}:undefined)
   const figure=figureId??(entry.figures.some(item=>item.id===savedId)?savedId:undefined)
   const plotVersion=!view&&figure&&saved?.version_id
-  const next=view??(saved?.view==='figure'?(figure?'results':!savedId||strip?'wb':'workspace'):saved?.view)??'workspace'
-  if(entry.module==='if'){
-   if(moduleRef.current==='wb'&&(!await canLeaveFigure()||!await flushCurrent()))return false
+  const next=view??(saved?.view==='figure'?(figure?'results':!savedId||document?'wb':'workspace'):saved?.view)??'workspace'
+  if(!await prepareModule(module))return false
+  if(module==='if'){
    if(!await ifLibrary.current?.open(path,next,entry.entry_id))return false
    setModule('if')
    return true
   }
-  if(moduleRef.current==='if'&&!await ifLibrary.current?.prepareLeave())return false
+  if(module==='stats'){
+   const resume:LibraryResume={view:next==='wb'?'figure':next,
+    dataset_id:saved?.dataset_id,artifact_id:targetArtifact?.id}
+   if(!await statsLibrary.current?.open(path,resume,entry.entry_id))return false
+   setModule('stats')
+   return true
+  }
   const frozenArtifact=plotVersion?{
    id:figure!,entry_id:entry.entry_id??'',title:'',kind:'result_export' as const,
    source_revision:null,available:true,version_id:plotVersion,
@@ -303,11 +328,11 @@ export default function App(){
  }
  async function openProject(entry?:LibraryEntry){
   await guardLibrary(async()=>{
-   const path=await open({directory:true,multiple:false,title:entry?'重新定位分析':'选择 .titanwb 或 .titanif 分析文件夹'})
+   const path=await open({directory:true,multiple:false,title:entry?'重新定位分析':'选择 .titanwb、.titanif 或 .titanstats 分析文件夹'})
    if(typeof path!=='string')return false
    if(entry)return openAnalysis(entry,undefined,undefined,path)
    const known=library.entries.find(item=>item.path===path)
-   const target:Parameters<typeof openAnalysis>[0]=known??{path,module:path.toLowerCase().endsWith('.titanif')?'if':'wb',figures:[]}
+   const target:Parameters<typeof openAnalysis>[0]=known??{path,module:path.toLowerCase().endsWith('.titanstats')?'stats':path.toLowerCase().endsWith('.titanif')?'if':'wb',figures:[]}
    return openAnalysis(target,undefined,undefined,path)
   })
  }
@@ -321,8 +346,8 @@ export default function App(){
   }catch(error){setLibraryNotice(String(error))}
  }
  function openArtifact(entry:LibraryEntry,artifact:LibraryArtifact){
-  if(artifact.kind==='wb_figure'||(artifact.kind==='wb_plot'||artifact.kind==='result_export')&&artifact.document_id){
-   const strip=artifact.kind==='wb_figure'
+  if(artifact.kind==='stats_plot'||artifact.kind==='wb_figure'||(artifact.kind==='wb_plot'||artifact.kind==='result_export')&&artifact.document_id){
+   const strip=artifact.kind==='wb_figure'||artifact.kind==='stats_plot'
    void guardLibrary(()=>openAnalysis(entry,strip?'wb':'results',strip?undefined:artifact.document_id,entry.path,artifact))
     .catch(error=>setLibraryNotice(String(error)))
   }else void openRegisteredFile(entry,artifact,false)
@@ -437,7 +462,7 @@ export default function App(){
  useEffect(()=>{
   if(!native())return;let stop:(()=>void)|undefined
   getCurrentWindow().onCloseRequested(async e=>{
-   e.preventDefault();if(libraryFlight.current||!await ifClose.current())return;if(!await canLeaveFigure()||!await flushCurrent())return;const p=current.current
+   e.preventDefault();if(libraryFlight.current||!await ifClose.current()||!await statsClose.current())return;if(!await canLeaveFigure()||!await flushCurrent())return;const p=current.current
    if(p?.project_path)await callEngine('release_project',{path:p.project_path}).catch(()=>{})
    await getCurrentWindow().destroy()
   }).then(fn=>stop=fn);return()=>stop?.()
@@ -470,7 +495,7 @@ export default function App(){
  return <><div className="app-shell" style={{display:module==='wb'?undefined:'none'}} inert={libraryBusy}>
   {showWbGuide&&<WbImageGuide onClose={()=>setShowWbGuide(false)}/>}
   <aside className="sidebar"><div className="brand"><img className="brand-mark" src={appIcon} alt="" aria-hidden="true"/><div className="brand-name"><strong>Titan</strong></div></div>
-   <nav className="analysis-modules" aria-label="分析模块"><button type="button" className="nav active module-nav" aria-current="page" title="Western blot" disabled={switching} onClick={openWbHome}><ScanLine size={18}/><span>Western blot</span></button><button type="button" className="nav module-nav" title="免疫荧光" disabled={switching} onClick={()=>enterIF()}><Microscope size={18}/><span>免疫荧光</span></button></nav>
+   <nav className="analysis-modules" aria-label="分析模块"><button type="button" className="nav active module-nav" aria-current="page" title="Western blot" disabled={switching} onClick={openWbHome}><ScanLine size={18}/><span>Western blot</span></button><button type="button" className="nav module-nav" title="免疫荧光" disabled={switching} onClick={()=>enterModule('if')}><Microscope size={18}/><span>免疫荧光</span></button><button type="button" className="nav module-nav" onClick={()=>enterModule('stats')}><BarChart3 size={18}/><span>统计与绘图</span></button></nav>
    <ProjectLibrary entries={entries} projects={library.projects} project={project} activeFigure={frozen?.document.id??(tab==='wb'&&activeStrip?'strip:'+activeStrip.id:'')}
     currentView={tab==='wb'?'wb':tab==='results'?'results':'workspace'} error={library.error} busy={switching||libraryBusy}
     onRetry={library.refresh} onRelocate={entry=>void openProject(entry).catch(error=>setMessage(String(error)))}
@@ -491,6 +516,7 @@ export default function App(){
      <button className="icon-btn header-icon" title="重做" disabled={(!(guided&&tab!=='results'&&canvasHistory?.canRedo)&&(!future.length||(guided&&tab!=='results'&&!!canvasHistory?.dirty)))||project.read_only||!!busy||!!frozen} onClick={()=>historyUndo(true)}><Redo2 size={16}/></button>
      {tab!=='results'&&!frozen&&<button className="btn secondary" disabled={!!busy||project.read_only||switching} onClick={()=>importImages().catch(e=>setMessage(String(e)))}><ImagePlus size={15}/>导入图像</button>}
      {!guided&&<button className={`btn ${tab==='results'?'secondary':'primary'}`} disabled={!!busy||!project.rois.length} onClick={analyze}><Activity size={15}/>开始定量</button>}
+     {tab==='results'&&!frozen&&<button className="btn secondary" disabled={!result||!!busy} onClick={sendStats}>发送到统计与绘图</button>}
      {(tab==='results'||frozen)&&<button className="btn primary" disabled={!result||!!busy} onClick={openExport}><ArrowDownToLine size={15}/>导出结果</button>}
      {manualMode&&<button className="text-btn" onClick={()=>{setManualMode(false);navigate('workspace')}}>返回简洁流程</button>}
     </>}
@@ -507,12 +533,24 @@ export default function App(){
    </div>
    <section inert={switching} className={`page-content ${tab==='workspace'?'workbench-page':''}`}>{tab==='wb'?<WbFigureEditor key={project.id+':'+workspaceEpoch+':'+(initialStrip?.version??'')} project={project}
     initialDocument={initialStrip} onDocument={setActiveStrip} onSaved={library.refresh} onExported={reportLibraryExport} externalBusy={!!busy||switching} onBusy={working=>{wbBusy.current=working;setWbWorking(working)}} onBeforeSave={prepareWbSave} onDraft={dirty=>{wbDirty.current=dirty}} onHistory={history=>{wbHistory.current=history}}/>:frozen?<FigureDocument figure={frozen} onArchive={archiveFigure} onPreview={onFigurePreview} onUpdate={updateFigureSource} canUpdate={!!result&&result.input_revision===project.revision} onWorkspace={()=>{setActiveSetId(project.band_sets.find(g=>g.role==='reference')?.id??'');navigate('workspace')}} onVersion={openFigureVersion}/>:guided?(tab==='results'?<LaneResults project={project} result={result} onEdit={edit} onReview={review} onLocate={locate} onAnalyze={analyze} onExport={openExport} onArchive={archiveFigure} onPreview={onFigurePreview} figureDocument={figureDocument}/>:<LaneSetup onHistory={setCanvasHistory} key={workspaceEpoch} project={project} stage={tab==='workspace'?'reference':'targets'} activeSetId={activeSetId} onSet={setActiveSetId} onEdit={edit} onImport={()=>importImages().catch(e=>setMessage(String(e)))} onTarget={()=>{setActiveSetId('');navigate('samples')}} onManual={()=>{setManualMode(true);navigate('workspace')}}/>):<><QualityPanel project={project} result={result} onLocate={locate}/>{tab==='workspace'?<Workspace project={project} onEdit={edit} onDetect={detect} candidates={staged} onCandidates={setCandidates} onAcceptCandidates={acceptCandidates} onReview={review} busy={!!busy} selection={selection} onSelect={setSelection}/>:tab==='samples'?<SampleEditor project={project} onEdit={edit} onReview={review}/>:<Results project={project} result={result} onLocate={locate} onAnalyze={analyze}/>}</>}</section></div>}
-  {pageChoice&&<ImagePagePicker path={pageChoice.path} info={pageChoice.info} onChoose={choosePages}/>} {showExport&&exportContext&&<ExportPreview project={exportContext.project} result={exportContext.result} initialSettings={exportContext.settings} initialFigure={exportContext.figure} initialData={exportContext.preview?.figure_data} onClose={()=>setShowExport(false)} onExport={exportResult}/>}<footer className="statusbar"><div className="status-summary">{project&&!homeVisible&&<><span>{project.images.length} 张原始图像</span><span>{project.rois.length} 个条带区域</span><span>{reviewed} 已复核</span>{((project as any).demo||(project as any).synthetic)&&<b className="synthetic-label">纯合成示例 · 非实验数据</b>}</>}</div><div className="status-system"><span className="connection"><i className={connected?'online':''}/>{connected?'本地引擎就绪':'连接中'}</span>{project&&!homeVisible&&<span className="pixel-note"><ShieldCheck size={12}/>原始像素参与计算</span>}</div></footer></div></div><IFWorkspace active={module==='if'} onWB={openWbHome} registerClose={fn=>{ifClose.current=fn}}
+  {pageChoice&&<ImagePagePicker path={pageChoice.path} info={pageChoice.info} onChoose={choosePages}/>} {showExport&&exportContext&&<ExportPreview project={exportContext.project} result={exportContext.result} initialSettings={exportContext.settings} initialFigure={exportContext.figure} initialData={exportContext.preview?.figure_data} onClose={()=>setShowExport(false)} onExport={exportResult}/>}<footer className="statusbar"><div className="status-summary">{project&&!homeVisible&&<><span>{project.images.length} 张原始图像</span><span>{project.rois.length} 个条带区域</span><span>{reviewed} 已复核</span>{((project as any).demo||(project as any).synthetic)&&<b className="synthetic-label">纯合成示例 · 非实验数据</b>}</>}</div><div className="status-system"><span className="connection"><i className={connected?'online':''}/>{connected?'本地引擎就绪':'连接中'}</span>{project&&!homeVisible&&<span className="pixel-note"><ShieldCheck size={12}/>原始像素参与计算</span>}</div></footer></div></div><IFWorkspace active={module==='if'} onWB={openWbHome} onStats={()=>setModule('stats')} registerClose={fn=>{ifClose.current=fn}}
   registerLibrary={actions=>{ifLibrary.current=actions}} library={library} libraryBusy={libraryBusy}
   onOpen={openLibraryEntry} onDialog={setLibraryDialog} onPin={pinCollection}
   onArtifact={openArtifact} onReveal={(entry,artifact)=>void openRegisteredFile(entry,artifact,true)}
   onExported={reportLibraryExport} onOpenFile={()=>void openProject().catch(error=>setLibraryNotice(String(error)))}
   onRelocate={entry=>void openProject(entry).catch(error=>setMessage(String(error)))}/>
+ <StatsWorkspace active={module==='stats'} library={library} libraryBusy={libraryBusy}
+  onWB={()=>enterModule('wb')} onIF={()=>enterModule('if')}
+  onSource={path=>{
+   const entry=library.entries.find(item=>item.path===path)
+   if(entry)openLibraryEntry(entry,'results')
+   else void guardLibrary(()=>openAnalysis({path,module:'wb',figures:[]},'results')).catch(error=>setLibraryNotice(String(error)))
+  }}
+  registerLibrary={actions=>{statsLibrary.current=actions}} registerClose={close=>{statsClose.current=close}}
+  onOpen={openLibraryEntry} onDialog={setLibraryDialog} onPin={pinCollection}
+  onArtifact={openArtifact} onReveal={(entry,artifact)=>void openRegisteredFile(entry,artifact,true)}
+  onExported={reportLibraryExport} onOpenFile={()=>void openProject().catch(error=>setLibraryNotice(String(error)))}
+  onRelocate={entry=>void openProject(entry).catch(error=>setLibraryNotice(String(error)))}/>
  {(libraryNotice||exportRetries.length>0)&&<div className="library-notice" role="status">
   <span>{libraryNotice||'有导出文件等待登记到左栏'}</span>
   {exportRetries.length>0&&<button className="btn secondary" onClick={()=>void retryLibraryExport()}>重试登记</button>}
