@@ -55,10 +55,25 @@ def dispatch(request):
         return library_list(session)
     if command=='library_create':
         from .library import library_create
-        return library_create(payload['name'],session)
+        return library_create(payload['name'],session,collection_id=payload.get('collection_id'),new_collection_name=payload.get('new_collection_name'))
     if command=='library_register':
         from .library import library_register
-        return library_register(payload['path'],session,payload.get('entry_id'))
+        return library_register(payload['path'],session,payload.get('entry_id'),source_entry_id=payload.get('source_entry_id'),touch_opened=payload.get('touch_opened',True))
+    if command=='library_workspace':
+        from .library import library_workspace
+        return library_workspace(session)
+    if command in ('library_create_collection','library_update_collection','library_remove_collection',
+                   'library_assign','library_set_resume'):
+        from . import library
+        operations = {
+            'library_create_collection': (library.library_create_collection, ('name',)),
+            'library_update_collection': (library.library_update_collection, ('id','patch')),
+            'library_remove_collection': (library.library_remove_collection, ('id',)),
+            'library_assign': (library.library_assign, ('entry_id','collection_id')),
+            'library_set_resume': (library.library_set_resume, ('entry_id','resume')),
+        }
+        operation, keys = operations[command]
+        return operation(*(payload[key] for key in keys), session)
     if command=='library_remove':
         from .library import library_remove
         return library_remove(payload['entry_id'],session)

@@ -162,3 +162,76 @@ def test_project_manifest_with_windows_separators_opens_portably(tmp_path):
  for image in disk['images']:image['path']=image['path'].replace('/','\\')
  path.write_text(json.dumps(disk))
  assert analyze(open_project(p['project_path'],s))['lane_results'][0]['normalized']==4
+
+
+def test_workspace_groups_wb_and_if_without_moving_files(tmp_path):
+    from titan_wb.engine import dispatch
+
+    s = session(tmp_path)
+    def call(command, **payload):
+        return dispatch(dict(command=command, payload=payload, session=s))
+
+    wb = call('library_create', name='AKT')
+    original_index = Path(s['library_root']) / 'index.json'
+    before = original_index.read_bytes()
+    assert call('library_workspace')['entries'][0]['collection_id'] is None
+    assert original_index.read_bytes() == before
+
+    group = call('library_create_collection', name='皮肤衰老')
+    fluorescence = call('if_new', name='p16', collection_id=group['id'])
+    call('library_assign', entry_id=wb['entry']['entry_id'], collection_id=group['id'])
+    call('library_set_resume', entry_id=wb['entry']['entry_id'], resume={'view': 'results'})
+    entries = {entry['name']: entry for entry in call('library_workspace')['entries']}
+    assert entries['AKT']['resume'] == {'view': 'results'}
+    assert entries['AKT']['collection_id'] == entries['p16']['collection_id'] == group['id']
+    assert entries['p16']['path'] == fluorescence['project_path']
+    call('library_remove_collection', id=group['id'])
+    assert all(entry['collection_id'] is None for entry in call('library_workspace')['entries'])
+    assert Path(fluorescence['project_path']).is_dir()
+
+
+def test_workspace_failed_creation_rolls_back_and_retry_registers_once(tmp_path, monkeypatch):
+    from titan_wb import library
+
+    s = session(tmp_path)
+    atomic_write = library.atomic_json
+    with monkeypatch.context() as mock:
+        def fail_index(*args):
+            raise OSError('injected index failure')
+        mock.setattr(library, 'atomic_json', fail_index)
+        with pytest.raises(OSError, match='index failure'):
+            library.library_create('AKT', s, new_collection_name='皮肤衰老')
+    assert not list((Path(s['library_root']) / 'Projects').iterdir())
+    assert library.atomic_json is atomic_write
+    created = library.library_create('AKT', s, new_collection_name='皮肤衰老')
+    catalog = library.library_workspace(s)
+    assert len(catalog['entries']) == len(catalog['projects']) == 1
+    assert created['entry']['collection_id'] == catalog['projects'][0]['id']
+
+
+def test_copy_and_relocation_preserve_distinct_memberships(tmp_path):
+    from titan_wb import library
+
+    s = session(tmp_path)
+    group = library.library_create_collection('课题', s)
+    source = library.library_create('AKT', s, collection_id=group['id'])
+    copy_path = tmp_path / 'copy.titanwb'
+    save_project(source['project'], str(copy_path), None, s)
+    copy = library_register(str(copy_path), s, source_entry_id=source['entry']['entry_id'])
+    assert copy['entry_id'] != source['entry']['entry_id']
+    assert copy['collection_id'] == group['id']
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [
+            pool.submit(library.library_assign, copy['entry_id'], None, s),
+            pool.submit(library_register, str(copy_path), s, touch_opened=False),
+        ]
+        for future in futures:
+            future.result()
+    moved = tmp_path / 'moved.titanwb'
+    copy_path.rename(moved)
+    relocated = library_register(str(moved), s, copy['entry_id'])
+    assert relocated['entry_id'] == copy['entry_id']
+    assert relocated['collection_id'] is None
+    with pytest.raises(ValueError, match='课题'):
+        library.library_assign(copy['entry_id'], 'missing', s)
+    assert library_register(str(moved), s, touch_opened=False)['last_opened'] == relocated['last_opened']
