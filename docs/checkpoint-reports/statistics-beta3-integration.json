@@ -1,0 +1,41 @@
+{
+  "base": "v0.4.0-beta.3",
+  "base_commit": "80d552c52be86bfd661166fb9268eeac375fc673",
+  "previous_statistics_commit": "7cd9690",
+  "branch": "codex/statistics-v04",
+  "verified_at": "2026-11-06T17:35:37.626635+00:00",
+  "application_version": "0.4.0",
+  "application_identifier": "com.titan.stats.preview",
+  "window_title": "Titan Stats Preview · 0.4 beta3",
+  "checks": {
+    "vitest": 80,
+    "pytest": 273,
+    "pytest_subtests": 5,
+    "rust": 7,
+    "production_build": "passed",
+    "native_app_build": "passed",
+    "codesign": "passed (ad hoc)",
+    "bundled_statistics": "passed: ANOVA F=7 P=.027, save/reopen, long table, PNG/SVG/PDF/XLSX/JSON/methods",
+    "bundled_if": "passed: worker subprocess, 9 nuclei, measurement, portable reopen, figure/table exports",
+    "native_smoke": [
+      "WB home",
+      "IF synthetic measurement and auto-save",
+      "IF to statistics navigation",
+      "existing beta2-preview statistics project reopened",
+      "stored ANOVA F=7 P=.027",
+      "60x50 mm frozen figure restored"
+    ]
+  },
+  "limitations": {
+    "playwright": "not run this turn; previously blocked by local port permission",
+    "windows_native": "not verified for integrated preview",
+    "apple_notarization": false,
+    "published_release": false
+  },
+  "archive": {
+    "name": "Titan_0.4_beta3_Stats_Preview_macos-arm64.zip",
+    "size_bytes": 104644400,
+    "sha256": "88bb4c70a10e5c2fd773979bafee12c8b5cbee2d474d1663cd8fb68f0b332c75",
+    "zip_integrity": "passed"
+  }
+}

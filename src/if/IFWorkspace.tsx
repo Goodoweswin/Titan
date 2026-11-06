@@ -28,7 +28,28 @@ export default function IFWorkspace({active,path,onWB,onWBOpen,registerClose,onR
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;epoch.current++;clearTimeout(poll.current)}},[])
  useEffect(()=>{registerClose(async()=>{if(!await flush())return false;await cancel();const p=current.current;if(p?.project_path)await callEngine('if_release',{path:p.project_path});return true})})
  useEffect(()=>{if(!project||project.read_only||project.saved_revision===project.revision||busy)return;const timer=setTimeout(()=>persist().catch(e=>setMessage('自动保存未完成：'+e)),1200);return()=>clearTimeout(timer)},[project,busy])
- async function changeProject(command:'if_new'|'if_demo'|'if_open',payload:object={}){if(!await flush())return;await cancel();const generation=epoch.current;setBusy(command==='if_open'?'打开实验':'准备实验');setMessage('');try{const p=await callEngine<IFProject>(command,payload);if(generation!==epoch.current)return;const old=current.current;if(old?.project_path&&old.project_path!==p.project_path)await callEngine('if_release',{path:old.project_path});assign(p);setFieldId(p.fields[0]?.id??'');setTab('analysis');void library.refresh();onRefresh()}catch(e){setMessage(String(e))}finally{if(generation===epoch.current)setBusy('')}}
+ async function changeProject(command:'if_new'|'if_demo'|'if_open',payload:object={}){
+  if(busy)return
+  let generation=epoch.current
+  setBusy(command==='if_open'?'打开实验':'准备实验')
+  setMessage('')
+  try{
+   if(!await flush()||generation!==epoch.current)return
+   const cancelling=cancel()
+   generation=epoch.current
+   await cancelling
+   if(generation!==epoch.current)return
+   setMessage('')
+   const p=await callEngine<IFProject>(command,payload)
+   if(generation!==epoch.current)return
+   const old=current.current
+   if(old?.project_path&&old.project_path!==p.project_path)await callEngine('if_release',{path:old.project_path})
+   if(generation!==epoch.current)return
+   assign(p);setFieldId(p.fields[0]?.id??'');setTab('analysis')
+   void library.refresh();onRefresh()
+  }catch(e){setMessage(String(e))}
+  finally{setBusy('')}
+ }
  useEffect(()=>{if(path)void changeProject('if_open',{path:path.path}).then(()=>setTab(path.view==='results'?'results':path.view==='wb'?'figure':'analysis'))},[path?.token])
  useEffect(()=>{if(active){void library.refresh();onRefresh()}},[active])
  function edit(change:(p:IFProject)=>void){const p=current.current;if(!p||p.read_only)return;const next=structuredClone(p);change(next);next.revision++;assign(next);setMessage('')}

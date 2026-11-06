@@ -1,6 +1,6 @@
 {
-  "base": "v0.4.0-beta.2",
-  "engine": "Titan Stats Preview.app/Contents/Resources/engine/wb-engine/wb-engine",
+  "base": "v0.4.0-beta.3",
+  "engine": "/Users/janus/Desktop/Titan/artifacts/statistics-v04/src-tauri/target/release/bundle/macos/Titan Stats Preview.app/Contents/Resources/engine/wb-engine/wb-engine",
   "passed": true,
   "checks": [
     "create",
@@ -23,21 +23,5 @@
     "plot.png",
     "plot.pdf",
     "observations.csv"
-  ],
-  "date": "2026-11-07",
-  "frontend_tests": 77,
-  "python_tests": 273,
-  "python_subtests": 5,
-  "browser_e2e": "blocked: sandbox denies localhost listen",
-  "native_smoke": [
-    "launch",
-    "module navigation",
-    "synthetic data table",
-    "ANOVA F=7 P=.027",
-    "plot",
-    "60x50 mm",
-    "P annotations",
-    "freeze",
-    "relaunch"
   ]
 }

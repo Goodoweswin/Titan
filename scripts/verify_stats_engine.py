@@ -20,5 +20,5 @@ def main():
         assert '<text' in (dest/'plot.svg').read_text() and (dest/'plot.pdf').read_bytes().startswith(b'%PDF')
         assert (dest/'results.xlsx').stat().st_size>1000
         long=rpc('stats_import',dict(text='group,value,unit_id\nA,1,S1\nB,2,S2',format='long'));assert len(long['dataset']['groups'])==2
-        print(json.dumps(dict(base='v0.4.0-beta.2',engine=engine,passed=True,checks=['create','analyse F=7 P=.027','save','reopen','long table','PNG','editable SVG','PDF','Excel','JSON','methods'],files=out['files']),ensure_ascii=False,indent=2))
+        print(json.dumps(dict(base='v0.4.0-beta.3',engine=engine,passed=True,checks=['create','analyse F=7 P=.027','save','reopen','long table','PNG','editable SVG','PDF','Excel','JSON','methods'],files=out['files']),ensure_ascii=False,indent=2))
 if __name__=='__main__':main()

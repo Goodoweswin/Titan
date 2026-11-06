@@ -1,6 +1,6 @@
 # 统计与绘图预览版
 
-基于 `v0.4.0-beta.2`（`3d8872c`）开发，独立分支 `codex/statistics-v04`。本预览使用应用名 **Titan Stats Preview** 和独立应用数据标识，保留原 Titan 安装及其项目。
+基于 `v0.4.0-beta.3`（`80d552c`）开发，独立分支 `codex/statistics-v04`。本预览使用应用名 **Titan Stats Preview** 和独立应用数据标识，保留原 Titan 安装及其项目。
 
 ## 开始使用
 

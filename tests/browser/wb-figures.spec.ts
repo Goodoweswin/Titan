@@ -18,6 +18,11 @@ test('WB crop zoom and middle-button pan preserve crop data and draw in source p
  await page.getByRole('button',{name:'WB 组图',exact:true}).click();await page.getByRole('button',{name:'新建组图',exact:true}).first().click()
  const area=page.locator('.wb-crop-view'),canvas=page.getByRole('img',{name:'原图裁剪画布',exact:true})
  await expect(area.getByRole('button',{name:'放大图像',exact:true})).toBeVisible({timeout:2000})
+ // The asynchronously rendered sheet above the canvas changes its screen position.
+ const sheet=page.getByRole('img',{name:'WB 组图预览',exact:true})
+ await expect(sheet).toBeVisible()
+ await sheet.evaluate((image:HTMLImageElement)=>image.decode())
+ await canvas.scrollIntoViewIfNeeded()
  const original=await page.getByLabel('裁剪 X0',{exact:true}).inputValue()
  await area.getByRole('button',{name:'放大图像',exact:true}).click()
  const b=(await canvas.boundingBox())!,before=await canvas.getAttribute('viewBox')

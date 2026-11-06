@@ -86,15 +86,20 @@ def test_result_artifact_bounds_transport_and_preserves_exact_large_integers(tmp
     assert full["summary"][0]["raw_sum"]==9007199254740993
 
 
-def test_second_job_cannot_start_during_worker_startup(tmp_path):
+def test_second_job_cannot_start_during_worker_startup(tmp_path,monkeypatch):
     import json,os,subprocess,sys
     s=session(tmp_path);root=Path(s["library_root"])/"if-jobs";directory=root/("a"*32)
     directory.mkdir(parents=True)
     child=subprocess.Popen([sys.executable,"-c","import time; time.sleep(20)"])
     try:
         (directory/"request.json").write_text(json.dumps({"owner":{"pid":s["pid"],"token":s["token"]}}))
-        (directory/"status.json").write_text(json.dumps({"status":"queued"}))
+        status_path=directory/"status.json"
+        status_path.write_text(json.dumps({"status":"queued","message":"等待后台处理"},ensure_ascii=False),encoding="utf-8")
         (directory/"worker.json").write_text(json.dumps({"pid":child.pid}))
+        read_text=Path.read_text
+        def read_with_windows_default(path,encoding=None,errors=None):
+            return read_text(path,encoding=encoding or "cp1252",errors=errors)
+        monkeypatch.setattr(Path,"read_text",read_with_windows_default)
         with pytest.raises(ValueError,match="后台任务"):
             start(fixture(tmp_path),"measure",dict(field_id="f1"),s)
     finally:

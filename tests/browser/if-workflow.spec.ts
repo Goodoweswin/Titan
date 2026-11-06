@@ -47,7 +47,20 @@ test('explicit metadata import and batch biological summaries export through the
  await page.getByRole('button',{name:'IF 定量结果',exact:true}).click();await expect(page.locator('.if-results tbody tr')).toHaveCount(6);await page.getByRole('button',{name:'生物学样本（6）',exact:true}).click();await expect(page.locator('.if-results tbody tr')).toHaveCount(6)
  await page.getByRole('button',{name:'导出 IF 结果',exact:true}).click();await page.getByLabel('IF 导出路径').fill(testInfo.outputPath('IF-results'));await page.getByRole('button',{name:'确认导出',exact:true}).click();await expect(page.getByRole('status').filter({hasText:'已导出'})).toBeVisible({timeout:30000})
  const entries=await rpc(page,'library_list'),p=await rpc(page,'if_open',{path:entries.find((e:any)=>e.module==='if').path}),source=p.fields[0].channels[0].source.path
- await page.getByRole('button',{name:'新建 IF 实验',exact:true}).click();await page.getByRole('button',{name:'导入 IF 视野',exact:true}).first().click();await page.getByLabel('IF 原始文件路径').fill(source);await page.getByRole('button',{name:'读取图像信息',exact:true}).click();await expect(page.getByLabel('维度轴 1')).toHaveValue('CYX')
+ await page.getByLabel('IF 实验名称').fill('待保存的免疫荧光实验')
+ let releaseSave!:()=>void
+ const holdSave=new Promise<void>(resolve=>{releaseSave=resolve})
+ await page.route('**/test-engine',async route=>{
+  if(route.request().postDataJSON().command==='if_save')await holdSave
+  await route.continue()
+ })
+ const saving=page.waitForRequest(request=>request.url().endsWith('/test-engine')&&request.postDataJSON().command==='if_save')
+ await page.getByRole('button',{name:'新建 IF 实验',exact:true}).click()
+ await saving
+ const importButton=page.getByRole('button',{name:'导入 IF 视野',exact:true}).first()
+ try{await expect(importButton).toBeDisabled()}finally{releaseSave()}
+ await expect(page.getByLabel('IF 实验名称')).toHaveValue('未命名 IF 实验')
+ await importButton.click();await page.getByLabel('IF 原始文件路径').fill(source);await page.getByRole('button',{name:'读取图像信息',exact:true}).click();await expect(page.getByLabel('维度轴 1')).toHaveValue('CYX')
  await page.getByLabel('样本编号',{exact:true}).fill('S-import');await page.getByLabel('生物学样本编号',{exact:true}).fill('B-import');await page.getByLabel('实验分组',{exact:true}).fill('control');await page.getByLabel('采集批次',{exact:true}).fill('batch-import');await expect(page.getByRole('button',{name:'确认并导入视野',exact:true})).toBeDisabled();await page.getByText('已确认所选文件属于同一视野，通道对应及 Z / T 平面正确',{exact:true}).click();await page.getByRole('button',{name:'确认并导入视野',exact:true}).click();await expect(page.getByRole('img',{name:'免疫荧光原始通道预览'})).toBeVisible({timeout:30000});await expect(page.getByLabel('当前生物学样本编号')).toHaveValue('B-import')
  await page.setViewportSize({width:720,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'artifacts/immunofluorescence/import-720.png',fullPage:true})
 })
