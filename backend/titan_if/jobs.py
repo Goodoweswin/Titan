@@ -36,9 +36,10 @@ def _directory(job_id,session):
 
 
 def start(project,operation,options,session):
-    validate_project(project)
-    if project.get("read_only"):raise ValueError("只读项目不能执行修改或计算")
-    if operation not in ["import","segment","measure","batch","edit_mask"]:raise ValueError("不支持的免疫荧光任务")
+    if operation != "volume":
+        validate_project(project)
+        if project.get("read_only"):raise ValueError("只读项目不能执行修改或计算")
+        if operation not in ["import","segment","measure","batch","edit_mask"]:raise ValueError("不支持的免疫荧光任务")
     options=options or {};root=_root(session)
     with operation_lock(root,".queue.lock"):
         for child_id,child in list(_CHILDREN.items()):
@@ -49,6 +50,10 @@ def start(project,operation,options,session):
             try:
                 req=json.loads((folder/"request.json").read_text())
                 state=json.loads((folder/"status.json").read_text())
+                if req.get("operation") == "volume" and not process_alive(req["owner"]["pid"]):
+                    if state["status"] in _TERMINAL or not process_alive(state.get("pid", 0)):
+                        (folder / "volume.raw").unlink(missing_ok=True)
+                        (folder / "volume.part").unlink(missing_ok=True)
                 if req["owner"]=={k:session[k] for k in ["pid","token"]} and state["status"] not in _TERMINAL:
                     pid=state.get("pid")
                     if not pid and (folder/"worker.json").exists():
@@ -59,7 +64,7 @@ def start(project,operation,options,session):
         job_id=uuid.uuid4().hex;directory=root/job_id;directory.mkdir()
         request=dict(job_id=job_id,owner={k:session[k] for k in ["pid","token"]},
                      project=project,operation=operation,options=options,
-                     signatures={f["id"]:analysis_signature(f) for f in project["fields"]})
+                     signatures={f["id"]:analysis_signature(f) for f in project["fields"]} if project else {})
         atomic_json(directory/"request.json",request)
         atomic_json(directory/"status.json",dict(job_id=job_id,status="queued",completed=0,total=1,message="等待后台处理"))
         if getattr(sys,"frozen",False):
@@ -94,9 +99,11 @@ def status(job_id,session):
 
 
 def cancel(job_id,session):
-    directory,_=_directory(job_id,session)
+    directory,request=_directory(job_id,session)
     # Cooperative cancellation remains valid across short-lived integration engines.
     (directory/".cancel").touch()
+    if request["operation"] == "volume":
+        (directory / "volume.raw").unlink(missing_ok=True)
     return status(job_id,session)
 
 
@@ -165,7 +172,16 @@ def run(directory):
         return (directory/".cancel").exists() or not process_alive(request["owner"]["pid"])
     try:
         if cancelled():return
-        publish();p=copy.deepcopy(request["project"]);operation=request["operation"];options=request["options"]
+        publish();operation=request["operation"];options=request["options"]
+        if operation == "volume":
+            from .volume import prepare_volume
+            result = prepare_volume(options, directory / "volume.raw",
+                                    lambda done, total: publish(completed=done, total=total, message="读取 Z 层"),
+                                    cancelled)
+            if result is not None and not cancelled():
+                publish(status="completed", message="体数据已就绪", volume=result)
+            return
+        p=copy.deepcopy(request["project"])
         from .images import import_field
         from .analysis import segment_nuclei,measure_field,edit_labels
         failures=[];changed=[]
@@ -218,13 +234,17 @@ def run(directory):
         publish(status="failed",error=str(error),message="处理失败，原结果保留")
     finally:
         (directory/".finished").touch()
-        if cancelled():publish(status="cancelled",message="任务已取消")
+        if cancelled():
+            if request["operation"] == "volume":
+                (directory / "volume.raw").unlink(missing_ok=True)
+            publish(status="cancelled",message="任务已取消")
 
 
 def accept(project,job_id,session):
     validate_project(project)
     if project.get("read_only"):raise ValueError("只读项目不能接收计算结果")
     directory,request=_directory(job_id,session);state=status(job_id,session)
+    if request["operation"] == "volume":raise ValueError("3D 查看任务不写入项目")
     if state["status"]=="cancelled":raise ValueError("任务已取消")
     if state["status"]!="completed":raise ValueError("任务尚未完成")
     if project["id"]!=request["project"]["id"]:raise ValueError("任务对应的项目已变化")

@@ -1,6 +1,7 @@
 use serde_json::{json,Value};
 use tauri::Manager;
 mod engine_worker;
+mod if_volume;
 use engine_worker::EngineWorker;
 
 struct Session { token:String, library_root:std::path::PathBuf }
@@ -30,7 +31,7 @@ pub fn run(){
         };
         app.manage(EngineWorker::new(program,args));Ok(())
       })
-      .plugin(tauri_plugin_dialog::init()).invoke_handler(tauri::generate_handler![engine])
+      .plugin(tauri_plugin_dialog::init()).invoke_handler(tauri::generate_handler![engine, if_volume::if_volume_read])
       .build(tauri::generate_context!()).expect("Titan WB启动失败")
       .run(|app,event|{if matches!(event,tauri::RunEvent::Exit){tauri::async_runtime::block_on(app.state::<EngineWorker>().shutdown());}});
 }

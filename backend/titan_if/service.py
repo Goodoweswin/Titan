@@ -87,6 +87,14 @@ def dispatch(command,payload,session):
     if command=="if_inspect":
         from .images import inspect_image
         return inspect_image(payload["path"])
+    if command == "if_volume_inspect":
+        from .volume import inspect_volume
+        return inspect_volume(payload["path"])
+    if command == "if_volume_start":
+        return jobs.start(None, "volume", payload, session)
+    if command == "if_volume_save_png":
+        from .volume import save_png
+        return save_png(payload["destination"], payload["png"])
     if command=="if_preview":
         from .images import preview_field
         return preview_field(payload["field"],payload.get("channel_id"))
@@ -97,7 +105,9 @@ def dispatch(command,payload,session):
         if not all(isinstance(v,(int,float)) and not isinstance(v,bool) and math.isfinite(v) for v in [x,y]):
             raise ValueError("请选择原始图像上的有效坐标")
         return dict(id=int(labels[int(y),int(x)]) if 0<=x<labels.shape[1] and 0<=y<labels.shape[0] else 0)
-    if command=="if_start_job":return jobs.start(payload["project"],payload["operation"],payload.get("options",{}),session)
+    if command=="if_start_job":
+        if payload["operation"] == "volume":raise ValueError("请使用独立 3D 查看入口")
+        return jobs.start(payload["project"],payload["operation"],payload.get("options",{}),session)
     if command=="if_job_status":return jobs.status(payload["job_id"],session)
     if command=="if_cancel_job":return jobs.cancel(payload["job_id"],session)
     if command=="if_accept_job":return jobs.accept(payload["project"],payload["job_id"],session)
