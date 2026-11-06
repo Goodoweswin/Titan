@@ -11,7 +11,7 @@
 
 ## 下载与安装
 
-当前版本为 **[0.4.0 测试版](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.0-beta.1)**，包含免疫荧光模块、Z-stack 三维查看原型和 WB 图像操作指引。
+当前版本为 **[0.4.0 测试版](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.0-beta.2)**，包含免疫荧光模块、Z-stack 三维查看原型和 WB 图像操作指引。
 
 | 系统 | 下载文件 | 安装方式 |
 | --- | --- | --- |
@@ -84,7 +84,7 @@ npm run desktop:build
 ## 文档与参与
 
 - [贡献指南](CONTRIBUTING.md) · [问题反馈](https://github.com/Goodoweswin/Titan/issues) · [安全报告](SECURITY.md)
-- [版本记录](CHANGELOG.md) · [本版发布说明](docs/releases/v0.4.0-beta.1.md) · [待办与验证重点](docs/ROADMAP.md)
+- [版本记录](CHANGELOG.md) · [本版发布说明](docs/releases/v0.4.0-beta.2.md) · [待办与验证重点](docs/ROADMAP.md)
 - [原生验收清单](docs/NATIVE_ACCEPTANCE.md) · [验证记录索引](docs/checkpoints.md)
 - [第三方许可](docs/THIRD_PARTY_NOTICES.md) · [研究资料与独立参考实现](wb_research/README.md)
 - 历史设计、实施计划和检查点保留于 `docs/`，其中部分内容描述早期版本，不代表当前已实现或已验证的能力。
