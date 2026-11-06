@@ -3,15 +3,15 @@
 [![CI](https://github.com/Goodoweswin/Titan/actions/workflows/ci.yml/badge.svg)](https://github.com/Goodoweswin/Titan/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-本地运行的实验图像分析应用。源码提供 Western blot 定量分析与二维免疫荧光开发模块，使用 React / TypeScript 构建界面，Tauri 提供桌面能力，Python 负责原始像素定量与统计。本次 IF 改动位于开发分支，发布状态见 Releases。
+本地运行的实验图像分析应用，提供 Western blot 定量分析和免疫荧光模块。React / TypeScript 构建界面，Tauri 提供桌面能力，Python 负责原始像素定量与统计。
 
-免疫荧光模块支持原始 TIFF / OME-TIFF 多通道、区域强度和阳性面积、DAPI 核分割与人工修正、批量测量、独立论文组图及 .titanif 项目；真实 IF 准确性与 Windows 原生验收仍待完成。操作见 **[免疫荧光指南](docs/IF_USER_GUIDE.md)**。
+免疫荧光模块支持原始 TIFF / OME-TIFF 多通道、区域强度和阳性面积、DAPI 核分割与人工修正、批量测量、独立论文组图及 .titanif 项目。Z-stack 三维查看原型支持多通道叠加、正交切片和 PNG 截图。操作见 **[免疫荧光指南](docs/IF_USER_GUIDE.md)**。
 
 **当前状态：测试版。** 已有自动化测试和合成数据验证；真实 WB 定量准确性与完整原生桌面操作验收仍待完成。适合试用、方法核对和共同改进。它不能自动判断抗体特异性、曝光线性或实验设计是否有效。
 
 ## 下载与安装
 
-当前版本为 **[0.3.4 测试版](https://github.com/Goodoweswin/Titan/releases/tag/v0.3.4-beta.1)**，新增旋转校正、区域选择和 WB 裁剪的缩放与平移，并保留此前全部分析功能。下载安装包：
+当前版本为 **[0.4.0 测试版](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.0-beta.1)**，包含免疫荧光模块、Z-stack 三维查看原型和 WB 图像操作指引。
 
 | 系统 | 下载文件 | 安装方式 |
 | --- | --- | --- |
@@ -84,7 +84,7 @@ npm run desktop:build
 ## 文档与参与
 
 - [贡献指南](CONTRIBUTING.md) · [问题反馈](https://github.com/Goodoweswin/Titan/issues) · [安全报告](SECURITY.md)
-- [版本记录](CHANGELOG.md) · [发布验证记录](docs/releases/v0.3.4-beta.1-verification.json) · [待办与验证重点](docs/ROADMAP.md)
+- [版本记录](CHANGELOG.md) · [本版发布说明](docs/releases/v0.4.0-beta.1.md) · [待办与验证重点](docs/ROADMAP.md)
 - [原生验收清单](docs/NATIVE_ACCEPTANCE.md) · [验证记录索引](docs/checkpoints.md)
 - [第三方许可](docs/THIRD_PARTY_NOTICES.md) · [研究资料与独立参考实现](wb_research/README.md)
 - 历史设计、实施计划和检查点保留于 `docs/`，其中部分内容描述早期版本，不代表当前已实现或已验证的能力。
