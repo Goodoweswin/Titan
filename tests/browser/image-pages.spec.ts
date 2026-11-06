@@ -1,3 +1,4 @@
+import {createAnalysis} from './library-actions'
 import {test,expect} from '@playwright/test'
 import {mkdtempSync,rmSync} from 'node:fs'
 import {tmpdir} from 'node:os'
@@ -17,7 +18,7 @@ with tifffile.TiffWriter(sys.argv[1]) as t:
 test.afterAll(()=>rmSync(root,{recursive:true,force:true}))
 async function start(page:any){
  await page.goto('/?integration=1')
- await page.getByRole('button',{name:'新建实验',exact:true}).first().click()
+ await createAnalysis(page,'wb')
  // Only the native file picker is replaced; inspection, preview and import use Python.
  await page.evaluate((file:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async(command:string)=>{
   if(command==='plugin:dialog|open')return [file]

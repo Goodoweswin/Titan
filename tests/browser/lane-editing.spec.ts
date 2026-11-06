@@ -1,3 +1,4 @@
+import {createAnalysis} from './library-actions'
 import {test,expect, type Page} from '@playwright/test'
 import {mkdtempSync,rmSync,readFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
@@ -27,7 +28,7 @@ async function drag(page:Page,a:number[],b:number[]){
  const from=at(a),to=at(b);await page.mouse.move(...from as [number,number]);await page.mouse.down();await page.mouse.move(...to as [number,number],{steps:4});await page.mouse.up()
 }
 async function setup(page:Page){
- await page.goto('/?integration=1');await page.getByRole('button',{name:'新建实验',exact:true}).first().click()
+ await page.goto('/?integration=1');await createAnalysis(page,'wb')
  await page.evaluate((source:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async()=>[source]}},file)
  await page.getByRole('button',{name:'导入图像',exact:true}).click();await expect(page.getByLabel('当前图像')).toContainText('lanes.tif')
  await drag(page,[20,20],[220,50]);await page.getByRole('button',{name:'识别泳道',exact:true}).click()
@@ -85,7 +86,7 @@ test('rotation preview zooms at the pointer and pans without moving level guides
 
 test('rotated portrait and wide image fits never reverse the zoom buttons',async({page})=>{
  for(const source of [portraitFile,wideFile]){
-  await page.goto('/?integration=1');await page.getByRole('button',{name:'新建实验',exact:true}).first().click()
+  await page.goto('/?integration=1');await createAnalysis(page,'wb')
   await page.evaluate((source:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async()=>[source]}},source)
   await page.getByRole('button',{name:'导入图像',exact:true}).click()
   await page.getByRole('button',{name:'旋转校正',exact:true}).click()
@@ -237,7 +238,7 @@ for n in [1,2]:
 session=dict(pid=0,token='fixture');save_project(p,sys.argv[2],None,session);release_project(sys.argv[2],session)`,file,projectPath],{env:{...process.env,PYTHONPATH:path.resolve('backend')}})
  await page.goto('/?integration=1')
  await page.evaluate((source:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async()=>source}},projectPath)
- await page.getByRole('button',{name:'打开项目',exact:true}).first().click()
+ await page.getByRole('button',{name:'新建或打开',exact:true}).click();await page.getByRole('button',{name:'打开已有分析',exact:true}).click()
  await page.getByRole('button',{name:'添加目标',exact:true}).click();await page.getByLabel('目标名称',{exact:true}).fill('AKT')
  await page.getByRole('button',{name:'选择区域',exact:true}).click();await drag(page,[20,20],[220,50]);await page.getByRole('button',{name:'识别目标',exact:true}).click();await page.getByRole('button',{name:'确认目标',exact:true}).click()
  await page.getByLabel('对应内参',{exact:true}).selectOption('ref2')

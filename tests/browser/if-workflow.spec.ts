@@ -1,3 +1,4 @@
+import {createAnalysis} from './library-actions'
 import {test,expect} from '@playwright/test'
 import {execFileSync} from 'node:child_process'
 import path from 'node:path'
@@ -55,7 +56,7 @@ test('explicit metadata import and batch biological summaries export through the
   await route.continue()
  })
  const saving=page.waitForRequest(request=>request.url().endsWith('/test-engine')&&request.postDataJSON().command==='if_save')
- await page.getByRole('button',{name:'新建 IF 实验',exact:true}).click()
+ await createAnalysis(page,'if')
  await saving
  const importButton=page.getByRole('button',{name:'导入 IF 视野',exact:true}).first()
  try{await expect(importButton).toBeDisabled()}finally{releaseSave()}
@@ -70,7 +71,7 @@ test('multi-series import resets plane selectors and adopts selected-series cali
 with tifffile.TiffWriter(sys.argv[1],ome=True) as t:
  t.write(np.ones((16,20),dtype=np.uint16),photometric='minisblack',metadata={'axes':'YX','PhysicalSizeX':.5,'PhysicalSizeY':.5})
  t.write(np.ones((2,24,32),dtype=np.uint16)*2000,photometric='minisblack',metadata={'axes':'ZYX','PhysicalSizeX':.75,'PhysicalSizeY':.8})`,source])
- await page.goto('/?integration=1');await page.getByRole('button',{name:'免疫荧光',exact:true}).click();await page.getByRole('button',{name:'新建 IF 实验',exact:true}).first().click();await page.getByRole('button',{name:'导入 IF 视野',exact:true}).first().click()
+ await page.goto('/?integration=1');await page.getByRole('button',{name:'免疫荧光',exact:true}).click();await createAnalysis(page,'if');await page.getByRole('button',{name:'导入 IF 视野',exact:true}).first().click()
  await page.getByLabel('IF 原始文件路径').fill(source);await page.getByRole('button',{name:'读取图像信息',exact:true}).click();await page.getByLabel('图像序列').selectOption('1',{timeout:5000});await page.getByLabel('样本编号',{exact:true}).fill('S-series');await page.getByLabel('生物学样本编号',{exact:true}).fill('B-series');await page.getByLabel('实验分组',{exact:true}).fill('control');await page.getByLabel('采集批次',{exact:true}).fill('series');await page.getByText('已确认所选文件属于同一视野，通道对应及 Z / T 平面正确',{exact:true}).click()
  const selectedCalibration=await page.getByLabel('X 像素尺寸（µm，可空）',{exact:true}).inputValue();const submitted=page.waitForRequest(r=>r.url().endsWith('/test-engine')&&r.postDataJSON().command==='if_start_job');await page.getByRole('button',{name:'确认并导入视野',exact:true}).click();expect((await submitted).postDataJSON().payload.options.selections[0].indexers).toEqual({Z:0});expect(Number(selectedCalibration)).toBe(.75)
  await expect(page.getByRole('img',{name:'免疫荧光原始通道预览'})).toBeVisible({timeout:30000});await expect(page.getByText('32 × 24 px · 0.75 × 0.8 µm/px',{exact:true})).toBeVisible()
