@@ -29,7 +29,7 @@ def _index(root):
 
 def _project(path):
     root=Path(path).expanduser().resolve()
-    if root.suffix not in ('.titanwb','.titanif'):raise ValueError('请选择 .titanwb 或 .titanif 项目文件夹')
+    if root.suffix not in ('.titanwb','.titanif','.titanstats'):raise ValueError('请选择 .titanwb、.titanif 或 .titanstats 项目文件夹')
     try:p=json.loads((root/'project.json').read_text(encoding='utf-8'))
     except (OSError,ValueError):raise ValueError('项目文件夹不存在、已移动或清单损坏，请重新定位')
     if not isinstance(p,dict) or not isinstance(p.get('id'),str) or not isinstance(p.get('name'),str):raise ValueError('项目清单身份无效')
