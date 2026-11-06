@@ -104,3 +104,32 @@ def test_second_job_cannot_start_during_worker_startup(tmp_path,monkeypatch):
             start(fixture(tmp_path),"measure",dict(field_id="f1"),s)
     finally:
         child.terminate();child.wait(timeout=5)
+
+
+def test_job_status_recovers_from_transient_windows_file_access(tmp_path, monkeypatch):
+    import json
+    from titan_if import jobs
+
+    s = session(tmp_path)
+    job_id = 'f' * 32
+    folder = Path(s['library_root']) / 'if-jobs' / job_id
+    folder.mkdir(parents=True)
+    (folder/'request.json').write_text(json.dumps({'owner': {'pid': s['pid'], 'token': s['token']}}))
+    state = {'job_id': job_id, 'status': 'completed', 'message': '已完成'}
+    (folder/'status.json').write_text(json.dumps(state, ensure_ascii=False), encoding='utf-8')
+
+    read = Path.read_text
+    attempts = 0
+
+    def temporarily_locked(path, *args, **kwargs):
+        nonlocal attempts
+        if path.name == 'status.json':
+            attempts += 1
+            if attempts == 1:
+                raise PermissionError(13, 'status file briefly locked by replacement')
+        return read(path, *args, **kwargs)
+
+    monkeypatch.setattr(jobs, '_WINDOWS', True, raising=False)
+    monkeypatch.setattr(Path, 'read_text', temporarily_locked)
+    assert status(job_id, s) == state
+    assert attempts == 2

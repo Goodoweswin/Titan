@@ -17,6 +17,7 @@ from .projects import stream_hash
 
 _CHILDREN={}
 _TERMINAL={"completed","failed","cancelled"}
+_WINDOWS = os.name == "nt"
 
 
 def _root(session):
@@ -35,6 +36,28 @@ def _directory(job_id,session):
     return root,request
 
 
+def _status_io(operation):
+    # On Windows an open can race the worker's atomic rename, and an open
+    # reader can briefly prevent a rename. Keep retries short and bounded.
+    for delay in (.01, .02, .04, .08, .16):
+        try:
+            return operation()
+        except PermissionError:
+            if not _WINDOWS:
+                raise
+            time.sleep(delay)
+    return operation()
+
+
+def _read_status(directory):
+    path = directory / "status.json"
+    return json.loads(_status_io(lambda: path.read_text(encoding="utf-8")))
+
+
+def _write_status(directory, state):
+    _status_io(lambda: atomic_json(directory / "status.json", state))
+
+
 def start(project,operation,options,session):
     if operation != "volume":
         validate_project(project)
@@ -49,7 +72,7 @@ def start(project,operation,options,session):
             if not folder.is_dir():continue
             try:
                 req=json.loads((folder/"request.json").read_text(encoding="utf-8"))
-                state=json.loads((folder/"status.json").read_text(encoding="utf-8"))
+                state=_read_status(folder)
                 if req.get("operation") == "volume" and not process_alive(req["owner"]["pid"]):
                     if state["status"] in _TERMINAL or not process_alive(state.get("pid", 0)):
                         (folder / "volume.raw").unlink(missing_ok=True)
@@ -66,7 +89,7 @@ def start(project,operation,options,session):
                      project=project,operation=operation,options=options,
                      signatures={f["id"]:analysis_signature(f) for f in project["fields"]} if project else {})
         atomic_json(directory/"request.json",request)
-        atomic_json(directory/"status.json",dict(job_id=job_id,status="queued",completed=0,total=1,message="等待后台处理"))
+        _write_status(directory,dict(job_id=job_id,status="queued",completed=0,total=1,message="等待后台处理"))
         if getattr(sys,"frozen",False):
             command=[sys.executable,"--if-job",str(directory)]
         else:
@@ -76,7 +99,7 @@ def start(project,operation,options,session):
                 child=subprocess.Popen(command,stdin=subprocess.DEVNULL,stdout=log,stderr=log,
                     creationflags=0x08000000 if os.name=="nt" else 0)
         except OSError as error:
-            atomic_json(directory/"status.json",dict(job_id=job_id,status="failed",completed=0,total=1,
+            _write_status(directory,dict(job_id=job_id,status="failed",completed=0,total=1,
                         message="无法启动后台任务",error=str(error)))
             raise ValueError("无法启动免疫荧光后台任务") from error
         _CHILDREN[job_id]=child
@@ -86,7 +109,7 @@ def start(project,operation,options,session):
 
 def status(job_id,session):
     directory,_=_directory(job_id,session)
-    state=json.loads((directory/"status.json").read_text(encoding="utf-8"))
+    state=_read_status(directory)
     if (directory/".cancel").exists():
         return dict(state,status="cancelled",message="任务已取消，计算结果不会写入项目")
     pid=state.get("pid")
@@ -94,7 +117,7 @@ def status(job_id,session):
         pid=json.loads((directory/"worker.json").read_text(encoding="utf-8"))["pid"]
     if state["status"] not in _TERMINAL and pid and not process_alive(pid):
         state.update(status="failed",error="后台进程已退出，请重新执行；原结果保留",message="任务中断")
-        atomic_json(directory/"status.json",state)
+        _write_status(directory,state)
     return state
 
 
@@ -162,7 +185,7 @@ def run(directory):
     directory=Path(directory);request=json.loads((directory/"request.json").read_text(encoding="utf-8"))
     state=dict(job_id=request["job_id"],status="running",pid=os.getpid(),completed=0,total=1,message="准备处理")
     def publish(**changes):
-        state.update(changes);atomic_json(directory/"status.json",state)
+        state.update(changes);_write_status(directory,state)
     def cancelled():
         return (directory/".cancel").exists() or not process_alive(request["owner"]["pid"])
     try:
