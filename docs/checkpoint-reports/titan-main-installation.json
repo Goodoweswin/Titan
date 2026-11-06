@@ -1,0 +1,23 @@
+{
+  "installed_at": "2026-11-06T17:44:50.891135+00:00",
+  "source_commit": "2c10023",
+  "base": "v0.4.0-beta.3",
+  "application_version": "0.4.0",
+  "application_identifier": "com.titan.wb",
+  "installed_path": "/Applications/Titan.app",
+  "previous_version": "0.3.4",
+  "backup_directory": "/Users/janus/Desktop/Titan/artifacts/local-installations/before-titan-0.4-stats-20261107-014140",
+  "codesign_verified": true,
+  "installed_binary_matches_build": true,
+  "bundled_engine_matches_verified_preview": true,
+  "original_library_entries_retained": 5,
+  "original_project_files_unchanged": 42,
+  "native_checks": [
+    "local engine ready",
+    "original WB project opened: 3 images, 18 reviewed ROIs",
+    "WB / IF / statistics module navigation visible",
+    "statistics workspace opened"
+  ],
+  "release_status": "local main-application update; testing build, no public stable release",
+  "preview_projects": "preserved in com.titan.stats.preview, not migrated"
+}

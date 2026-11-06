@@ -93,6 +93,6 @@ npm run desktop:build
 
 Titan 原创代码与项目文档采用 [MIT License](LICENSE)。第三方依赖保留各自许可证；许可清单由发布环境生成，并随发布包附带。
 
-## 当前分支：统计与绘图预览
+## 当前分支：统计与绘图整合
 
-基于 v0.4.0-beta.3 增加独立统计工作区，支持表格导入、现有两组/多组统计、论文图形、冻结历史及 WB 来源关联。使用与限制见 [统计模块指南](docs/STATS_USER_GUIDE.md)，验证记录见 [统计模块检查点](docs/checkpoint-reports/statistics-v04.md)。预览应用独立命名为 Titan Stats Preview，不替换正式应用。
+基于 v0.4.0-beta.3 增加独立统计工作区，支持表格导入、现有两组/多组统计、论文图形、冻结历史及 WB 来源关联。使用与限制见 [统计模块指南](docs/STATS_USER_GUIDE.md)，验证记录见 [统计模块检查点](docs/checkpoint-reports/statistics-v04.md)。默认构建为 Titan 主应用，沿用原应用标识与项目库；本机已完成更新，详见 [安装记录](docs/checkpoint-reports/titan-main-installation.json)。也可用独立预览配置构建 Titan Stats Preview。本分支仍处于测试阶段。

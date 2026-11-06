@@ -1,6 +1,6 @@
 # 统计与绘图预览版
 
-基于 `v0.4.0-beta.3`（`80d552c`）开发，独立分支 `codex/statistics-v04`。本预览使用应用名 **Titan Stats Preview** 和独立应用数据标识，保留原 Titan 安装及其项目。
+基于 `v0.4.0-beta.3`（`80d552c`）开发，独立分支 `codex/statistics-v04`。当前本机已安装为主应用 **Titan**（`com.titan.wb`），直接使用原 Titan 项目库。版本仍为 0.4.0 测试版，包含 beta3 修复与统计整合。旧应用及项目库已备份，安装记录见 `docs/checkpoint-reports/titan-main-installation.json`。独立预览构建配置仍保留；之前的预览项目可通过“打开统计项目”继续打开。
 
 ## 开始使用
 
