@@ -136,8 +136,12 @@ def _catalog(root):
     except (ValueError,KeyError,TypeError,AssertionError):raise ValueError('WB组图索引损坏，原文档保留，未重置索引')
 
 
+def document_catalog_metadata(root):
+    return _catalog(root)['documents']
+
+
 def list_documents(project):
-    return _catalog(_root(project))['documents']
+    return document_catalog_metadata(_root(project))
 
 
 def save_document(project, document, session, expected_version=None):

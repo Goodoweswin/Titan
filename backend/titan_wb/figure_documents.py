@@ -49,6 +49,15 @@ def figure_catalog_metadata(root,current_signature=None):
     return [_public(d,current_signature) for d in _catalog(Path(root))['figures']]
 
 
+def figure_export_metadata(root):
+    return [
+        dict(document_id=document['id'], **version)
+        for document in _catalog(Path(root))['figures']
+        for version in document['versions']
+        if version.get('export_origin')
+    ]
+
+
 def _root(project):
     if not project.get('project_path'):raise ValueError('请先保存项目后再保存正式图表')
     root=Path(project['project_path']).resolve()

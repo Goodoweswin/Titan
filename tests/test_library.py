@@ -235,3 +235,42 @@ def test_copy_and_relocation_preserve_distinct_memberships(tmp_path):
     with pytest.raises(ValueError, match='课题'):
         library.library_assign(copy['entry_id'], 'missing', s)
     assert library_register(str(moved), s, touch_opened=False)['last_opened'] == relocated['last_opened']
+
+
+def test_project_outputs_keep_export_revision_and_follow_analysis(tmp_path):
+    from titan_wb.engine import dispatch
+
+    project, result, s = saved_fixture(tmp_path)
+    folder = tmp_path / 'export'
+    dispatch(dict(command='export', payload=dict(project=project, result=result, destination=str(folder)), session=s))
+    state = dispatch(dict(command='library_workspace', session=s))
+    entry = state['entries'][0]
+    artifact, = entry['artifacts']
+    assert artifact['source_revision'] == result['input_revision']
+    assert artifact['kind'] == 'result_export'
+    assert str(folder / 'results.xlsx') in artifact['files']
+    group = dispatch(dict(command='library_create_collection', payload={'name': '课题'}, session=s))
+    dispatch(dict(command='library_assign', payload=dict(entry_id=entry['entry_id'], collection_id=group['id']), session=s))
+    shutil.rmtree(folder)
+    current = dispatch(dict(command='library_workspace', session=s))['entries'][0]
+    assert current['collection_id'] == group['id']
+    assert current['artifacts'][0]['id'] == artifact['id']
+    assert current['artifacts'][0]['available'] is False
+
+
+def test_failed_export_registration_can_retry_without_exporting_again(tmp_path, monkeypatch):
+    from titan_wb import library
+    from titan_wb.engine import dispatch
+
+    project, result, s = saved_fixture(tmp_path)
+    folder = tmp_path / 'export'
+    with monkeypatch.context() as mock:
+        def fail_index(*args, **kwargs):
+            raise OSError('index unavailable')
+        mock.setattr(library, 'library_record_export', fail_index)
+        out = dispatch(dict(command='export', payload=dict(project=project, result=result, destination=str(folder)), session=s))
+    assert (folder / 'results.xlsx').is_file()
+    retry = out['library_export_retry']
+    for _ in range(2):
+        dispatch(dict(command='library_record_export', payload=retry, session=s))
+    assert len(library.library_workspace(s)['entries'][0]['artifacts']) == 1

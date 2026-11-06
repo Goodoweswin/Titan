@@ -15,11 +15,12 @@ test('IF synthetic workflow measures original data, preserves display edits and 
  await page.getByRole('navigation',{name:'IF 实验视图',exact:true}).getByRole('button',{name:'IF 论文组图',exact:true}).click();await expect(page.getByRole('img',{name:'IF 论文组图预览'})).toBeVisible()
  await page.getByRole('button',{name:'保存 IF 实验',exact:true}).click();await expect(page.getByRole('status').filter({hasText:'实验已保存'})).toBeVisible()
  const name=await page.getByLabel('IF 实验名称').inputValue();await page.reload();await page.getByRole('button',{name:'打开项目 '+name,exact:true}).click();await expect(page.getByLabel('IF 实验名称')).toHaveValue(name)
+ await expect(page.getByRole('img',{name:'IF 论文组图预览'})).toBeVisible();await page.getByRole('button',{name:'图像与分析',exact:true}).click()
  await expect(page.getByRole('img',{name:'免疫荧光原始通道预览'})).toBeVisible();await page.screenshot({path:'artifacts/immunofluorescence/workspace.png',fullPage:true})
 })
 test('original-coordinate ROI drawing remains independent of display scale',async({page})=>{
  await page.goto('/?integration=1');await page.getByRole('button',{name:'免疫荧光',exact:true}).click();await page.getByRole('button',{name:'体验 IF 合成示例',exact:true}).click()
- const canvas=page.getByLabel('IF 原始坐标画布'),box=(await canvas.boundingBox())!;await page.getByLabel('区域工具').selectOption('rectangle');await page.mouse.move(box.x+box.width*.2,box.y+box.height*.2);await page.mouse.down();await page.mouse.move(box.x+box.width*.4,box.y+box.height*.4);await page.mouse.up()
+ const canvas=page.getByLabel('IF 原始坐标画布');await expect(page.getByRole('img',{name:'免疫荧光原始通道预览'})).toBeVisible();await page.getByLabel('区域工具').selectOption('rectangle');const box=(await canvas.boundingBox())!;await page.mouse.move(box.x+box.width*.2,box.y+box.height*.2);await page.mouse.down();await page.mouse.move(box.x+box.width*.4,box.y+box.height*.4);await page.mouse.up()
  await expect(page.locator('.if-roi-list li')).toHaveCount(3)
  await page.getByRole('button',{name:'保存 IF 实验',exact:true}).click();const entries=await rpc(page,'library_list');const latest=entries.find((e:any)=>e.module==='if');const p=await rpc(page,'if_open',{path:latest.path});const roi=p.fields[0].rois.at(-1);expect(roi.points[0][0]).toBeCloseTo(p.fields[0].width*.2,0);expect(roi.points[1][1]).toBeCloseTo(p.fields[0].height*.4,0)
 })
@@ -47,6 +48,7 @@ test('explicit metadata import and batch biological summaries export through the
  await page.getByRole('button',{name:'批量测量',exact:true}).click();await page.getByRole('button',{name:'开始批量测量',exact:true}).click();await expect(page.getByRole('status').filter({hasText:'任务已完成'})).toBeVisible({timeout:30000})
  await page.getByRole('button',{name:'IF 定量结果',exact:true}).click();await expect(page.locator('.if-results tbody tr')).toHaveCount(6);await page.getByRole('button',{name:'生物学样本（6）',exact:true}).click();await expect(page.locator('.if-results tbody tr')).toHaveCount(6)
  await page.getByRole('button',{name:'导出 IF 结果',exact:true}).click();await page.getByLabel('IF 导出路径').fill(testInfo.outputPath('IF-results'));await page.getByRole('button',{name:'确认导出',exact:true}).click();await expect(page.getByRole('status').filter({hasText:'已导出'})).toBeVisible({timeout:30000})
+ await expect(page.getByRole('button',{name:'打开导出 免疫荧光合成示例 · IF 定量结果',exact:true}).last()).toBeVisible()
  const entries=await rpc(page,'library_list'),p=await rpc(page,'if_open',{path:entries.find((e:any)=>e.module==='if').path}),source=p.fields[0].channels[0].source.path
  await page.getByLabel('IF 实验名称').fill('待保存的免疫荧光实验')
  let releaseSave!:()=>void
@@ -56,10 +58,11 @@ test('explicit metadata import and batch biological summaries export through the
   await route.continue()
  })
  const saving=page.waitForRequest(request=>request.url().endsWith('/test-engine')&&request.postDataJSON().command==='if_save')
- await createAnalysis(page,'if')
+ await createAnalysis(page,'if',false)
  await saving
  const importButton=page.getByRole('button',{name:'导入 IF 视野',exact:true}).first()
  try{await expect(importButton).toBeDisabled()}finally{releaseSave()}
+ await expect(page.getByRole('dialog',{name:'新建 IF 分析',exact:true})).toHaveCount(0)
  await expect(page.getByLabel('IF 实验名称')).toHaveValue('未命名 IF 实验')
  await importButton.click();await page.getByLabel('IF 原始文件路径').fill(source);await page.getByRole('button',{name:'读取图像信息',exact:true}).click();await expect(page.getByLabel('维度轴 1')).toHaveValue('CYX')
  await page.getByLabel('样本编号',{exact:true}).fill('S-import');await page.getByLabel('生物学样本编号',{exact:true}).fill('B-import');await page.getByLabel('实验分组',{exact:true}).fill('control');await page.getByLabel('采集批次',{exact:true}).fill('batch-import');await expect(page.getByRole('button',{name:'确认并导入视野',exact:true})).toBeDisabled();await page.getByText('已确认所选文件属于同一视野，通道对应及 Z / T 平面正确',{exact:true}).click();await page.getByRole('button',{name:'确认并导入视野',exact:true}).click();await expect(page.getByRole('img',{name:'免疫荧光原始通道预览'})).toBeVisible({timeout:30000});await expect(page.getByLabel('当前生物学样本编号')).toHaveValue('B-import')

@@ -52,12 +52,29 @@ def _project(path):
 
 def _public(entry):
     row=dict(entry,module=entry.get('module','wb'),available=True,figures=[],collection_id=entry.get('collection_id'))
+    row['artifacts'] = [_output_state(artifact) for artifact in entry.get('exports', [])]
     try:
-        root,p=_project(entry['path']);row.update(name=p['name'],project_id=p['id'],revision=p.get('revision'),module=p.get('module','wb'))
+        root,p=_project(entry['path'])
+        if p['id'] != entry['project_id'] or p.get('module','wb') != row['module']:
+            raise ValueError('此位置的分析身份已变化，请重新定位原分析')
+        row.update(name=p['name'],revision=p.get('revision'))
         if row['module']=='wb':
             try:row['figures']=figure_catalog_metadata(root,source_signature(p))
-            except ValueError as e:row['figure_error']=str(e)
+            except (ValueError, OSError) as e:row['figure_error']=str(e)
+            from .wb_figures import document_catalog_metadata
+            try:
+                for document in document_catalog_metadata(root):
+                    row['artifacts'].append(dict(
+                        id='strip:'+document['id'], title=document['name'], kind='wb_figure',
+                        document_id=document['id'], version_id=document['version'], source_revision=None,
+                        available=True,
+                    ))
+            except (ValueError, OSError, KeyError) as e:
+                row['figure_error'] = ' · '.join(filter(None, [row.get('figure_error'), str(e)]))
+            _include_archived_exports(row, root)
     except ValueError as e:row.update(available=False,error=str(e))
+    for artifact in row['artifacts']:
+        artifact['entry_id'] = entry['entry_id']
     return row
 
 
@@ -155,6 +172,11 @@ def library_set_resume(entry_id, resume, session):
         if value['view'] != 'figure' or not isinstance(identifier, str) or not 0 < len(identifier) <= 200:
             raise ValueError('图表续做位置无效')
         value['artifact_id'] = identifier
+    if 'version_id' in resume:
+        version = resume['version_id']
+        if 'artifact_id' not in value or not isinstance(version, str) or not 0 < len(version) <= 120:
+            raise ValueError('图表版本无效')
+        value['version_id'] = version
     with _edit_index(session) as data:
         _entry(data, entry_id)['resume'] = value
     return True
@@ -230,3 +252,106 @@ def library_remove(entry_id, session):
     with _edit_index(session) as data:
         data['entries'] = [entry for entry in data['entries'] if entry['entry_id'] != entry_id]
     return True
+
+
+_EXPORT_KINDS = {'result_export', 'if_figure_export', 'wb_figure_export'}
+_OUTPUT_SUFFIXES = {'.png', '.tif', '.tiff', '.svg', '.pdf', '.xlsx', '.csv', '.json'}
+
+
+def _output_state(artifact):
+    files = artifact['files']
+    available = bool(files) and all(Path(file).is_file() for file in files)
+    return dict(artifact, available=available)
+
+
+def _include_archived_exports(row, root):
+    from .figure_documents import figure_export_metadata
+
+    try:
+        exports = figure_export_metadata(root)
+    except (ValueError, OSError, KeyError, TypeError):
+        return
+    by_path = {artifact['destination']: artifact for artifact in row['artifacts'] if 'destination' in artifact}
+    for version in exports:
+        origin = version['export_origin']
+        if not isinstance(origin, dict) or not isinstance(origin.get('path'), str):
+            continue
+        path = str(Path(origin['path']).resolve())
+        artifact = by_path.get(path)
+        if artifact is None:
+            artifact = _output_state(dict(
+                id='export:'+version['version_id'], title=version['name'], kind='result_export',
+                destination=path, files=[str(Path(path) / 'plot.png')],
+                source_revision=version['source_revision'],
+            ))
+            row['artifacts'].append(artifact)
+            by_path[path] = artifact
+        artifact.update(document_id=version['document_id'], version_id=version['version_id'])
+
+
+def library_record_export(project_path, project_id, record, session):
+    if not isinstance(record, dict) or record.get('kind') not in _EXPORT_KINDS:
+        raise ValueError('导出记录类型无效')
+    destination = Path(record['destination']).expanduser().resolve()
+    files = record['files']
+    if not isinstance(files, list) or not 0 < len(files) <= 500:
+        raise ValueError('导出文件清单无效')
+    base = destination if destination.is_dir() else destination.parent
+    checked = list(dict.fromkeys(Path(file).resolve() for file in files))
+    if any(not f.is_file() or not f.is_relative_to(base) or f.suffix.lower() not in _OUTPUT_SUFFIXES for f in checked):
+        raise ValueError('导出文件缺失或路径无效')
+    if not destination.is_dir() and destination not in checked:
+        raise ValueError('找不到已导出的主文件')
+    revision = record['source_revision']
+    if type(revision) is not int or revision < 0:
+        raise ValueError('导出来源版本无效')
+    canonical = str(Path(project_path).resolve())
+    with _edit_index(session) as data:
+        entry = _find(data['entries'], 'path', canonical, '分析尚未登记到项目库')
+        if entry['project_id'] != project_id:
+            raise ValueError('导出来源分析身份不一致')
+        exports = entry.setdefault('exports', [])
+        previous = next((item for item in exports if item['kind'] == record['kind'] and item['destination'] == str(destination)), None)
+        if previous is not None:
+            return _output_state(previous)
+        artifact = dict(id='export:'+uuid.uuid4().hex, title=_name(record['title']),
+                        kind=record['kind'], source_revision=revision,
+                        destination=str(destination), files=[str(f) for f in checked])
+        exports.append(artifact)
+        return _output_state(artifact)
+
+
+def register_published_export(project, result, destination, kind, title, revision, session):
+    """Record only successful publications, without making a catalog failure an export failure."""
+    if not project.get('project_path') or not session.get('library_root'):
+        return result
+    path = Path(destination).expanduser().resolve()
+    files = result.get('files')
+    if files is None:
+        files = [str(path / name) for name in result['outputs']]
+    record = dict(destination=str(path), files=files, kind=kind,
+                  title=title.strip()[:120] or path.name[:120], source_revision=revision)
+    request = dict(project_path=project['project_path'], project_id=project['id'], record=record)
+    try:
+        library_record_export(**request, session=session)
+    except (ValueError, OSError) as error:
+        return dict(result, library_export_retry=request, library_export_error=str(error))
+    return result
+
+
+def library_target(entry_id, artifact_id, session):
+    entry = _public(_entry(_index(library_root(session)), entry_id))
+    if artifact_id is None:
+        if not entry['available']:
+            raise ValueError('分析文件夹不可用，请重新定位')
+        return entry['path']
+    artifact = _find(entry['artifacts'], 'id', artifact_id, '找不到导出记录')
+    if 'destination' not in artifact:
+        raise ValueError('请选择一个导出记录')
+    preferred = ('.xlsx', '.png', '.svg', '.tiff', '.tif', '.pdf')
+    for suffix in preferred:
+        for file in artifact['files']:
+            path = Path(file)
+            if path.suffix.lower() == suffix and path.is_file() and path.resolve() == path:
+                return file
+    raise ValueError('找不到导出文件')

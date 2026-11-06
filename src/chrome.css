@@ -115,3 +115,11 @@
 .library-dialog h2,.library-dialog p { margin:0; }
 .library-dialog label { display:grid; gap:6px; }
 .library-dialog footer { display:flex; justify-content:flex-end; gap:8px; }
+.library-artifact-row { display:flex; align-items:center; gap:3px; }
+.library-artifact-row > button { display:flex; align-items:center; gap:7px; min-width:0; flex:1; text-align:left; padding:7px 8px; border-radius:7px; }
+.library-artifact-row > button > span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.library-artifact-row > button svg { flex:none; }
+.library-artifact-row > button:hover { background:#ececea; }
+.library-artifact-row > button.selected { background:#e8e8e5; }
+.library-notice { position:fixed; bottom:20px; right:20px; z-index:100; display:flex; align-items:center; gap:10px; max-width:min(510px,calc(100% - 40px)); padding:10px 12px; background:var(--surface); border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 24px #0002; }
+.library-notice > span { overflow-wrap:anywhere; }

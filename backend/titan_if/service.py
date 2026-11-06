@@ -9,7 +9,7 @@ import numpy as np
 import tifffile
 from PIL import Image
 
-from titan_wb.library import library_root,library_register,create_managed_analysis
+from titan_wb.library import library_root,library_register,create_managed_analysis,register_published_export
 from . import projects,jobs
 from .models import new_project
 
@@ -78,7 +78,13 @@ def dispatch(command,payload,session):
     if command=="if_open":
         path=payload["path"]
         p=projects.open_project(path,session,True) if payload.get("read_only") else projects.recover_project(path,session)
-        library_register(p["project_path"],session,payload.get("entry_id"));return p
+        try:
+            library_register(p["project_path"],session,payload.get("entry_id"))
+        except (ValueError, OSError):
+            if payload.get("entry_id") and not p.get("read_only"):
+                projects.release_project(p["project_path"], session)
+            raise
+        return p
     if command=="if_save":
         p=payload["project"];path=payload.get("path",p.get("project_path"))
         expected=payload.get("expected_revision",p.get("saved_revision")) if path==p.get("project_path") else None
@@ -116,5 +122,9 @@ def dispatch(command,payload,session):
         from .figures import preview_figure,export_figure,export_results
         p=payload["project"]
         if command=="if_figure_preview":return preview_figure(p)
-        return (export_figure if command=="if_export_figure" else export_results)(p,payload["destination"])
+        is_figure = command == "if_export_figure"
+        destination = payload["destination"]
+        result = (export_figure if is_figure else export_results)(p, destination)
+        kind, label = ("if_figure_export", "IF 组图") if is_figure else ("result_export", "IF 定量结果")
+        return register_published_export(p, result, destination, kind, p["name"]+" · "+label, p["revision"], session)
     raise ValueError("不支持的免疫荧光命令")

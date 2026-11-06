@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react'
 import {ChevronRight,Ellipsis,Folder,FileBarChart2,FlaskConical,Search,Table2,Images,Plus,Pin} from 'lucide-react'
-import type {LibraryCollection,LibraryEntry} from './types'
+import type {LibraryArtifact,LibraryCollection,LibraryEntry} from './types'
 import type {LibraryDialog} from './LibraryCreateDialog'
 
 export type LibraryView='workspace'|'results'|'wb'
@@ -18,9 +18,11 @@ interface Props {
  onDialog:(dialog:LibraryDialog)=>void
  onOpenFile:()=>void
  onPin:(project:LibraryCollection)=>void
+ onArtifact:(entry:LibraryEntry,artifact:LibraryArtifact)=>void
+ onReveal:(entry:LibraryEntry,artifact?:LibraryArtifact)=>void
 }
 
-export default function ProjectLibrary({entries,projects,project,activeFigure,currentView,error,busy,onOpen,onRelocate,onRetry,onDialog,onOpenFile,onPin}:Props){
+export default function ProjectLibrary({entries,projects,project,activeFigure,currentView,error,busy,onOpen,onRelocate,onRetry,onDialog,onOpenFile,onPin,onArtifact,onReveal}:Props){
  const [query,setQuery]=useState('')
  const [expanded,setExpanded]=useState<string[]>(['unassigned'])
  const [expandedEntries,setExpandedEntries]=useState<string[]>([])
@@ -61,7 +63,10 @@ export default function ProjectLibrary({entries,projects,project,activeFigure,cu
      <FlaskConical size={14}/><span>{entry.name}</span><small>{entry.module==='if'?'IF':'WB'}</small>
      {!entry.available&&<small>需定位</small>}
     </button>
-    {popup('entry-'+entry.entry_id,'分析菜单 '+entry.name,<button onClick={()=>action(()=>onDialog({kind:'move',entry}))}>移到项目</button>)}
+    {popup('entry-'+entry.entry_id,'分析菜单 '+entry.name,<>
+     <button onClick={()=>action(()=>onDialog({kind:'move',entry}))}>移到项目</button>
+     <button disabled={!entry.available} onClick={()=>action(()=>onReveal(entry))}>在文件管理器中显示</button>
+    </>)}
    </div>
    {open&&<div className="library-children">
     <button className={selected&&!activeFigure&&currentView==='workspace'?'selected':''} onClick={()=>onOpen(entry,'workspace')} disabled={busy||!entry.available}><FlaskConical size={14}/>分析工作台</button>
@@ -73,10 +78,17 @@ export default function ProjectLibrary({entries,projects,project,activeFigure,cu
   </div>
  }
  function collectionRows(id:string,name:string,rows:LibraryEntry[],collection?:LibraryCollection){
-  const shown=rows.filter(entry=>matches(name)||matches(entry.name)||entry.figures.some(figure=>matches(figure.name)))
+  const shown=rows.filter(entry=>matches(name)||matches(entry.name)||entry.figures.some(figure=>matches(figure.name))||entry.artifacts?.some(artifact=>matches(artifact.title)))
   if(q&&!matches(name)&&!shown.length)return null
   const open=!!q||expanded.includes(id)
-  const figures=shown.flatMap(entry=>entry.figures.filter(figure=>matches(name)||matches(entry.name)||matches(figure.name)).map(figure=>({entry,figure})))
+  const outputs=shown.flatMap(entry=>(entry.artifacts??[])
+   .filter(artifact=>matches(name)||matches(entry.name)||matches(artifact.title))
+   .map(artifact=>({entry,artifact})))
+  const figures=shown.flatMap(entry=>entry.figures.filter(figure=>
+   (matches(name)||matches(entry.name)||matches(figure.name))&&
+   !outputs.some(({entry:owner,artifact})=>owner.entry_id===entry.entry_id&&
+      artifact.document_id===figure.id&&artifact.kind==='result_export')
+  ).map(figure=>({entry,figure})))
   return <section key={id} className="library-collection" aria-label={name}>
    <div className="library-root">
     <button className="library-title" aria-label={`${open?'收起':'展开'}课题 ${name}`} aria-expanded={open} onClick={()=>setExpanded(previous=>toggle(previous,id))}>
@@ -92,13 +104,31 @@ export default function ProjectLibrary({entries,projects,project,activeFigure,cu
    </div>
    {open&&<div className="library-collection-body">
     {shown.length>0?<><p className="library-section-label">分析</p>{shown.map(analysisRow)}</>:<p className="hint library-empty">暂无分析</p>}
-    {figures.length>0&&<><p className="library-section-label">图表与导出</p>
+    {(figures.length>0||outputs.length>0)&&<><p className="library-section-label">图表与导出</p>
      <div className="library-children library-artifacts">{figures.map(({entry,figure})=><button key={entry.entry_id+':'+figure.id}
       className={entry.entry_id===active?.entry_id&&activeFigure===figure.id?'selected':''}
       title={`${entry.name} · 源版本 ${figure.source_revision}`}
       aria-label={`打开图表 ${figure.name}`} disabled={busy} onClick={()=>onOpen(entry,'results',figure.id)}>
       <FileBarChart2 size={14}/><span>{figure.name}<small>{entry.name}</small></span>{figure.source_stale&&<small>旧版本</small>}
-     </button>)}</div>
+     </button>)}
+     {outputs.map(({entry,artifact})=>{
+      const isDocument=artifact.kind==='wb_figure'
+      const disabled=busy||(isDocument?!entry.available:!artifact.available&&!artifact.document_id)
+      return <div className="library-artifact-row" key={entry.entry_id+':'+artifact.id}>
+       <button className={active?.entry_id===entry.entry_id&&activeFigure===artifact.id?'selected':''}
+        title={`${entry.name} · ${artifact.source_revision===null?'图形版本 '+artifact.version_id:'源版本 '+artifact.source_revision}`}
+        aria-label={`${isDocument?'打开组图':'打开导出'} ${artifact.title}`} disabled={disabled}
+        onClick={()=>onArtifact(entry,artifact)}>
+        {isDocument?<Images size={14}/>:<FileBarChart2 size={14}/>}
+        <span>{artifact.title}<small>{entry.name}{artifact.source_revision===null?' · 组图':` · 版本 ${artifact.source_revision}`}</small></span>
+        {!isDocument&&!artifact.available&&<small>文件缺失</small>}
+       </button>
+       {popup(entry.entry_id+':'+artifact.id,'产物菜单 '+artifact.title,<>
+        <button disabled={!entry.available} onClick={()=>action(()=>onOpen(entry,'workspace'))}>打开源分析</button>
+        {!isDocument&&<button disabled={!artifact.available} onClick={()=>action(()=>onReveal(entry,artifact))}>在文件管理器中显示</button>}
+       </>)}
+      </div>
+     })}</div>
     </>}
    </div>}
   </section>

@@ -186,3 +186,21 @@ test('a project groups WB and IF analyses and restores the last IF view', async 
  const after = await rpc(page, 'library_workspace')
  expect(after.entries.filter((entry:any)=>entry.collection_id===first.id||entry.collection_id===second.id)).toHaveLength(2)
 })
+
+test('IF save failure keeps the current view and dirty inputs when opening a WB analysis', async ({page})=>{
+ await page.goto('/?integration=1')
+ const wb=await rpc(page,'library_create',{name:'切换目标 '+Date.now()})
+ await createAnalysis(page,'if')
+ await page.getByRole('button',{name:'IF 定量结果',exact:true}).click()
+ await page.route('**/test-engine',async route=>{
+  if(route.request().postDataJSON().command==='if_save'){
+   await route.fulfill({json:{ok:false,error:'验收：保存失败'}})
+  }else await route.continue()
+ })
+ const name=page.getByLabel('IF 实验名称',{exact:true})
+ await name.fill('必须保留的修改')
+ await page.getByRole('button',{name:'打开项目 '+wb.project.name,exact:true}).click()
+ await expect(page.getByRole('status').filter({hasText:'验收：保存失败'})).toBeVisible()
+ await expect(name).toHaveValue('必须保留的修改')
+ await expect(page.getByRole('button',{name:'IF 定量结果',exact:true})).toHaveAttribute('aria-current','page')
+})
