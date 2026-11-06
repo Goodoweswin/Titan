@@ -1,0 +1,27 @@
+{
+  "base": "v0.4.0-beta.3",
+  "engine": "/Users/janus/Desktop/Titan/artifacts/statistics-v04/src-tauri/target/release/bundle/macos/Titan Stats Preview.app/Contents/Resources/engine/wb-engine/wb-engine",
+  "passed": true,
+  "checks": [
+    "create",
+    "analyse F=7 P=.027",
+    "save",
+    "reopen",
+    "long table",
+    "PNG",
+    "editable SVG",
+    "PDF",
+    "Excel",
+    "JSON",
+    "methods"
+  ],
+  "files": [
+    "methods.txt",
+    "results.xlsx",
+    "plot.svg",
+    "analysis.json",
+    "plot.png",
+    "plot.pdf",
+    "observations.csv"
+  ]
+}

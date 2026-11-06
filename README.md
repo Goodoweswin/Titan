@@ -84,7 +84,7 @@ npm run desktop:build
 ## 文档与参与
 
 - [贡献指南](CONTRIBUTING.md) · [问题反馈](https://github.com/Goodoweswin/Titan/issues) · [安全报告](SECURITY.md)
-- [版本记录](CHANGELOG.md) · [本版发布说明](docs/releases/v0.4.0-beta.3.md) · [待办与验证重点](docs/ROADMAP.md)
+- [版本注册表](docs/releases/INDEX.md) · [更新日志](CHANGELOG.md) · [本版发布说明](docs/releases/v0.4.0-beta.3.md) · [待办与验证重点](docs/ROADMAP.md)
 - [原生验收清单](docs/NATIVE_ACCEPTANCE.md) · [验证记录索引](docs/checkpoints.md)
 - [第三方许可](docs/THIRD_PARTY_NOTICES.md) · [研究资料与独立参考实现](wb_research/README.md)
 - 历史设计、实施计划和检查点保留于 `docs/`，其中部分内容描述早期版本，不代表当前已实现或已验证的能力。
@@ -92,3 +92,7 @@ npm run desktop:build
 ## 许可
 
 Titan 原创代码与项目文档采用 [MIT License](LICENSE)。第三方依赖保留各自许可证；许可清单由发布环境生成，并随发布包附带。
+
+## 统计与绘图
+
+独立统计工作区支持表格导入、两组和多组统计、论文图、冻结历史及 WB／IF 来源关联。课题侧栏统一组织分析和图表。操作与适用范围见[统计模块指南](docs/STATS_USER_GUIDE.md)，各构建及安装状态见[版本注册表](docs/releases/INDEX.md)。

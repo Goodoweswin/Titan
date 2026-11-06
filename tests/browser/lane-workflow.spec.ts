@@ -1,3 +1,4 @@
+import {createAnalysis} from './library-actions'
 import {test,expect} from '@playwright/test'
 import {mkdtempSync,rmSync,readFileSync} from 'node:fs'
 import {tmpdir} from 'node:os'
@@ -22,7 +23,7 @@ async function region(page:any,box:number[]){
  await page.mouse.move(x(box[0]),y(box[1]));await page.mouse.down();await page.mouse.move(x(box[2]),y(box[3]));await page.mouse.up()
 }
 test('reference first workflow preserves missing target slot and simple three-stage UI',async({page})=>{
- await page.goto('/?integration=1');await page.getByRole('button',{name:'新建实验',exact:true}).first().click()
+ await page.goto('/?integration=1');await createAnalysis(page,'wb')
  await page.evaluate((source:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async(c:string)=>{if(c==='plugin:dialog|open')return [source];throw Error(c)}}},file)
  await page.getByRole('button',{name:'导入图像',exact:true}).click()
  await expect(page.getByRole('button',{name:'内参',exact:true})).toBeVisible()
@@ -83,7 +84,7 @@ print(json.dumps({'rows':len(rows),'missing':sum(v['目标/内参'] is None for 
 })
 
 test('cancelled lane recognition cannot add late suggestions',async({page})=>{
- await page.goto('/?integration=1');await page.getByRole('button',{name:'新建实验',exact:true}).first().click()
+ await page.goto('/?integration=1');await createAnalysis(page,'wb')
  await page.evaluate((source:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async()=>[source]}},file)
  await page.getByRole('button',{name:'导入图像',exact:true}).click()
  await expect(page.getByLabel('当前图像')).toContainText('lanes.tif')
@@ -99,7 +100,7 @@ test('cancelled lane recognition cannot add late suggestions',async({page})=>{
 
 
 test('reference re-identification reuses explicit lane template instead of guessing identities',async({page})=>{
- await page.goto('/?integration=1');await page.getByRole('button',{name:'新建实验',exact:true}).first().click()
+ await page.goto('/?integration=1');await createAnalysis(page,'wb')
  await page.evaluate((source:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async()=>[source]}},file)
  await page.getByRole('button',{name:'导入图像',exact:true}).click()
  await expect(page.getByLabel('当前图像')).toContainText('lanes.tif')

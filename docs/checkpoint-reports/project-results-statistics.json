@@ -1,0 +1,34 @@
+{
+  "verified_at": "2026-11-06T18:37:16.038015+00:00",
+  "base_commit": "a4c0711",
+  "base_release": "v0.4.0-beta.3",
+  "version": "0.4.0",
+  "identifier": "com.titan.wb",
+  "artifact": "/Users/janus/Desktop/Titan/artifacts/statistics-v04/src-tauri/target/release/bundle/macos/Titan.app",
+  "installed_path": "/Applications/Titan.app",
+  "installed_matches_final_build": {
+    "Contents/MacOS/titan-wb": false,
+    "Contents/Resources/engine/wb-engine/wb-engine": true,
+    "Contents/_CodeSignature/CodeResources": true
+  },
+  "final_installation_status": "interrupted by user during Finder replacement; final precision fix not installed",
+  "backup_directory": "/Users/janus/Desktop/Titan/artifacts/local-installations/before-project-results-20261107-021953",
+  "original_source_files_checked": 42,
+  "original_source_files_changed": [],
+  "checks": {
+    "pytest": 286,
+    "pytest_subtests": 5,
+    "vitest": 81,
+    "rust": 8,
+    "typescript_vite_build": "passed",
+    "bundled_if_source_workflow": "passed",
+    "bundled_stats_exports": "passed",
+    "final_bundle_codesign": "passed",
+    "native_wb_if_selection_and_return": "passed before final float-roundtrip correction",
+    "native_stats_save_after_float_correction": "not run; installation interrupted",
+    "playwright": "not run: local port restriction",
+    "windows_native": "not run"
+  },
+  "known_preexisting_worktree_changes": "Image guides preserved; excluded from this task commit; included in local app build",
+  "release_status": "local testing build, no public stable release"
+}

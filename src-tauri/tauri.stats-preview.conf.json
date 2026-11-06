@@ -1,0 +1,15 @@
+{
+  "productName": "Titan Stats Preview",
+  "identifier": "com.titan.stats.preview",
+  "app": {
+    "windows": [{
+      "label": "main",
+      "title": "Titan Stats Preview",
+      "width": 1440,
+      "height": 940,
+      "minWidth": 1080,
+      "minHeight": 760
+    }]
+  },
+  "bundle": {"targets": ["app"]}
+}

@@ -24,6 +24,7 @@ def main():
     subprocess.run([sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onedir',
      '--name','wb-engine','--paths',str(ROOT/'backend'),
      '--hidden-import','matplotlib.backends.backend_svg',
+     '--hidden-import','matplotlib.backends.backend_pdf',
      # TIFF codecs are loaded on demand by imagecodecs.
      '--collect-submodules','imagecodecs',
      '--add-data',str(ROOT/'backend/titan_wb/assets')+os.pathsep+'titan_wb/assets',

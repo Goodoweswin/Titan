@@ -1,12 +1,13 @@
+import {createAnalysis} from './library-actions'
 import {test,expect} from '@playwright/test'
 
 test('new experiments autosave and remain in the left project tree after reload',async({page})=>{
  await page.goto('/?integration=1')
- await page.getByRole('button',{name:'新建实验',exact:true}).first().click()
+ await createAnalysis(page,'wb')
  const name='自动保存验收 '+Date.now()
  await page.getByLabel('实验名称').fill(name)
  await expect(page.getByRole('button',{name:'打开项目 '+name,exact:true})).toBeVisible({timeout:10000})
- await page.getByRole('button',{name:'新建实验',exact:true}).first().click()
+ await createAnalysis(page,'wb')
  await expect(page.getByLabel('实验名称')).toHaveValue('未命名实验')
  await page.reload()
  await page.getByRole('button',{name:'打开项目 '+name,exact:true}).click()
@@ -109,7 +110,7 @@ test('invalid drafts remain editable, cancelling navigation preserves them, and 
   }else await route.continue()
  })
  await page.getByLabel('误差线类型',{exact:true}).selectOption('sem');await waiting
- page.once('dialog',d=>d.accept());await page.getByRole('button',{name:'新建实验',exact:true}).first().click()
+ page.once('dialog',d=>d.accept());await createAnalysis(page,'wb')
  await expect(page.getByLabel('实验名称')).toHaveValue('未命名实验')
  release();await expect(page.getByRole('img',{name:'当前结果图表',exact:true})).toHaveCount(0)
  await expect(page.getByLabel('实验名称')).toHaveValue('未命名实验')
@@ -117,14 +118,15 @@ test('invalid drafts remain editable, cancelling navigation preserves them, and 
 
 for(const operation of ['history','source-update'])test(`late ${operation} document loads cannot replace a newly selected project`,async({page})=>{
  await page.goto('/?integration=1');const p=await seedThreeGroups(page),r=await rpc(page,'analyze',{project:p})
- const first=await rpc(page,'save_figure',{project:p,result:r,figure_settings:{},name:'延迟文档验收'})
- await rpc(page,'save_figure',{project:p,result:r,figure_settings:{error:'sem'},name:'延迟文档验收',figure_id:first.id,expected_version:first.current_version})
+ const figureName='延迟文档验收 '+operation
+ const first=await rpc(page,'save_figure',{project:p,result:r,figure_settings:{},name:figureName})
+ await rpc(page,'save_figure',{project:p,result:r,figure_settings:{error:'sem'},name:figureName,figure_id:first.id,expected_version:first.current_version})
  if(operation==='source-update'){
   p.revision++;p.samples[0].name='源已变化';p.rois.forEach((r:any)=>r.reviewed_revision=p.revision);p.lane_layouts[0].confirmed_revision=p.revision
   await rpc(page,'save_project',{project:p,path:p.project_path,expected_revision:p.saved_revision})
  }
  await page.reload();await page.getByRole('button',{name:'打开项目 '+p.name,exact:true}).click()
- await page.getByRole('button',{name:'打开图表 延迟文档验收',exact:true}).click()
+ await page.getByRole('button',{name:'打开图表 '+figureName,exact:true}).click()
  await expect(page.getByRole('img',{name:'当前结果图表',exact:true})).toBeVisible({timeout:15000})
  let release!:()=>void,received!:()=>void
  const held=new Promise<void>(resolve=>release=resolve),waiting=new Promise<void>(resolve=>received=resolve)
@@ -136,9 +138,73 @@ for(const operation of ['history','source-update'])test(`late ${operation} docum
  })
  if(operation==='history')await page.getByLabel('图形历史版本',{exact:true}).selectOption(first.current_version)
  else await page.getByRole('button',{name:'用当前分析更新源数据',exact:true}).click()
- await waiting;await page.getByRole('button',{name:'新建实验',exact:true}).first().click()
+ await waiting;await createAnalysis(page,'wb')
  await expect(page.getByLabel('实验名称')).toHaveValue('未命名实验')
  release();await page.waitForTimeout(200)
- await expect(page.getByRole('heading',{name:'延迟文档验收',exact:true})).toHaveCount(0)
+ await expect(page.getByRole('heading',{name:figureName,exact:true})).toHaveCount(0)
  await expect(page.getByRole('img',{name:'当前结果图表',exact:true})).toHaveCount(0)
+})
+
+test('a project groups WB, IF and stats analyses and restores the last IF view', async ({page}) => {
+ await page.goto('/?integration=1')
+ const library = page.getByRole('navigation', {name:'实验项目库'})
+ const projectName = '皮肤衰老 '+Date.now()
+ const nextName = '水凝胶 '+Date.now()
+ async function create(kind:string, name:string, projectId?:string) {
+  await library.getByRole('button', {name:'新建或打开', exact:true}).click()
+  await library.getByRole('button', {name:kind, exact:true}).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByLabel('名称', {exact:true}).fill(name)
+  if (projectId) await dialog.getByLabel('归属项目').selectOption(projectId)
+  await dialog.getByRole('button', {name:'创建', exact:true}).click()
+  await expect(dialog).toHaveCount(0)
+ }
+ await create('新建项目', projectName)
+ await create('新建项目', nextName)
+ const state = await rpc(page, 'library_workspace')
+ const first = state.projects.find((p:any)=>p.name===projectName)
+ const second = state.projects.find((p:any)=>p.name===nextName)
+ const wbName = 'AKT '+Date.now(), ifName = 'p16 '+Date.now()
+ await create('新建 WB 分析', wbName, first.id)
+ await expect(page.getByLabel('实验名称',{exact:true})).toHaveValue(wbName)
+ await create('新建 IF 分析', ifName, first.id)
+ await expect(page.getByLabel('IF 实验名称',{exact:true})).toHaveValue(ifName)
+ await page.getByRole('button',{name:'IF 定量结果',exact:true}).click()
+ await library.getByRole('button',{name:'分析菜单 '+ifName,exact:true}).click()
+ await library.getByRole('button',{name:'移到项目',exact:true}).click()
+ await page.getByRole('dialog').getByLabel('归属项目').selectOption(second.id)
+ await page.getByRole('dialog').getByRole('button',{name:'移动',exact:true}).click()
+ await expect(page.getByRole('dialog')).toHaveCount(0)
+ const moved = await rpc(page, 'library_workspace')
+ expect(moved.entries.find((entry:any)=>entry.name===ifName)).toMatchObject({collection_id:second.id,resume:{view:'results'}})
+ await page.reload()
+ await library.getByRole('button',{name:'展开课题 '+nextName,exact:true}).click()
+ await library.getByRole('button',{name:'打开项目 '+ifName,exact:true}).click()
+ await expect(page.getByRole('button',{name:'IF 定量结果',exact:true})).toHaveAttribute('aria-current','page')
+ const statsName='独立统计 '+Date.now()
+ await create('新建统计分析',statsName,first.id)
+ await expect(page.getByLabel('统计项目名称',{exact:true})).toHaveValue(statsName)
+ await library.getByRole('button',{name:'新建或打开',exact:true}).click()
+ await library.getByRole('button',{name:'新建 WB 分析',exact:true}).click()
+ await page.getByRole('dialog').getByRole('button',{name:'取消',exact:true}).click()
+ const after = await rpc(page, 'library_workspace')
+ expect(after.entries.filter((entry:any)=>entry.collection_id===first.id||entry.collection_id===second.id)).toHaveLength(3)
+})
+
+test('IF save failure keeps the current view and dirty inputs when opening a WB analysis', async ({page})=>{
+ await page.goto('/?integration=1')
+ const wb=await rpc(page,'library_create',{name:'切换目标 '+Date.now()})
+ await createAnalysis(page,'if')
+ await page.getByRole('button',{name:'IF 定量结果',exact:true}).click()
+ await page.route('**/test-engine',async route=>{
+  if(route.request().postDataJSON().command==='if_save'){
+   await route.fulfill({json:{ok:false,error:'验收：保存失败'}})
+  }else await route.continue()
+ })
+ const name=page.getByLabel('IF 实验名称',{exact:true})
+ await name.fill('必须保留的修改')
+ await page.getByRole('button',{name:'打开项目 '+wb.project.name,exact:true}).click()
+ await expect(page.getByRole('status').filter({hasText:'验收：保存失败'})).toBeVisible()
+ await expect(name).toHaveValue('必须保留的修改')
+ await expect(page.getByRole('button',{name:'IF 定量结果',exact:true})).toHaveAttribute('aria-current','page')
 })

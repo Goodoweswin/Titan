@@ -5,7 +5,7 @@ export interface Sample{id:string;name?:string;bio_id:string;group:string;pair_i
 export interface Lane{id:string;membrane_id:string;sample_id:string;technical_id:string}
 export interface ROI{id:string;image_id:string;lane_id:string;analyte:string;role:'target'|'reference';rect:Rect;backgrounds:Rect[];reference_id:string|null;reviewed_revision:number|null;lane_layout_id?:string;band_set_id?:string}
 export interface ComparisonSpec{id:string;family_id:string;group_a:string;group_b:string;test:'descriptive'|'welch'|'paired';scale:'raw'|'log2'}
-export interface Project{id:string;name:string;schema_version:2;revision:number;lane_layouts:LaneLayout[];band_sets:BandSet[];figure_settings?:FigureSettings;plot_settings?:PlotSettings;upgrade_from?:string;images:ImageAsset[];samples:Sample[];lanes:Lane[];rois:ROI[];settings:{design_confirmed?:boolean;control_group:string;normalization_mode:'within'|'ibc';ibc_by_membrane:Record<string,Record<string,string>>;analysis_blocks:{id:string;membrane_ids:string[];pooled_reference_id:string;merge_same_sample:boolean}[];comparisons:ComparisonSpec[];multigroup_comparisons?:MultiGroupSpec[]};saved_revision?:number;project_path?:string;read_only?:boolean}
+export interface Project{id:string;demo?:boolean;name:string;schema_version:2;revision:number;lane_layouts:LaneLayout[];band_sets:BandSet[];figure_settings?:FigureSettings;plot_settings?:PlotSettings;upgrade_from?:string;images:ImageAsset[];samples:Sample[];lanes:Lane[];rois:ROI[];settings:{design_confirmed?:boolean;control_group:string;normalization_mode:'within'|'ibc';ibc_by_membrane:Record<string,Record<string,string>>;analysis_blocks:{id:string;membrane_ids:string[];pooled_reference_id:string;merge_same_sample:boolean}[];comparisons:ComparisonSpec[];multigroup_comparisons?:MultiGroupSpec[]};saved_revision?:number;project_path?:string;read_only?:boolean}
 export interface Measurement{id:string;image_id:string;lane_id:string;analyte:string;role:string;area_px:number;raw_sum:number;background_mean:number;corrected_sum:number;clipped_fraction:number|null;flags:string[]}
 export interface Normalized{id:string;sample_id:string;bio_id:string;pair_id:string;group:string;membrane_id:string;analyte:string;normalized:number|null;bridged:number|null;flags:string[];kind:string}
 export interface BioValue{sample_id:string;bio_id:string;pair_id:string;group:string;analyte:string;membrane_id:string;analysis_block:string;value:number;n_technical:number;fold:number|null;flags:string[]}
@@ -35,5 +35,48 @@ export interface FigureGroup{key:string;label:string;color:string;border:string;
 export interface FigureData{unit:'lane'|'biological';value_mode:string;error:string;notes:string[];group_registry?:{key:string;label:string;color:string}[];panels:{key:string;analyte:string;analysis_block:string;groups:FigureGroup[];comparisons:MultiGroupComparison[];warnings:string[];limits:number[]}[]}
 
 export interface FigureDocumentMetadata{id:string;name:string;current_version:string;selected_version:string;source_revision:number;source_signature:string;source_stale:boolean;created_at:string;updated_at:string;kind:FigureSettings['kind'];panel_key:string;default_key?:string|null;export_origin?:{path:string;png_sha256:string}|null;versions:{version_id:string;source_revision:number;created_at:string;name:string}[]}
-export interface LibraryEntry{module?:'wb'|'if';entry_id:string;project_id:string;name:string;path:string;last_opened:string;created_at:string;available:boolean;revision?:number;error?:string;figure_error?:string;figures:FigureDocumentMetadata[]}
+export interface LibraryEntry{module?:'wb'|'if'|'stats';collection_id?:string|null;resume?:LibraryResume;entry_id:string;project_id:string;name:string;path:string;last_opened:string;created_at:string;available:boolean;revision?:number;error?:string;figure_error?:string;artifacts?:LibraryArtifact[];figures:FigureDocumentMetadata[]}
 export interface FrozenFigure{document:FigureDocumentMetadata;project:Project;result:AnalysisResult;figure_settings:FigureSettings;settings:PlotSettings;png:string}
+
+export interface LibraryCollection {
+ id: string
+ name: string
+ pinned: boolean
+ created_at: string
+}
+
+export interface LibraryResume {
+ view: 'workspace' | 'results' | 'figure'
+ artifact_id?: string
+ version_id?: string
+ dataset_id?: string
+}
+
+export interface LibraryWorkspace {
+ projects: LibraryCollection[]
+ entries: LibraryEntry[]
+}
+
+export interface LibraryArtifact {
+ id:string
+ entry_id:string
+ title:string
+ kind:'stats_plot'|'wb_plot'|'wb_figure'|'wb_figure_export'|'if_figure_export'|'result_export'
+ source_revision:number|null
+ document_id?:string
+ version_id?:string
+ destination?:string
+ files?:string[]
+ available:boolean
+}
+
+export interface LibraryExportReceipt {
+ library_export_retry?:{
+  project_path:string
+  project_id:string
+  record:Pick<LibraryArtifact,'destination'|'files'|'title'|'kind'|'source_revision'|'version_id'>
+ }
+ library_export_error?:string
+}
+
+export interface CloseActions{prepare:()=>Promise<boolean>;finish:()=>Promise<void>}

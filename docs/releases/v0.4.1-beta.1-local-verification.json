@@ -1,0 +1,46 @@
+{
+  "verified_at": "2026-11-06T19:31:03.768052+00:00",
+  "source_commit": "0dd290b891a39326b23b4287e83d95cc54294664",
+  "application_version": "0.4.1",
+  "application_identifier": "com.titan.wb",
+  "platform": "macos-arm64",
+  "dmg": {
+    "path": "artifacts/titan-0.4.1-local/final/Titan-0.4.1-macos-arm64.dmg",
+    "sha256": "df950f8b434d22314c7e20761861207f8cc0a094c2a27603aa27f644242ef268",
+    "hdiutil_verify": "passed"
+  },
+  "installed": {
+    "path": "/Applications/Titan.app",
+    "codesign_verify": "passed",
+    "matches_local_build": true,
+    "sha256": {
+      "Contents/MacOS/titan-wb": "9a509b9a4b2b814611d4c78b124b53a64d74fd0c5cc8a69c7cff06e02905b294",
+      "Contents/Resources/engine/wb-engine/wb-engine": "b64a3a858b2af7c43c7da17bab63d69f9237b8dacf2f168df399810a96250b32"
+    },
+    "backup": "artifacts/local-installations/before-titan-0.4.1-20261107-032531",
+    "old_registrations_retained": 8,
+    "managed_manifests_matched": 6,
+    "engine_ready": true,
+    "existing_desktop_project_reopen": "waiting for macOS Desktop folder consent after ad hoc signature changed"
+  },
+  "checks": {
+    "pytest": 309,
+    "pytest_subtests": 5,
+    "vitest": 81,
+    "rust": 8,
+    "browser_before_review_fixes": 63,
+    "browser_after_review_fixes": 16,
+    "production_build": "passed",
+    "packaged_wb_engine": "passed",
+    "packaged_statistics": "passed",
+    "packaged_if_statistics_sources": "passed"
+  },
+  "native_isolated_checks": [
+    "open WB linked stats from grouped sidebar",
+    "run and save statistics",
+    "freeze chart",
+    "reopen frozen chart from grouped sidebar"
+  ],
+  "windows_native_gui": "not run",
+  "real_wb_if_accuracy": "not run"
+}

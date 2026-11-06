@@ -1,3 +1,4 @@
+import {createAnalysis} from './library-actions'
 import {test,expect} from '@playwright/test'
 
 async function rpc(page:any,command:string,payload:object={}){
@@ -54,7 +55,7 @@ test('module navigation resumes WB and opens saved projects from either module',
  await expect(page.getByRole('button',{name:'新建组图',exact:true})).toBeVisible()
  await page.getByRole('button',{name:'打开项目 '+ifName,exact:true}).click()
  await expect(page.getByLabel('IF 实验名称')).toHaveValue(ifName)
- await page.getByRole('button',{name:'打开项目 '+wb.name,exact:true}).click()
+ await page.locator('.if-shell').getByRole('button',{name:'打开项目 '+wb.name,exact:true}).click()
  await expect(page.getByLabel('实验名称',{exact:true})).toHaveValue(wb.name)
 })
 
@@ -126,7 +127,7 @@ test('analysis and results remain available in the neutral shell',async({page})=
 })
 
 test('an empty WB experiment offers import and readonly users can inspect saved assemblies',async({page})=>{
- await page.goto('/?integration=1');await page.getByRole('button',{name:'新建实验',exact:true}).first().click()
+ await page.goto('/?integration=1');await createAnalysis(page,'wb')
  await page.getByRole('button',{name:'WB 组图',exact:true}).click()
  await expect(page.getByRole('button',{name:'导入图像',exact:true})).toBeEnabled()
  await expect(page.getByRole('button',{name:'新建组图',exact:true})).toHaveCount(0)

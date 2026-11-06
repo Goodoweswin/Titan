@@ -162,3 +162,211 @@ def test_project_manifest_with_windows_separators_opens_portably(tmp_path):
  for image in disk['images']:image['path']=image['path'].replace('/','\\')
  path.write_text(json.dumps(disk))
  assert analyze(open_project(p['project_path'],s))['lane_results'][0]['normalized']==4
+
+
+def test_workspace_groups_wb_and_if_without_moving_files(tmp_path):
+    from titan_wb.engine import dispatch
+
+    s = session(tmp_path)
+    def call(command, **payload):
+        return dispatch(dict(command=command, payload=payload, session=s))
+
+    wb = call('library_create', name='AKT')
+    original_index = Path(s['library_root']) / 'index.json'
+    before = original_index.read_bytes()
+    assert call('library_workspace')['entries'][0]['collection_id'] is None
+    assert original_index.read_bytes() == before
+
+    group = call('library_create_collection', name='皮肤衰老')
+    fluorescence = call('if_new', name='p16', collection_id=group['id'])
+    call('library_assign', entry_id=wb['entry']['entry_id'], collection_id=group['id'])
+    call('library_set_resume', entry_id=wb['entry']['entry_id'], resume={'view': 'results'})
+    entries = {entry['name']: entry for entry in call('library_workspace')['entries']}
+    assert entries['AKT']['resume'] == {'view': 'results'}
+    assert entries['AKT']['collection_id'] == entries['p16']['collection_id'] == group['id']
+    assert entries['p16']['path'] == fluorescence['project_path']
+    call('library_remove_collection', id=group['id'])
+    assert all(entry['collection_id'] is None for entry in call('library_workspace')['entries'])
+    assert Path(fluorescence['project_path']).is_dir()
+
+
+def test_workspace_failed_creation_rolls_back_and_retry_registers_once(tmp_path, monkeypatch):
+    from titan_wb import library
+
+    s = session(tmp_path)
+    atomic_write = library.atomic_json
+    with monkeypatch.context() as mock:
+        def fail_index(*args):
+            raise OSError('injected index failure')
+        mock.setattr(library, 'atomic_json', fail_index)
+        with pytest.raises(OSError, match='index failure'):
+            library.library_create('AKT', s, new_collection_name='皮肤衰老')
+    assert not list((Path(s['library_root']) / 'Projects').iterdir())
+    assert library.atomic_json is atomic_write
+    created = library.library_create('AKT', s, new_collection_name='皮肤衰老')
+    catalog = library.library_workspace(s)
+    assert len(catalog['entries']) == len(catalog['projects']) == 1
+    assert created['entry']['collection_id'] == catalog['projects'][0]['id']
+
+
+def test_copy_and_relocation_preserve_distinct_memberships(tmp_path):
+    from titan_wb import library
+
+    s = session(tmp_path)
+    group = library.library_create_collection('课题', s)
+    source = library.library_create('AKT', s, collection_id=group['id'])
+    copy_path = tmp_path / 'copy.titanwb'
+    save_project(source['project'], str(copy_path), None, s)
+    copy = library_register(str(copy_path), s, source_entry_id=source['entry']['entry_id'])
+    assert copy['entry_id'] != source['entry']['entry_id']
+    assert copy['collection_id'] == group['id']
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [
+            pool.submit(library.library_assign, copy['entry_id'], None, s),
+            pool.submit(library_register, str(copy_path), s, touch_opened=False),
+        ]
+        for future in futures:
+            future.result()
+    moved = tmp_path / 'moved.titanwb'
+    copy_path.rename(moved)
+    relocated = library_register(str(moved), s, copy['entry_id'])
+    assert relocated['entry_id'] == copy['entry_id']
+    assert relocated['collection_id'] is None
+    with pytest.raises(ValueError, match='课题'):
+        library.library_assign(copy['entry_id'], 'missing', s)
+    assert library_register(str(moved), s, touch_opened=False)['last_opened'] == relocated['last_opened']
+
+
+def test_project_outputs_keep_export_revision_and_follow_analysis(tmp_path):
+    from titan_wb.engine import dispatch
+
+    project, result, s = saved_fixture(tmp_path)
+    folder = tmp_path / 'export'
+    dispatch(dict(command='export', payload=dict(project=project, result=result, destination=str(folder)), session=s))
+    state = dispatch(dict(command='library_workspace', session=s))
+    entry = state['entries'][0]
+    artifact, = entry['artifacts']
+    assert artifact['source_revision'] == result['input_revision']
+    assert artifact['kind'] == 'result_export'
+    assert str(folder / 'results.xlsx') in artifact['files']
+    group = dispatch(dict(command='library_create_collection', payload={'name': '课题'}, session=s))
+    dispatch(dict(command='library_assign', payload=dict(entry_id=entry['entry_id'], collection_id=group['id']), session=s))
+    shutil.rmtree(folder)
+    current = dispatch(dict(command='library_workspace', session=s))['entries'][0]
+    assert current['collection_id'] == group['id']
+    assert current['artifacts'][0]['id'] == artifact['id']
+    assert current['artifacts'][0]['available'] is False
+
+
+def test_failed_export_registration_can_retry_without_exporting_again(tmp_path, monkeypatch):
+    from titan_wb import library
+    from titan_wb.engine import dispatch
+
+    project, result, s = saved_fixture(tmp_path)
+    folder = tmp_path / 'export'
+    with monkeypatch.context() as mock:
+        def fail_index(*args, **kwargs):
+            raise OSError('index unavailable')
+        mock.setattr(library, 'library_record_export', fail_index)
+        out = dispatch(dict(command='export', payload=dict(project=project, result=result, destination=str(folder)), session=s))
+    assert (folder / 'results.xlsx').is_file()
+    retry = out['library_export_retry']
+    for _ in range(2):
+        dispatch(dict(command='library_record_export', payload=retry, session=s))
+    assert len(library.library_workspace(s)['entries'][0]['artifacts']) == 1
+
+
+def test_relocation_preflight_rejects_existing_if_copy_without_releasing_its_lock(tmp_path):
+    from titan_if import projects, service
+
+    s = session(tmp_path)
+    original = service.dispatch('if_new', {'name': 'IF'}, s)
+    copy_path = tmp_path / 'copy.titanif'
+    copied = projects.save_project(original, str(copy_path), None, s)
+    library_register(copied['project_path'], s)
+    owner = next(entry for entry in library_list(s) if entry['path'] == original['project_path'])
+    with pytest.raises(ValueError, match='另一条'):
+        service.dispatch('if_open', {'path': str(copy_path), 'entry_id': owner['entry_id']}, s)
+    assert (copy_path / '.writer.lock').is_file()
+
+
+def test_republished_path_updates_version_and_rejects_changed_output(tmp_path):
+    from titan_wb.engine import dispatch
+    from titan_wb.library import library_target, library_workspace
+
+    p, result, s = saved_fixture(tmp_path)
+    folder = tmp_path / 'out'
+    def publish():
+        dispatch(dict(command='export', payload=dict(project=p, result=result, destination=str(folder)), session=s))
+        return library_workspace(s)['entries'][0]
+    first = publish()['artifacts'][0]
+    folder.rename(tmp_path / 'earlier')
+    p['revision'] += 1
+    result = analyze(p)
+    entry = publish()
+    later, = entry['artifacts']
+    assert later['id'] != first['id'] and later['source_revision'] == result['input_revision']
+    book = folder / 'results.xlsx'
+    book.write_bytes(b'replaced externally')
+    with pytest.raises(ValueError, match='已变化'):
+        library_target(entry['entry_id'], later['id'], s)
+
+
+def test_copied_wb_history_keeps_its_plot_without_claiming_source_export(tmp_path):
+    from titan_wb.engine import dispatch
+    from titan_wb.library import library_workspace
+
+    p, result, s = saved_fixture(tmp_path)
+    folder = tmp_path / 'out'
+    published = dispatch(dict(command='export', payload=dict(project=p, result=result, destination=str(folder)), session=s))
+    save_figure(p, result, {}, '图表', s, export_origin={'path':str(folder),'png_sha256':published['outputs']['plot.png']})
+    dest = tmp_path / 'copy.titanwb'
+    copied = save_project(p, str(dest), None, s)
+    library_register(copied['project_path'], s)
+    entries = {entry['path']:entry for entry in library_workspace(s)['entries']}
+    assert len(entries[p['project_path']]['artifacts']) == 1
+    assert not entries[copied['project_path']]['artifacts']
+    assert len(entries[copied['project_path']]['figures']) == 1
+
+
+def test_malformed_wb_plot_catalog_does_not_hide_unaffected_entries(tmp_path):
+    from titan_wb.library import library_workspace
+
+    s = session(tmp_path)
+    first = library_create('Malformed', s)['project']
+    library_create('Unaffected', s)
+    folder = Path(first['project_path']) / 'figures'
+    folder.mkdir()
+    (folder / 'catalog.json').write_text(json.dumps({
+        'version':1, 'figures':[{'id':'a','current_version':'b','versions':[{'version_id':'b'}]}]
+    }))
+    rows = {entry['name']:entry for entry in library_workspace(s)['entries']}
+    assert rows['Unaffected']['available']
+    assert rows['Malformed']['available'] and rows['Malformed']['figure_error']
+
+
+def test_stats_analysis_shares_collection_and_indexes_frozen_graph_and_export(tmp_path):
+    from titan_wb.engine import dispatch
+
+    s = session(tmp_path)
+    def call(command, **payload):
+        return dispatch(dict(command=command, payload=payload, session=s))
+
+    group = call('library_create_collection', name='联合课题')
+    stats = call('stats_new', name='独立统计', collection_id=group['id'])
+    call('library_create', name='WB', collection_id=group['id'])
+    call('if_new', name='IF', collection_id=group['id'])
+    dataset = call('stats_import', text='A\tB\n1\t2\n3\t4')['dataset']
+    stats['datasets'] = [dataset]
+    stats['figures'] = [dict(id='snapshot-1', name='冻结图', dataset=dataset, style=dataset['style'], run=None)]
+    stats['revision'] += 1
+    stats = call('stats_save', project=stats)
+    call('stats_export', project=stats, dataset=dataset, style=dataset['style'], destination=str(tmp_path/'out'))
+    entries = call('library_workspace')['entries']
+    assert {row['collection_id'] for row in entries} == {group['id']}
+    assert {row['module'] for row in entries} == {'wb', 'if', 'stats'}
+    entry = next(row for row in entries if row['module']=='stats')
+    assert {row['kind'] for row in entry['artifacts']} == {'stats_plot', 'result_export'}
+    call('library_set_resume', entry_id=entry['entry_id'], resume={'view':'figure','artifact_id':'stats:snapshot-1','dataset_id':dataset['id']})
+    assert call('stats_open', path=stats['project_path'], entry_id=entry['entry_id'])['figures'][0]['id'] == 'snapshot-1'
+    assert call('library_workspace')['entries'][0]['resume']['dataset_id'] == dataset['id']

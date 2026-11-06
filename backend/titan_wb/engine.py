@@ -14,6 +14,9 @@ def dispatch(request):
     if isinstance(command,str) and command.startswith('if_'):
         from titan_if.service import dispatch as dispatch_if
         return dispatch_if(command,payload,session)
+    if isinstance(command,str) and command.startswith('stats_'):
+        from titan_stats.service import dispatch as stats_dispatch
+        return stats_dispatch(command,payload,session)
     if command in ('wb_new','wb_preview','wb_source_preview','wb_list','wb_save','wb_load','wb_export'):
         from . import wb_figures as wb
         project=payload['project']
@@ -23,7 +26,13 @@ def dispatch(request):
         if command=='wb_list':return wb.list_documents(project)
         if command=='wb_save':return wb.save_document(project,payload['document'],session,payload.get('expected_version'))
         if command=='wb_load':return wb.load_document(project,payload['document_id'],payload.get('version_id'))
-        if command=='wb_export':return wb.export_document(project,payload['document'],payload['destination'])
+        if command=='wb_export':
+            from .library import register_published_export
+            document = payload['document']
+            destination = payload['destination']
+            result = wb.export_document(project, document, destination)
+            return register_published_export(project, result, destination, 'wb_figure_export',
+                                             document['name'], project['revision'], session)
     if command == 'health':
         return {'protocol': 1, 'transport_version':2,'worker_pid':os.getpid(),'version': __version__, 'engine': 'Python / NumPy'}
     if command == 'probe':
@@ -55,10 +64,34 @@ def dispatch(request):
         return library_list(session)
     if command=='library_create':
         from .library import library_create
-        return library_create(payload['name'],session)
+        return library_create(payload['name'],session,collection_id=payload.get('collection_id'),new_collection_name=payload.get('new_collection_name'))
     if command=='library_register':
         from .library import library_register
-        return library_register(payload['path'],session,payload.get('entry_id'))
+        return library_register(payload['path'],session,payload.get('entry_id'),source_entry_id=payload.get('source_entry_id'),touch_opened=payload.get('touch_opened',True))
+    if command=='library_workspace':
+        from .library import library_workspace
+        return library_workspace(session)
+    if command in ('library_create_collection','library_update_collection','library_remove_collection',
+                   'library_assign','library_set_resume'):
+        from . import library
+        operations = {
+            'library_create_collection': (library.library_create_collection, ('name',)),
+            'library_update_collection': (library.library_update_collection, ('id','patch')),
+            'library_remove_collection': (library.library_remove_collection, ('id',)),
+            'library_assign': (library.library_assign, ('entry_id','collection_id')),
+            'library_set_resume': (library.library_set_resume, ('entry_id','resume')),
+        }
+        operation, keys = operations[command]
+        return operation(*(payload[key] for key in keys), session)
+    if command=='library_record_export':
+        from .library import library_record_export
+        return library_record_export(payload['project_path'],payload['project_id'],payload['record'],session)
+    if command=='library_check_path':
+        from .library import library_check_path
+        return library_check_path(payload['path'],payload.get('entry_id'),session)
+    if command=='library_target':
+        from .library import library_target
+        return library_target(payload['entry_id'],payload.get('artifact_id'),session)
     if command=='library_remove':
         from .library import library_remove
         return library_remove(payload['entry_id'],session)
@@ -106,7 +139,11 @@ def dispatch(request):
         return export_preview(payload['project'],payload['result'],payload.get('settings'),payload.get('figure_settings'))
     if command=='export':
         from .export import export_analysis
-        return export_analysis(payload['project'],payload['result'],payload['destination'],payload.get('settings'),payload.get('figure_settings'))
+        from .library import register_published_export
+        project, analysis, destination = payload['project'], payload['result'], payload['destination']
+        result = export_analysis(project, analysis, destination, payload.get('settings'), payload.get('figure_settings'))
+        return register_published_export(project, result, destination, 'result_export',
+                                         project['name']+' · 定量结果', analysis['input_revision'], session)
     raise ValueError('不支持的引擎命令')
 
 

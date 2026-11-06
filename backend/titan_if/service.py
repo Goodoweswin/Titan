@@ -9,16 +9,16 @@ import numpy as np
 import tifffile
 from PIL import Image
 
-from titan_wb.library import library_root,library_register,library_list
+from titan_wb.library import library_root,library_register,create_managed_analysis,register_published_export,open_registered_analysis,entry_for_path
 from . import projects,jobs
 from .models import new_project
 
 
-def _create(name,session):
-    library_list(session)  # Validate the existing catalog before creating files.
-    p=new_project(name);path=library_root(session)/"Projects"/(p["id"]+".titanif")
-    p=projects.save_project(p,str(path),None,session);library_register(p["project_path"],session)
-    return p
+def _create(name, session, *, collection_id=None, new_collection_name=None):
+    return create_managed_analysis(
+        new_project(name), '.titanif', projects.save_project, session,
+        collection_id=collection_id, new_collection_name=new_collection_name,
+    )['project']
 
 
 def _demo(session):
@@ -73,16 +73,18 @@ def _mask_preview(field):
 
 
 def dispatch(command,payload,session):
-    if command=="if_new":return _create(payload["name"],session)
+    if command=="if_new":return _create(payload["name"],session,collection_id=payload.get("collection_id"),new_collection_name=payload.get("new_collection_name"))
     if command=="if_demo":return _demo(session)
     if command=="if_open":
-        path=payload["path"]
-        p=projects.open_project(path,session,True) if payload.get("read_only") else projects.recover_project(path,session)
-        library_register(path,session);return p
+        load = (lambda path, session: projects.open_project(path, session, True)) if payload.get("read_only") else projects.recover_project
+        return open_registered_analysis(payload["path"], load, session, payload.get("entry_id"))
     if command=="if_save":
         p=payload["project"];path=payload.get("path",p.get("project_path"))
         expected=payload.get("expected_revision",p.get("saved_revision")) if path==p.get("project_path") else None
-        p=projects.save_project(p,path,expected,session);library_register(p["project_path"],session);return p
+        source = entry_for_path(p.get("project_path"), session) if path != p.get("project_path") else None
+        p = projects.save_project(p, path, expected, session)
+        library_register(p["project_path"], session, source_entry_id=source and source["entry_id"], touch_opened=source is not None)
+        return p
     if command=="if_release":projects.release_project(payload["path"],session);return True
     if command=="if_inspect":
         from .images import inspect_image
@@ -115,5 +117,9 @@ def dispatch(command,payload,session):
         from .figures import preview_figure,export_figure,export_results
         p=payload["project"]
         if command=="if_figure_preview":return preview_figure(p)
-        return (export_figure if command=="if_export_figure" else export_results)(p,payload["destination"])
+        is_figure = command == "if_export_figure"
+        destination = payload["destination"]
+        result = (export_figure if is_figure else export_results)(p, destination)
+        kind, label = ("if_figure_export", "IF 组图") if is_figure else ("result_export", "IF 定量结果")
+        return register_published_export(p, result, destination, kind, p["name"]+" · "+label, p["revision"], session)
     raise ValueError("不支持的免疫荧光命令")

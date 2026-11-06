@@ -2,20 +2,20 @@ import {useEffect,useRef,useState} from 'react'
 import {save,confirm} from '@tauri-apps/plugin-dialog'
 import {ArrowDown,ArrowUp,Check,Download,Plus,RotateCcw,Save,Trash2,Undo2,Redo2} from 'lucide-react'
 import {callEngine} from './bridge'
-import type {Project,Rect} from './types'
+import type {LibraryExportReceipt,Project,Rect} from './types'
 import {proposedLabels,resetWbStyle,rebindWbSources,type WbDocument,type WbEntry,type WbPreview,type WbRow,type WbSettings} from './wb-figure'
 import WbCropEditor from './WbCropEditor'
 import './wb-figure.css'
 import {sameProjectContext} from './project-library-state'
 
 export interface WbHistory {canUndo:boolean;canRedo:boolean;undo:()=>void;redo:()=>void}
-interface Props {project:Project;externalBusy:boolean;onBusy:(busy:boolean)=>void;onBeforeSave:()=>Promise<Project>;onDraft:(dirty:boolean)=>void;onHistory:(history:WbHistory|null)=>void}
-export default function WbFigureEditor({project,externalBusy,onBusy,onBeforeSave,onDraft,onHistory}:Props){
- const [doc,setDoc]=useState<WbDocument|null>(null),[entries,setEntries]=useState<WbEntry[]>([]),[templates,setTemplates]=useState<WbRow[]>([])
- const [selected,setSelected]=useState(''),[sourceId,setSourceId]=useState(''),[preview,setPreview]=useState<WbPreview|null>(null),[sourcePng,setSourcePng]=useState('')
+interface Props {project:Project;initialDocument:WbDocument|null;onDocument:(value:{id:string;version:string}|null)=>void;onSaved:()=>void;onExported:(receipt:LibraryExportReceipt)=>void;externalBusy:boolean;onBusy:(busy:boolean)=>void;onBeforeSave:()=>Promise<Project>;onDraft:(dirty:boolean)=>void;onHistory:(history:WbHistory|null)=>void}
+export default function WbFigureEditor({project,initialDocument,onDocument,onSaved,onExported,externalBusy,onBusy,onBeforeSave,onDraft,onHistory}:Props){
+ const [doc,setDoc]=useState<WbDocument|null>(initialDocument),[entries,setEntries]=useState<WbEntry[]>([]),[templates,setTemplates]=useState<WbRow[]>([])
+ const [selected,setSelected]=useState(initialDocument?.rows[0]?.id??''),[sourceId,setSourceId]=useState(''),[preview,setPreview]=useState<WbPreview|null>(null),[sourcePng,setSourcePng]=useState('')
  const [error,setError]=useState(''),[message,setMessage]=useState(''),[warning,setWarning]=useState(''),[busy,setBusy]=useState(false),[rendering,setRendering]=useState(false)
  const [past,setPast]=useState<WbDocument[]>([]),[future,setFuture]=useState<WbDocument[]>([])
- const baseline=useRef(''),value=useRef(doc),generation=useRef(0),alive=useRef(true);value.current=doc
+ const baseline=useRef(initialDocument?JSON.stringify(initialDocument):''),value=useRef(doc),generation=useRef(0),alive=useRef(true);value.current=doc
  const previousPath=useRef(project.project_path)
  const context=useRef(project);context.current=project
  const row=doc?.rows.find(r=>r.id===selected),readonly=!!project.read_only,dirty=!!doc&&JSON.stringify(doc)!==baseline.current
@@ -49,7 +49,7 @@ export default function WbFigureEditor({project,externalBusy,onBusy,onBeforeSave
   if(row)callEngine<{png:string}>('wb_source_preview',{project,source:row.source}).then(data=>{if(live)setSourcePng(data.png)}).catch(e=>{if(live)setError(String(e))})
   return()=>{live=false}
  },[row?.id,row?.source.path])
- function accept(next:WbDocument,saved=false){generation.current++;value.current=next;setDoc(next);setSelected(next.rows[0]?.id??'');setPast([]);setFuture([]);setWarning('');setMessage('');setError('');baseline.current=saved?JSON.stringify(next):'';onDraft(!saved)}
+ function accept(next:WbDocument,saved=false){generation.current++;value.current=next;setDoc(next);setSelected(next.rows[0]?.id??'');setPast([]);setFuture([]);setWarning('');setMessage('');setError('');baseline.current=saved?JSON.stringify(next):'';onDraft(!saved);onDocument(saved&&next.version?{id:next.id,version:next.version}:null)}
  function change(edit:(d:WbDocument)=>void){const current=value.current;if(!current||blocked)return;const next=structuredClone(current);edit(next);setPast(v=>[...v.slice(-39),current]);setFuture([]);value.current=next;setDoc(next);setMessage('');onDraft(JSON.stringify(next)!==baseline.current)}
  function editRow(edit:(r:WbRow)=>void){change(d=>{const r=d.rows.find(r=>r.id===selected);if(r)edit(r)})}
  function restore(redo=false){if(blocked)return;const stack=redo?future:past,snapshot=stack.at(-1),current=value.current;if(!snapshot||!current)return;const next={...snapshot,version:current.version,updated_at:current.updated_at};if(redo){setFuture(stack.slice(0,-1));setPast(v=>[...v,current])}else{setPast(stack.slice(0,-1));setFuture(v=>[...v,current])}value.current=next;setDoc(next);setMessage('');setSelected(id=>next.rows.some(r=>r.id===id)?id:next.rows[0]?.id??'');onDraft(JSON.stringify(next)!==baseline.current)}
@@ -57,8 +57,8 @@ export default function WbFigureEditor({project,externalBusy,onBusy,onBeforeSave
  async function discard(){return !dirty||await (Boolean((window as any).__TAURI_INTERNALS__)?confirm('当前组图有未保存修改，放弃并切换？',{title:'Titan',kind:'warning'}):window.confirm('当前组图有未保存修改，放弃并切换？'))}
  async function create(){if(!await discard())return;setBusy(true);setError('');const token=++generation.current;try{const d=await callEngine<WbDocument>('wb_new',{project});if(!alive.current||token!==generation.current||!sameProjectContext(context.current,project))return;const suggested=proposedLabels(project,d.rows);d.labels=suggested.labels;accept(d);setWarning(suggested.warning)}catch(e){if(alive.current)setError(String(e))}finally{if(alive.current)setBusy(false)}}
  async function load(id:string){if(unavailable||!id||!await discard())return;setBusy(true);setError('');const token=++generation.current;try{const d=await callEngine<WbDocument>('wb_load',{project,document_id:id});if(alive.current&&token===generation.current&&sameProjectContext(context.current,project))accept(d,true)}catch(e){if(alive.current)setError(String(e))}finally{if(alive.current)setBusy(false)}}
- async function persist(){const current=value.current;if(!current||blocked)return;setBusy(true);setError('');setMessage('');const token=++generation.current;try{const p=await onBeforeSave();if(!alive.current||token!==generation.current)return;const saved=await callEngine<WbDocument>('wb_save',{project:p,document:rebindWbSources(current,p,project.project_path),expected_version:current.version});if(!alive.current||token!==generation.current)return;baseline.current=JSON.stringify(saved);value.current=saved;setDoc(saved);onDraft(false);const list=await callEngine<WbEntry[]>('wb_list',{project:p});if(alive.current&&token===generation.current){setEntries(list);setMessage('组图已保存，可以随时重新打开编辑。')}}catch(e){if(alive.current)setError(String(e))}finally{if(alive.current)setBusy(false)}}
- async function exportFigure(){const current=value.current;if(!current||unavailable)return;setBusy(true);setError('');const token=generation.current;try{const destination=await save({defaultPath:`${current.name.replace(/[\\/:]/g,'_')}-导出`,title:'导出组图到新文件夹'});if(!destination||!alive.current||token!==generation.current)return;await callEngine('wb_export',{project,document:current,destination});if(alive.current&&token===generation.current)setMessage('已导出 PNG、可编辑 SVG 和来源说明。保存组图可保留当前编辑状态。')}catch(e){if(alive.current)setError(String(e))}finally{if(alive.current)setBusy(false)}}
+ async function persist(){const current=value.current;if(!current||blocked)return;setBusy(true);setError('');setMessage('');const token=++generation.current;try{const p=await onBeforeSave();if(!alive.current||token!==generation.current)return;const saved=await callEngine<WbDocument>('wb_save',{project:p,document:rebindWbSources(current,p,project.project_path),expected_version:current.version});if(!alive.current||token!==generation.current)return;baseline.current=JSON.stringify(saved);value.current=saved;setDoc(saved);onDraft(false);onDocument(saved.version?{id:saved.id,version:saved.version}:null);onSaved();const list=await callEngine<WbEntry[]>('wb_list',{project:p});if(alive.current&&token===generation.current){setEntries(list);setMessage('组图已保存，可以随时重新打开编辑。')}}catch(e){if(alive.current)setError(String(e))}finally{if(alive.current)setBusy(false)}}
+ async function exportFigure(){const current=value.current;if(!current||unavailable)return;setBusy(true);setError('');const token=generation.current;try{const destination=await save({defaultPath:`${current.name.replace(/[\\/:]/g,'_')}-导出`,title:'导出组图到新文件夹'});if(!destination||!alive.current||token!==generation.current)return;const receipt=await callEngine<LibraryExportReceipt>('wb_export',{project,document:current,destination});onExported(receipt);if(alive.current&&token===generation.current)setMessage('已导出 PNG、可编辑 SVG 和来源说明。保存组图可保留当前编辑状态。')}catch(e){if(alive.current)setError(String(e))}finally{if(alive.current)setBusy(false)}}
  function setSettings<K extends keyof WbSettings>(key:K,value:WbSettings[K]){change(d=>{d.settings[key]=value})}
  function addRow(){const template=templates.find(r=>r.source.id===sourceId);if(!template)return;const added={...structuredClone(template),id:crypto.randomUUID(),layout_id:undefined};change(d=>{d.rows.push(added)});setSelected(added.id)}
  function moveRow(delta:number){change(d=>{const i=d.rows.findIndex(r=>r.id===selected),j=i+delta;if(i>=0&&j>=0&&j<d.rows.length)[d.rows[i],d.rows[j]]=[d.rows[j],d.rows[i]]})}
