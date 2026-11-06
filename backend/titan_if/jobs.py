@@ -48,8 +48,8 @@ def start(project,operation,options,session):
         for folder in root.iterdir():
             if not folder.is_dir():continue
             try:
-                req=json.loads((folder/"request.json").read_text())
-                state=json.loads((folder/"status.json").read_text())
+                req=json.loads((folder/"request.json").read_text(encoding="utf-8"))
+                state=json.loads((folder/"status.json").read_text(encoding="utf-8"))
                 if req.get("operation") == "volume" and not process_alive(req["owner"]["pid"]):
                     if state["status"] in _TERMINAL or not process_alive(state.get("pid", 0)):
                         (folder / "volume.raw").unlink(missing_ok=True)
@@ -57,7 +57,7 @@ def start(project,operation,options,session):
                 if req["owner"]=={k:session[k] for k in ["pid","token"]} and state["status"] not in _TERMINAL:
                     pid=state.get("pid")
                     if not pid and (folder/"worker.json").exists():
-                        pid=json.loads((folder/"worker.json").read_text())["pid"]
+                        pid=json.loads((folder/"worker.json").read_text(encoding="utf-8"))["pid"]
                     if pid and process_alive(pid):
                         raise ValueError("已有免疫荧光后台任务，请完成或取消后重试")
             except (OSError,KeyError,json.JSONDecodeError):continue
@@ -91,7 +91,7 @@ def status(job_id,session):
         return dict(state,status="cancelled",message="任务已取消，计算结果不会写入项目")
     pid=state.get("pid")
     if not pid and (directory/"worker.json").exists():
-        pid=json.loads((directory/"worker.json").read_text())["pid"]
+        pid=json.loads((directory/"worker.json").read_text(encoding="utf-8"))["pid"]
     if state["status"] not in _TERMINAL and pid and not process_alive(pid):
         state.update(status="failed",error="后台进程已退出，请重新执行；原结果保留",message="任务中断")
         atomic_json(directory/"status.json",state)
