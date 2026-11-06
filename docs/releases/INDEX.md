@@ -8,7 +8,8 @@
 
 | 发布标签 | 发布日 | 标签对应提交 | 发布验证与校验记录 |
 | --- | --- | --- | --- |
-| **[v0.4.0-beta.3](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.0-beta.3)** | 2026-11-07 | `80d552c` | [验证报告](v0.4.0-beta.3-verification.json) |
+| **[v0.4.1-beta.3](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.1-beta.3)** | 2026-11-07 | `a13b349` | [验证报告](v0.4.1-beta.3-verification.json) |
+| [v0.4.0-beta.3](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.0-beta.3) | 2026-11-07 | `80d552c` | [验证报告](v0.4.0-beta.3-verification.json) |
 | [v0.3.4-beta.1](https://github.com/Goodoweswin/Titan/releases/tag/v0.3.4-beta.1) | 2026-11-02 | `5af3814` | [验证报告](v0.3.4-beta.1-verification.json) |
 | [v0.3.3-beta.2](https://github.com/Goodoweswin/Titan/releases/tag/v0.3.3-beta.2) | 2026-11-02 | `6f6bcfb` | [验证报告](v0.3.3-beta.2-verification.json) |
 | [v0.3.2-beta.1](https://github.com/Goodoweswin/Titan/releases/tag/v0.3.2-beta.1) | 2026-11-01 | `d0bfca4` | [验证报告](v0.3.2-beta.1-verification.json) |

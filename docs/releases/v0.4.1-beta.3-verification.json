@@ -1,0 +1,103 @@
+{
+  "tag": "v0.4.1-beta.3",
+  "application_version": "0.4.1",
+  "source_commit": "a13b34998dfa23f21257786795f20456df107ff6",
+  "release_url": "https://github.com/Goodoweswin/Titan/releases/tag/v0.4.1-beta.3",
+  "published_at": "2026-11-06T20:03:26Z",
+  "verified_at": "2026-11-06T20:04:10.049778+00:00",
+  "release_workflow": {
+    "id": 42283699669,
+    "html_url": "https://github.com/Goodoweswin/Titan/actions/runs/42283699669",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "id": 128118957151,
+        "name": "build (macos-15, macos-arm64)",
+        "html_url": "https://github.com/Goodoweswin/Titan/actions/runs/42283699669/job/128118957151",
+        "conclusion": "success"
+      },
+      {
+        "id": 128118957371,
+        "name": "build (windows-2022, windows-x64)",
+        "html_url": "https://github.com/Goodoweswin/Titan/actions/runs/42283699669/job/128118957371",
+        "conclusion": "success"
+      },
+      {
+        "id": 128123379309,
+        "name": "publish",
+        "html_url": "https://github.com/Goodoweswin/Titan/actions/runs/42283699669/job/128123379309",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "assets": [
+    {
+      "name": "SHA256SUMS.txt",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.1-beta.3/SHA256SUMS.txt",
+      "size": 504,
+      "sha256": "d5baa561a7f11ccddc608db974f9d3caa6a860493817510bce5b2a904e2ef75c"
+    },
+    {
+      "name": "Titan-0.4.1-macos-arm64-third-party.zip",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.1-beta.3/Titan-0.4.1-macos-arm64-third-party.zip",
+      "size": 1966177,
+      "sha256": "d3e5bdff8150b48253c5ed4af2ccce1ea96d6f718aab83bac28daa23e5be75bb"
+    },
+    {
+      "name": "Titan-0.4.1-macos-arm64.app.zip",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.1-beta.3/Titan-0.4.1-macos-arm64.app.zip",
+      "size": 106971908,
+      "sha256": "1679fe4513e3493e4162058a79ba7560e49a7cb3aa1c309ee3e3d35bf2547b6f"
+    },
+    {
+      "name": "Titan-0.4.1-macos-arm64.dmg",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.1-beta.3/Titan-0.4.1-macos-arm64.dmg",
+      "size": 105866403,
+      "sha256": "5be6a910d6ba6caa91e6a3f3fedcf8c7f02eaefc016d5891649b23f4d646d096"
+    },
+    {
+      "name": "Titan-0.4.1-windows-x64-setup.exe",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.1-beta.3/Titan-0.4.1-windows-x64-setup.exe",
+      "size": 76679165,
+      "sha256": "9787bf0e6e85326e8118428c24b38f9d7b8a431f4488ad6db814e323225f2039"
+    },
+    {
+      "name": "Titan-0.4.1-windows-x64-third-party.zip",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.1-beta.3/Titan-0.4.1-windows-x64-third-party.zip",
+      "size": 2068344,
+      "sha256": "b6cf520a4f1324ae9af693a158a732ee33255aa26c1c0550d94266cc838e1d7a"
+    }
+  ],
+  "asset_checks": [
+    "published size",
+    "GitHub asset SHA-256 when present",
+    "all five SHA256SUMS entries",
+    "ZIP integrity",
+    "Mac application bundle version and identity",
+    "DMG integrity",
+    "Windows PE header"
+  ],
+  "local_verification_report": "v0.4.1-beta.1-local-verification.json",
+  "native_windows_gui": "not run",
+  "real_wb_if_accuracy": "not run",
+  "integration_ci": {
+    "id": 42280396554,
+    "html_url": "https://github.com/Goodoweswin/Titan/actions/runs/42280396554",
+    "head_sha": "b730795ddcf9e21db1ab64044aa5639a241e6565",
+    "conclusion": "success"
+  },
+  "previous_attempts": [
+    {
+      "tag": "v0.4.1-beta.1",
+      "release_workflow_id": 42282192428,
+      "windows_job": 128113755430,
+      "result": "Windows component tests selected the POSIX virtual environment path"
+    },
+    {
+      "tag": "v0.4.1-beta.2",
+      "release_workflow_id": 42282907086,
+      "windows_job": 128116215443,
+      "result": "Windows IF worker status read collided with atomic replacement"
+    }
+  ]
+}
