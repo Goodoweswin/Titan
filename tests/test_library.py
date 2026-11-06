@@ -274,3 +274,72 @@ def test_failed_export_registration_can_retry_without_exporting_again(tmp_path, 
     for _ in range(2):
         dispatch(dict(command='library_record_export', payload=retry, session=s))
     assert len(library.library_workspace(s)['entries'][0]['artifacts']) == 1
+
+
+def test_relocation_preflight_rejects_existing_if_copy_without_releasing_its_lock(tmp_path):
+    from titan_if import projects, service
+
+    s = session(tmp_path)
+    original = service.dispatch('if_new', {'name': 'IF'}, s)
+    copy_path = tmp_path / 'copy.titanif'
+    copied = projects.save_project(original, str(copy_path), None, s)
+    library_register(copied['project_path'], s)
+    owner = next(entry for entry in library_list(s) if entry['path'] == original['project_path'])
+    with pytest.raises(ValueError, match='另一条'):
+        service.dispatch('if_open', {'path': str(copy_path), 'entry_id': owner['entry_id']}, s)
+    assert (copy_path / '.writer.lock').is_file()
+
+
+def test_republished_path_updates_version_and_rejects_changed_output(tmp_path):
+    from titan_wb.engine import dispatch
+    from titan_wb.library import library_target, library_workspace
+
+    p, result, s = saved_fixture(tmp_path)
+    folder = tmp_path / 'out'
+    def publish():
+        dispatch(dict(command='export', payload=dict(project=p, result=result, destination=str(folder)), session=s))
+        return library_workspace(s)['entries'][0]
+    first = publish()['artifacts'][0]
+    folder.rename(tmp_path / 'earlier')
+    p['revision'] += 1
+    result = analyze(p)
+    entry = publish()
+    later, = entry['artifacts']
+    assert later['id'] != first['id'] and later['source_revision'] == result['input_revision']
+    book = folder / 'results.xlsx'
+    book.write_bytes(b'replaced externally')
+    with pytest.raises(ValueError, match='已变化'):
+        library_target(entry['entry_id'], later['id'], s)
+
+
+def test_copied_wb_history_keeps_its_plot_without_claiming_source_export(tmp_path):
+    from titan_wb.engine import dispatch
+    from titan_wb.library import library_workspace
+
+    p, result, s = saved_fixture(tmp_path)
+    folder = tmp_path / 'out'
+    published = dispatch(dict(command='export', payload=dict(project=p, result=result, destination=str(folder)), session=s))
+    save_figure(p, result, {}, '图表', s, export_origin={'path':str(folder),'png_sha256':published['outputs']['plot.png']})
+    dest = tmp_path / 'copy.titanwb'
+    copied = save_project(p, str(dest), None, s)
+    library_register(copied['project_path'], s)
+    entries = {entry['path']:entry for entry in library_workspace(s)['entries']}
+    assert len(entries[p['project_path']]['artifacts']) == 1
+    assert not entries[copied['project_path']]['artifacts']
+    assert len(entries[copied['project_path']]['figures']) == 1
+
+
+def test_malformed_wb_plot_catalog_does_not_hide_unaffected_entries(tmp_path):
+    from titan_wb.library import library_workspace
+
+    s = session(tmp_path)
+    first = library_create('Malformed', s)['project']
+    library_create('Unaffected', s)
+    folder = Path(first['project_path']) / 'figures'
+    folder.mkdir()
+    (folder / 'catalog.json').write_text(json.dumps({
+        'version':1, 'figures':[{'id':'a','current_version':'b','versions':[{'version_id':'b'}]}]
+    }))
+    rows = {entry['name']:entry for entry in library_workspace(s)['entries']}
+    assert rows['Unaffected']['available']
+    assert rows['Malformed']['available'] and rows['Malformed']['figure_error']

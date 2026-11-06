@@ -145,7 +145,7 @@ export default function App(){
    await activateProject(created.project);await library.refresh();return true
   }finally{if(token===projectNavigation.current)setSwitching(false)}
  }
- async function loadDemo(){const p=await execute<Project>('准备合成示例',()=>callEngine('demo'));if(p)await switchProject(p)}
+ async function loadDemo(){if(libraryFlight.current)return;const p=await execute<Project>('准备合成示例',()=>callEngine('demo'));if(p)await switchProject(p)}
  async function importImages(){
   if(!project||project.read_only)return
   const paths=await open({multiple:true,filters:[{name:'原始 WB 图像',extensions:['tif','tiff','png']}]});if(!paths)return
@@ -194,16 +194,23 @@ export default function App(){
   const token=++projectNavigation.current;setSwitching(true)
   try{
    if(!await canLeaveFigure()||!await flushCurrent())return
-   if(current.current?.project_path!==path){
-    const before=current.current,p=await readProject(path)
-    if(entryId&&library.entries.find(entry=>entry.entry_id===entryId)?.project_id!==p.id){
-     if(p.project_path!==before?.project_path)await callEngine('release_project',{path:p.project_path}).catch(()=>{})
-     throw new Error('重新定位的分析身份不匹配')
+   if(entryId)path=await callEngine<string>('library_check_path',{path,entry_id:entryId})
+   const before=current.current
+   if(before?.project_path!==path){
+    const candidate=await readProject(path)
+    const candidatePath=candidate.project_path!
+    const stillCurrent=()=>token===projectNavigation.current&&current.current===before
+    const releaseCandidate=async()=>{
+     if(candidatePath!==current.current?.project_path)await callEngine('release_project',{path:candidatePath}).catch(()=>{})
     }
-    if(token!==projectNavigation.current||!((!before&&!current.current)||sameProjectContext(current.current,before)&&current.current?.revision===before?.revision)){if(p.project_path!==current.current?.project_path)await callEngine('release_project',{path:p.project_path}).catch(()=>{});return}
-    await activateProject(p)
-   }
-   if(token!==projectNavigation.current)return
+    if(!stillCurrent()){await releaseCandidate();return false}
+    try{
+     await library.change('library_register',{path:candidatePath,entry_id:entryId})
+    }catch(error){await releaseCandidate();throw error}
+    if(!stillCurrent()){await releaseCandidate();return false}
+    await activateProject(candidate)
+   }else await library.change('library_register',{path,entry_id:entryId})
+   if(token!==projectNavigation.current)return false
    const openProject=current.current
    const actual=openProject?.project_path
    if(!openProject||!actual)return false
@@ -231,10 +238,14 @@ export default function App(){
     if(view==='workspace')setActiveSetId(openProject.band_sets.find(g=>g.role==='reference')?.id??'')
     await navigate(view,true)
    }
-   const actualPath=current.current?.project_path
-   if(actualPath)await library.remember(actualPath,{entry_id:actualPath===path?entryId:undefined})
    return true
-  }catch(e){if(token===projectNavigation.current)setMessage(String(e))}
+  }catch(e){
+   if(token===projectNavigation.current){
+    if(moduleRef.current==='wb')setMessage(String(e))
+    else setLibraryNotice(String(e))
+   }
+   return false
+  }
   finally{if(token===projectNavigation.current)setSwitching(false)}
  }
  async function guardLibrary(action:()=>Promise<boolean|undefined>){
@@ -274,7 +285,7 @@ export default function App(){
   const next=view??(saved?.view==='figure'?(figure?'results':!savedId||strip?'wb':'workspace'):saved?.view)??'workspace'
   if(entry.module==='if'){
    if(moduleRef.current==='wb'&&(!await canLeaveFigure()||!await flushCurrent()))return false
-   if(!await ifLibrary.current?.open(path,next,path!==entry.path?entry.entry_id:undefined))return false
+   if(!await ifLibrary.current?.open(path,next,entry.entry_id))return false
    setModule('if')
    return true
   }
@@ -283,7 +294,7 @@ export default function App(){
    id:figure!,entry_id:entry.entry_id??'',title:'',kind:'result_export' as const,
    source_revision:null,available:true,version_id:plotVersion,
   }:undefined
-  if(!await openPath(path,next,figure,path!==entry.path?entry.entry_id:undefined,targetArtifact??frozenArtifact))return false
+  if(!await openPath(path,next,figure,entry.entry_id,targetArtifact??frozenArtifact))return false
   setModule('wb')
   return true
  }
@@ -310,7 +321,7 @@ export default function App(){
   }catch(error){setLibraryNotice(String(error))}
  }
  function openArtifact(entry:LibraryEntry,artifact:LibraryArtifact){
-  if(artifact.kind==='wb_figure'||artifact.kind==='result_export'&&artifact.document_id){
+  if(artifact.kind==='wb_figure'||(artifact.kind==='wb_plot'||artifact.kind==='result_export')&&artifact.document_id){
    const strip=artifact.kind==='wb_figure'
    void guardLibrary(()=>openAnalysis(entry,strip?'wb':'results',strip?undefined:artifact.document_id,entry.path,artifact))
     .catch(error=>setLibraryNotice(String(error)))
@@ -426,7 +437,7 @@ export default function App(){
  useEffect(()=>{
   if(!native())return;let stop:(()=>void)|undefined
   getCurrentWindow().onCloseRequested(async e=>{
-   e.preventDefault();if(moduleRef.current==='if'&&!await ifClose.current())return;if(!await canLeaveFigure()||!await flushCurrent())return;const p=current.current
+   e.preventDefault();if(libraryFlight.current||!await ifClose.current())return;if(!await canLeaveFigure()||!await flushCurrent())return;const p=current.current
    if(p?.project_path)await callEngine('release_project',{path:p.project_path}).catch(()=>{})
    await getCurrentWindow().destroy()
   }).then(fn=>stop=fn);return()=>stop?.()
@@ -456,7 +467,7 @@ export default function App(){
  const activeEntry=entries.find(e=>e.path===project?.project_path)
  const figureDocument=activeEntry?.figures.find(f=>f.default_key===(project?.figure_settings?.panel_key||'all'))
  const reviewed=project?.rois.filter(r=>r.reviewed_revision===project.revision).length??0
- return <><div className="app-shell" style={{display:module==='wb'?undefined:'none'}}>
+ return <><div className="app-shell" style={{display:module==='wb'?undefined:'none'}} inert={libraryBusy}>
   {showWbGuide&&<WbImageGuide onClose={()=>setShowWbGuide(false)}/>}
   <aside className="sidebar"><div className="brand"><img className="brand-mark" src={appIcon} alt="" aria-hidden="true"/><div className="brand-name"><strong>Titan</strong></div></div>
    <nav className="analysis-modules" aria-label="分析模块"><button type="button" className="nav active module-nav" aria-current="page" title="Western blot" disabled={switching} onClick={openWbHome}><ScanLine size={18}/><span>Western blot</span></button><button type="button" className="nav module-nav" title="免疫荧光" disabled={switching} onClick={()=>enterIF()}><Microscope size={18}/><span>免疫荧光</span></button></nav>

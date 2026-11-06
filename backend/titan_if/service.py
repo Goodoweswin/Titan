@@ -2,6 +2,7 @@
 import base64
 import io
 import math
+import json
 import uuid
 from pathlib import Path
 
@@ -9,7 +10,7 @@ import numpy as np
 import tifffile
 from PIL import Image
 
-from titan_wb.library import library_root,library_register,create_managed_analysis,register_published_export
+from titan_wb.library import library_root,library_register,create_managed_analysis,register_published_export,library_check_path
 from . import projects,jobs
 from .models import new_project
 
@@ -76,12 +77,16 @@ def dispatch(command,payload,session):
     if command=="if_new":return _create(payload["name"],session,collection_id=payload.get("collection_id"),new_collection_name=payload.get("new_collection_name"))
     if command=="if_demo":return _demo(session)
     if command=="if_open":
-        path=payload["path"]
-        p=projects.open_project(path,session,True) if payload.get("read_only") else projects.recover_project(path,session)
+        path = library_check_path(payload["path"], payload.get("entry_id"), session)
         try:
-            library_register(p["project_path"],session,payload.get("entry_id"))
+            already_owned = json.loads((Path(path) / ".writer.lock").read_text()) == projects.writer_identity(session)
+        except FileNotFoundError:
+            already_owned = False
+        p = projects.open_project(path, session, True) if payload.get("read_only") else projects.recover_project(path, session)
+        try:
+            library_register(p["project_path"], session, payload.get("entry_id"))
         except (ValueError, OSError):
-            if payload.get("entry_id") and not p.get("read_only"):
+            if not already_owned and not p.get("read_only"):
                 projects.release_project(p["project_path"], session)
             raise
         return p

@@ -108,14 +108,17 @@ export default function ProjectLibrary({entries,projects,project,activeFigure,cu
      <div className="library-children library-artifacts">{figures.map(({entry,figure})=><button key={entry.entry_id+':'+figure.id}
       className={entry.entry_id===active?.entry_id&&activeFigure===figure.id?'selected':''}
       title={`${entry.name} · 源版本 ${figure.source_revision}`}
-      aria-label={`打开图表 ${figure.name}`} disabled={busy} onClick={()=>onOpen(entry,'results',figure.id)}>
+      aria-label={`打开图表 ${figure.name}`} disabled={busy} onClick={()=>onArtifact(entry,{
+       id:figure.id,entry_id:entry.entry_id,kind:'wb_plot',title:figure.name,
+       available:true,source_revision:figure.source_revision,document_id:figure.id,version_id:figure.selected_version,
+      })}>
       <FileBarChart2 size={14}/><span>{figure.name}<small>{entry.name}</small></span>{figure.source_stale&&<small>旧版本</small>}
      </button>)}
      {outputs.map(({entry,artifact})=>{
       const isDocument=artifact.kind==='wb_figure'
       const disabled=busy||(isDocument?!entry.available:!artifact.available&&!artifact.document_id)
       return <div className="library-artifact-row" key={entry.entry_id+':'+artifact.id}>
-       <button className={active?.entry_id===entry.entry_id&&activeFigure===artifact.id?'selected':''}
+       <button className={active?.entry_id===entry.entry_id&&(activeFigure===artifact.id||activeFigure===artifact.document_id)?'selected':''}
         title={`${entry.name} · ${artifact.source_revision===null?'图形版本 '+artifact.version_id:'源版本 '+artifact.source_revision}`}
         aria-label={`${isDocument?'打开组图':'打开导出'} ${artifact.title}`} disabled={disabled}
         onClick={()=>onArtifact(entry,artifact)}>

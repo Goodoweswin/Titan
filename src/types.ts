@@ -60,7 +60,7 @@ export interface LibraryArtifact {
  id:string
  entry_id:string
  title:string
- kind:'wb_figure'|'wb_figure_export'|'if_figure_export'|'result_export'
+ kind:'wb_plot'|'wb_figure'|'wb_figure_export'|'if_figure_export'|'result_export'
  source_revision:number|null
  document_id?:string
  version_id?:string

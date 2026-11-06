@@ -83,6 +83,9 @@ def dispatch(request):
     if command=='library_record_export':
         from .library import library_record_export
         return library_record_export(payload['project_path'],payload['project_id'],payload['record'],session)
+    if command=='library_check_path':
+        from .library import library_check_path
+        return library_check_path(payload['path'],payload.get('entry_id'),session)
     if command=='library_target':
         from .library import library_target
         return library_target(payload['entry_id'],payload.get('artifact_id'),session)

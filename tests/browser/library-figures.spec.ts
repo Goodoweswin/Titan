@@ -118,14 +118,15 @@ test('invalid drafts remain editable, cancelling navigation preserves them, and 
 
 for(const operation of ['history','source-update'])test(`late ${operation} document loads cannot replace a newly selected project`,async({page})=>{
  await page.goto('/?integration=1');const p=await seedThreeGroups(page),r=await rpc(page,'analyze',{project:p})
- const first=await rpc(page,'save_figure',{project:p,result:r,figure_settings:{},name:'延迟文档验收'})
- await rpc(page,'save_figure',{project:p,result:r,figure_settings:{error:'sem'},name:'延迟文档验收',figure_id:first.id,expected_version:first.current_version})
+ const figureName='延迟文档验收 '+operation
+ const first=await rpc(page,'save_figure',{project:p,result:r,figure_settings:{},name:figureName})
+ await rpc(page,'save_figure',{project:p,result:r,figure_settings:{error:'sem'},name:figureName,figure_id:first.id,expected_version:first.current_version})
  if(operation==='source-update'){
   p.revision++;p.samples[0].name='源已变化';p.rois.forEach((r:any)=>r.reviewed_revision=p.revision);p.lane_layouts[0].confirmed_revision=p.revision
   await rpc(page,'save_project',{project:p,path:p.project_path,expected_revision:p.saved_revision})
  }
  await page.reload();await page.getByRole('button',{name:'打开项目 '+p.name,exact:true}).click()
- await page.getByRole('button',{name:'打开图表 延迟文档验收',exact:true}).click()
+ await page.getByRole('button',{name:'打开图表 '+figureName,exact:true}).click()
  await expect(page.getByRole('img',{name:'当前结果图表',exact:true})).toBeVisible({timeout:15000})
  let release!:()=>void,received!:()=>void
  const held=new Promise<void>(resolve=>release=resolve),waiting=new Promise<void>(resolve=>received=resolve)
@@ -140,7 +141,7 @@ for(const operation of ['history','source-update'])test(`late ${operation} docum
  await waiting;await createAnalysis(page,'wb')
  await expect(page.getByLabel('实验名称')).toHaveValue('未命名实验')
  release();await page.waitForTimeout(200)
- await expect(page.getByRole('heading',{name:'延迟文档验收',exact:true})).toHaveCount(0)
+ await expect(page.getByRole('heading',{name:figureName,exact:true})).toHaveCount(0)
  await expect(page.getByRole('img',{name:'当前结果图表',exact:true})).toHaveCount(0)
 })
 

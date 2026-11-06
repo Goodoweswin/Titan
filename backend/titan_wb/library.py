@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from datetime import datetime,timezone
 from pathlib import Path
 from .models import new_project
+from .images import file_hash
 from .projects import atomic_json,save_project,operation_lock
 from .figure_documents import save_figure,load_figure,source_signature,figure_catalog_metadata
 
@@ -60,7 +61,7 @@ def _public(entry):
         row.update(name=p['name'],revision=p.get('revision'))
         if row['module']=='wb':
             try:row['figures']=figure_catalog_metadata(root,source_signature(p))
-            except (ValueError, OSError) as e:row['figure_error']=str(e)
+            except (ValueError, OSError, KeyError, TypeError) as e:row['figure_error']=str(e)
             from .wb_figures import document_catalog_metadata
             try:
                 for document in document_catalog_metadata(root):
@@ -79,7 +80,25 @@ def _public(entry):
 
 
 def _rows(data):
-    return [_public(row) for row in sorted(data['entries'], key=lambda row: row['last_opened'], reverse=True)]
+    rows = [_public(row) for row in sorted(data['entries'], key=lambda row: row['last_opened'], reverse=True)]
+    owners = {}
+    for row in rows:
+        for artifact in row['artifacts']:
+            if 'destination' not in artifact:
+                continue
+            key = (row['project_id'], artifact['destination'])
+            explicit, inferred = owners.setdefault(key, (set(), set()))
+            (inferred if artifact.get('legacy_origin') else explicit).add(row['entry_id'])
+    for row in rows:
+        artifacts = []
+        for artifact in row['artifacts']:
+            if artifact.get('legacy_origin'):
+                explicit, inferred = owners[(row['project_id'], artifact['destination'])]
+                if explicit or len(inferred) != 1:
+                    continue
+            artifacts.append(artifact)
+        row['artifacts'] = artifacts
+    return rows
 
 
 def library_list(session):
@@ -182,7 +201,7 @@ def library_set_resume(entry_id, resume, session):
     return True
 
 
-def _register(data, folder, manifest, *, entry_id=None, source_entry_id=None, touch_opened=True):
+def _registered_entry(data, folder, manifest, entry_id):
     path = str(folder)
     project_id = manifest['id']
     module = manifest.get('module', 'wb')
@@ -196,6 +215,20 @@ def _register(data, folder, manifest, *, entry_id=None, source_entry_id=None, to
             raise ValueError('此位置已登记为另一条项目记录')
     if entry is not None and (entry['project_id'] != project_id or entry.get('module', 'wb') != module):
         raise ValueError('此路径已登记给其他分析，请先重新定位旧分析')
+    return entry
+
+
+def library_check_path(path, entry_id, session):
+    folder, manifest = _project(path)
+    _registered_entry(_index(library_root(session)), folder, manifest, entry_id)
+    return str(folder)
+
+
+def _register(data, folder, manifest, *, entry_id=None, source_entry_id=None, touch_opened=True):
+    path = str(folder)
+    project_id = manifest['id']
+    module = manifest.get('module', 'wb')
+    entry = _registered_entry(data, folder, manifest, entry_id)
     if entry is None:
         stamp = _now()
         entry = dict(entry_id=uuid.uuid4().hex, created_at=stamp, last_opened=stamp)
@@ -258,10 +291,18 @@ _EXPORT_KINDS = {'result_export', 'if_figure_export', 'wb_figure_export'}
 _OUTPUT_SUFFIXES = {'.png', '.tif', '.tiff', '.svg', '.pdf', '.xlsx', '.csv', '.json'}
 
 
+def _primary_file(files):
+    candidates = [Path(file) for file in files]
+    for suffix in ('.xlsx', '.png', '.svg', '.tiff', '.tif', '.pdf'):
+        matching = [path for path in candidates if path.suffix.lower() == suffix]
+        if matching:
+            return min(matching, key=lambda path: len(path.parts))
+    return None
+
+
 def _output_state(artifact):
-    files = artifact['files']
-    available = bool(files) and all(Path(file).is_file() for file in files)
-    return dict(artifact, available=available)
+    primary = artifact.get('primary_file') or _primary_file(artifact['files'])
+    return dict(artifact, available=bool(primary and Path(primary).is_file()))
 
 
 def _include_archived_exports(row, root):
@@ -282,11 +323,13 @@ def _include_archived_exports(row, root):
             artifact = _output_state(dict(
                 id='export:'+version['version_id'], title=version['name'], kind='result_export',
                 destination=path, files=[str(Path(path) / 'plot.png')],
-                source_revision=version['source_revision'],
+                source_revision=version['source_revision'], legacy_origin=True,
+                primary_sha256=origin.get('png_sha256'),
             ))
             row['artifacts'].append(artifact)
             by_path[path] = artifact
-        artifact.update(document_id=version['document_id'], version_id=version['version_id'])
+        if artifact.get('legacy_origin') or artifact.get('plot_sha256') == origin.get('png_sha256'):
+            artifact.update(document_id=version['document_id'], version_id=version['version_id'])
 
 
 def library_record_export(project_path, project_id, record, session):
@@ -302,6 +345,10 @@ def library_record_export(project_path, project_id, record, session):
         raise ValueError('导出文件缺失或路径无效')
     if not destination.is_dir() and destination not in checked:
         raise ValueError('找不到已导出的主文件')
+    primary = _primary_file(checked)
+    expected_sha256 = record.get('primary_sha256')
+    if primary is None or not expected_sha256 or file_hash(primary) != expected_sha256:
+        raise ValueError('导出主文件已变化，无法登记到原版本')
     revision = record['source_revision']
     if type(revision) is not int or revision < 0:
         raise ValueError('导出来源版本无效')
@@ -313,10 +360,14 @@ def library_record_export(project_path, project_id, record, session):
         exports = entry.setdefault('exports', [])
         previous = next((item for item in exports if item['kind'] == record['kind'] and item['destination'] == str(destination)), None)
         if previous is not None:
-            return _output_state(previous)
+            if previous['source_revision'] == revision and previous.get('primary_sha256') == expected_sha256:
+                return _output_state(previous)
+            exports.remove(previous)
         artifact = dict(id='export:'+uuid.uuid4().hex, title=_name(record['title']),
                         kind=record['kind'], source_revision=revision,
-                        destination=str(destination), files=[str(f) for f in checked])
+                        destination=str(destination), files=[str(f) for f in checked],
+                        primary_file=str(primary), primary_sha256=expected_sha256,
+                        plot_sha256=record.get('plot_sha256'))
         exports.append(artifact)
         return _output_state(artifact)
 
@@ -329,8 +380,18 @@ def register_published_export(project, result, destination, kind, title, revisio
     files = result.get('files')
     if files is None:
         files = [str(path / name) for name in result['outputs']]
+    primary = _primary_file(files)
+    hashes = result.get('outputs', {})
+    primary_sha256 = None
+    if primary is not None:
+        primary_sha256 = hashes.get(primary.relative_to(path).as_posix()) if path.is_dir() else None
+        try:
+            primary_sha256 = primary_sha256 or file_hash(primary)
+        except OSError:
+            pass
     record = dict(destination=str(path), files=files, kind=kind,
-                  title=title.strip()[:120] or path.name[:120], source_revision=revision)
+                  title=title.strip()[:120] or path.name[:120], source_revision=revision,
+                  primary_sha256=primary_sha256, plot_sha256=hashes.get('plot.png'))
     request = dict(project_path=project['project_path'], project_id=project['id'], record=record)
     try:
         library_record_export(**request, session=session)
@@ -340,7 +401,8 @@ def register_published_export(project, result, destination, kind, title, revisio
 
 
 def library_target(entry_id, artifact_id, session):
-    entry = _public(_entry(_index(library_root(session)), entry_id))
+    rows = library_workspace(session)['entries']
+    entry = _find(rows, 'entry_id', entry_id, '找不到该分析记录')
     if artifact_id is None:
         if not entry['available']:
             raise ValueError('分析文件夹不可用，请重新定位')
@@ -348,10 +410,12 @@ def library_target(entry_id, artifact_id, session):
     artifact = _find(entry['artifacts'], 'id', artifact_id, '找不到导出记录')
     if 'destination' not in artifact:
         raise ValueError('请选择一个导出记录')
-    preferred = ('.xlsx', '.png', '.svg', '.tiff', '.tif', '.pdf')
-    for suffix in preferred:
-        for file in artifact['files']:
-            path = Path(file)
-            if path.suffix.lower() == suffix and path.is_file() and path.resolve() == path:
-                return file
+    selected = artifact.get('primary_file') or _primary_file(artifact['files'])
+    if selected is not None:
+        path = Path(selected)
+        if path.is_file() and path.resolve() == path:
+            digest = artifact.get('primary_sha256')
+            if digest and file_hash(path) != digest:
+                raise ValueError('导出文件已变化，请核对文件或重新导出')
+            return str(path)
     raise ValueError('找不到导出文件')
