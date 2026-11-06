@@ -6,7 +6,7 @@ import {callEngine} from '../bridge'
 import ProjectLibrary,{type LibraryView} from '../ProjectLibrary'
 import type {AnalysisCreation,LibraryDialog} from '../LibraryCreateDialog'
 import type {ProjectLibraryModel} from '../useProjectLibrary'
-import type {LibraryArtifact,LibraryCollection,LibraryEntry,LibraryExportReceipt} from '../types'
+import type {CloseActions,LibraryArtifact,LibraryCollection,LibraryEntry,LibraryExportReceipt} from '../types'
 import {canAcceptJob,editField,mergeSaved,copyRecipe,undoMask} from './state'
 import type {ActiveJob,IFField,IFFigure,IFJob,IFProject,IFSelection} from './types'
 import ImportDialog from './ImportDialog'
@@ -27,7 +27,7 @@ interface Props {
  active:boolean
  onWB:()=>void
  onStats:()=>void
- registerClose:(callback:()=>Promise<boolean>)=>void
+ registerClose:(actions:CloseActions)=>void
  registerLibrary:(actions:IFLibraryActions)=>void
  library:ProjectLibraryModel
  libraryBusy:boolean
@@ -52,7 +52,9 @@ export default function IFWorkspace({active,onWB,onStats,registerClose,registerL
  async function flush(){try{await persist();if(current.current&&current.current.saved_revision!==current.current.revision){await persist();if(current.current.saved_revision!==current.current.revision)throw new Error('保存期间仍有新修改')}return true}catch(e){setMessage('保存未完成，当前修改仍保留：'+e);return false}}
  async function cancel(){const pending=activeJob.current;activeJob.current=null;epoch.current++;clearTimeout(poll.current);setJob(null);if(pending)try{await callEngine('if_cancel_job',{job_id:pending.job_id})}catch(e){setMessage(String(e))}setMessage('任务已取消，本次结果不会应用。')}
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;epoch.current++;clearTimeout(poll.current)}},[])
- useEffect(()=>{registerClose(async()=>{if(!await flush())return false;await cancel();const p=current.current;if(p?.project_path)await callEngine('if_release',{path:p.project_path});return true})})
+ useEffect(()=>{registerClose({prepare:prepareLeave,finish:async()=>{
+  const p=current.current;if(p?.project_path)await callEngine('if_release',{path:p.project_path})
+ }})})
  useEffect(()=>{if(!project||project.read_only||project.saved_revision===project.revision||busy)return;const timer=setTimeout(()=>persist().catch(e=>setMessage('自动保存未完成：'+e)),1200);return()=>clearTimeout(timer)},[project,busy])
  async function changeProject(command:'if_new'|'if_demo'|'if_open',payload:object={},view:LibraryView='workspace',raiseError=false){
   if(busy)return false

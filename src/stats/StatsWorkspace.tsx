@@ -5,9 +5,9 @@ import {callEngine} from '../bridge'
 import ProjectLibrary,{type LibraryView} from '../ProjectLibrary'
 import type {ProjectLibraryModel} from '../useProjectLibrary'
 import type {AnalysisCreation,LibraryDialog} from '../LibraryCreateDialog'
-import type {LibraryArtifact,LibraryCollection,LibraryEntry,LibraryExportReceipt,LibraryResume,Project} from '../types'
+import type {CloseActions,LibraryArtifact,LibraryCollection,LibraryEntry,LibraryExportReceipt,LibraryResume,Project} from '../types'
 import appIcon from '../../assets/brand/titan-app-icon-128.png'
-import type {Dataset,Figure,Run,StatsProject,Style} from './types'
+import type {Dataset,DatasetSource,Figure,Run,StatsProject,Style} from './types'
 import {currentRun,inputKey} from './types'
 import './stats.css'
 const id=()=>crypto.randomUUID()
@@ -26,8 +26,8 @@ interface Props {
  libraryBusy:boolean
  onWB:()=>void
  onIF:()=>void
- onSource:(path:string)=>void
- registerClose:(callback:()=>Promise<boolean>)=>void
+ onSource:(source:DatasetSource)=>void
+ registerClose:(actions:CloseActions)=>void
  registerLibrary:(actions:StatsLibraryActions)=>void
  onOpen:(entry:LibraryEntry,view?:LibraryView,figureId?:string)=>void
  onDialog:(dialog:LibraryDialog)=>void
@@ -60,11 +60,9 @@ export default function StatsWorkspace({
  }
  async function flush(){try{await persist();await persist();if(ref.current&&ref.current.revision!==ref.current.saved_revision)throw new Error('保存期间数据仍在修改');return true}catch(e){setMessage('保存未完成：'+e);return false}}
  useEffect(()=>{
-  registerClose(async()=>{
-   if(!await prepareLeave())return false
+  registerClose({prepare:prepareLeave,finish:async()=>{
    if(ref.current?.project_path)await callEngine('stats_release',{path:ref.current.project_path})
-   return true
-  })
+  }})
   registerLibrary({
    prepareLeave,
    create:input=>change('stats_new',input,undefined,true),
@@ -116,10 +114,9 @@ export default function StatsWorkspace({
  function edit(fn:(p:StatsProject)=>void){const before=ref.current;if(!before||busy)return;const next=structuredClone(before);fn(next);next.revision++;setPast(v=>[...v.slice(-29),before]);setFuture([]);assign(next)}
  function editD(fn:(d:Dataset)=>void){edit(next=>fn(next.datasets.find(t=>t.id===d?.id)!))}
  function undo(redo=false){const stack=redo?future:past;if(!p||!stack.length)return;const next={...structuredClone(stack[stack.length-1]),revision:p.revision+1,saved_revision:p.saved_revision,project_path:p.project_path};if(redo){setFuture(stack.slice(0,-1));setPast(v=>[...v,p])}else{setPast(stack.slice(0,-1));setFuture(v=>[...v,p])}assign(next)}
- async function leave(fn:()=>void){if(!libraryBusy&&await prepareLeave())fn()}
  const previewKey=display&&style?JSON.stringify([display,style,run?.id]):''
  useEffect(()=>{if(!active||!display||!style)return;let cancelled=false;setPreview(null);setPreviewError('');const timer=setTimeout(()=>{callEngine<{png:string;caption:string;notes:string[]}>('stats_preview',{dataset:display,style,run}).then(v=>{if(!cancelled)setPreview(v)}).catch(e=>{if(!cancelled)setPreviewError(String(e))})},350);return()=>{cancelled=true;clearTimeout(timer)}},[active,previewKey])
- async function analyze(){if(!d)return;const before=d,token=epoch.current;await task('运行统计分析',async()=>{const r=await callEngine<Run>('stats_analyze',{dataset:before});const live=ref.current;if(!live||token!==epoch.current)return;const target=live.datasets.find(t=>t.id===before.id);if(!target||inputKey(target)!==inputKey(before))throw new Error('数据已改变，请重新分析');const next=structuredClone(live);next.datasets.find(t=>t.id===before.id)!.runs.push(r);next.revision++;assign(next);setView('analysis');await persist()})}
+ async function analyze(){if(!d)return;const before=d,token=epoch.current,revision=ref.current?.revision;await task('运行统计分析',async()=>{const r=await callEngine<Run>('stats_analyze',{dataset:before});const live=ref.current;if(!live||token!==epoch.current)return;const target=live.datasets.find(t=>t.id===before.id);if(!target||inputKey(target)!==inputKey(before))throw new Error('数据已改变，请重新分析');const next=structuredClone(live);next.datasets.find(t=>t.id===before.id)!.runs.push({...r,source_revision:revision});next.revision++;assign(next);setView('analysis');await persist()})}
  async function addTable(dataset?:Dataset){if(!p)return;const next=dataset??await callEngine<Dataset>('stats_dataset',{name:'数据表 '+(p.datasets.length+1)});edit(v=>v.datasets.push(next));setDatasetId(next.id);setFrozen(null);setView('data');setModal('')}
  function selectTable(key:string,next:typeof view){setDatasetId(key);setFrozen(null);setView(next)}
  async function inspectImport(file?:string,worksheet?:string){await task('解析数据',async()=>{const result=await callEngine<{dataset:Dataset;sheets:string[]}>('stats_import',file?{path:file,sheet:worksheet||undefined,format:importFormat}:{text,format:importFormat});setImported(result);if(file)setLocation(file)})}
@@ -139,6 +136,7 @@ export default function StatsWorkspace({
    }else{
     const receipt=await callEngine<LibraryExportReceipt>('stats_export',{
      project:source,dataset:display,style,run,destination:dest,figure_id:frozenDocument?.id,
+     run_id:frozen&&!frozenDocument?frozen.run?.id:undefined,
     })
     onExported(receipt)
    }
@@ -165,7 +163,7 @@ export default function StatsWorkspace({
  {!p?<section className="welcome stats-welcome"><BarChart3 size={48} strokeWidth={1}/><h1>从数据到论文图</h1><p>整理实验数据、运行统计分析，制作可编辑的图形。</p><div className="welcome-actions"><button className="btn primary" onClick={()=>onDialog({kind:'stats'})}>新建统计项目</button><button className="btn secondary" onClick={()=>change('stats_demo',{})}>体验合成示例</button></div><p className="hint">Excel / CSV / 粘贴 · 独立与配对设计 · 本地保存</p></section>:display&&style&&<>
  <nav className="stats-tabs" aria-label="统计工作区"><button className={view==='data'?'selected':''} onClick={()=>setView('data')}>数据表</button><button className={view==='analysis'?'selected':''} onClick={()=>setView('analysis')}>统计分析</button><button className={view==='graph'?'selected':''} onClick={()=>setView('graph')}>图形</button><span/><button disabled={!!busy} onClick={()=>addTable()}>＋ 数据表</button><button disabled={!!busy} onClick={()=>{setImported(null);setText('');setLocation('');setModal('import')}}>导入 / 粘贴</button></nav>
  <main className="stats-content">{frozen&&<div className="stats-source">正在查看冻结图形 {frozen.name}。<button className="text-btn" onClick={copyTable}>复制数据为新表</button></div>}
- {display.source?.kind==='wb'&&<div className="stats-source">WB 来源：{display.source.endpoint} · {display.source.block} · 版本 {display.source.revision}<button className="text-btn" onClick={()=>display.source?.path&&leave(()=>onSource(display.source!.path!))}>返回 WB</button>{!frozen&&<button className="text-btn" disabled={!!busy} onClick={()=>task('更新来源',async()=>{if(!await flush())return;const next=await callEngine<StatsProject>('stats_update_source',{project:ref.current,dataset_id:d!.id});assign(next);setPast([]);setFuture([]);setMessage('来源已更新；历史图保留原数据，请重新选择分析。')})}>用当前 WB 更新</button>}<button className="text-btn" disabled={!!busy} onClick={copyTable}>复制为可编辑表</button></div>}
+ {display.source?.kind==='wb'&&<div className="stats-source">WB 来源：{display.source.endpoint} · {display.source.block} · 版本 {display.source.revision}<button className="text-btn" disabled={!!busy||(!display.source.path&&!display.source.entry_id)} onClick={()=>onSource(display.source!)}>返回 WB</button>{!frozen&&(display.source.path||display.source.entry_id)&&<button className="text-btn" disabled={!!busy} onClick={()=>task('更新来源',async()=>{if(!await flush())return;const next=await callEngine<StatsProject>('stats_update_source',{project:ref.current,dataset_id:d!.id});assign(next);setPast([]);setFuture([]);setMessage('来源已更新；历史图保留原数据，请重新选择分析。')})}>用当前 WB 更新</button>}<button className="text-btn" disabled={!!busy} onClick={copyTable}>复制为可编辑表</button></div>}
  {view==='data'&&<section><div className="stats-section-title"><input aria-label="数据表名称" value={display.name} disabled={disabled} onChange={e=>editD(t=>{t.name=e.target.value})}/><span>{display.rows.length} 行 · {display.groups.length} 组</span></div><p className="hint">每格填入一个独立单位的数值。配对设计使用左列相同 ID；空格为缺失。右键单元格可排除/恢复，原值始终保留。</p><div className="stats-grid-scroll"><table className="stats-grid"><thead><tr><th>独立单位 / 配对 ID</th>{display.groups.map((g,i)=><th key={g.id}><input aria-label={`组名 ${i+1}`} value={g.label} disabled={disabled||locked} onChange={e=>editD(t=>{t.groups[i].label=e.target.value})}/>{!locked&&!frozen&&<button aria-label={`删除组 ${g.label}`} disabled={disabled||display.groups.length<=1} onClick={()=>editD(t=>{t.groups.splice(i,1);t.rows.forEach(r=>{delete r.values[g.id];delete r.excluded[g.id]});if(t.analysis.control_group===g.id)t.analysis.control_group=t.groups[0].id})}>×</button>}</th>)}<th/></tr></thead><tbody>{display.rows.map((row,ri)=><tr key={row.id}><th><input aria-label={`样本 ID ${ri+1}`} value={row.label} disabled={disabled||locked} onChange={e=>editD(t=>{t.rows[ri].label=e.target.value})}/></th>{display.groups.map((g,gi)=><td key={g.id} className={row.excluded[g.id]?'excluded':''}><input aria-label={`数值 ${ri+1} ${gi+1}`} value={row.values[g.id]??''} disabled={disabled||locked} onChange={e=>editD(t=>{t.rows[ri].values[g.id]=e.target.value})} onPaste={e=>paste(e,ri,gi)} onContextMenu={e=>{e.preventDefault();if(!disabled&&!locked)editD(t=>{t.rows[ri].excluded[g.id]=!row.excluded[g.id]})}}/></td>)}<td><button aria-label={`删除行 ${ri+1}`} disabled={disabled||locked} onClick={()=>editD(t=>{t.rows.splice(ri,1)})}>×</button></td></tr>)}</tbody></table></div><div className="stats-actions"><button className="btn secondary" disabled={disabled||locked} onClick={()=>editD(t=>t.rows.push({id:id(),label:String(t.rows.length+1),values:{},excluded:{}}))}>添加行</button><button className="btn secondary" disabled={disabled||locked||display.groups.length>=30} onClick={()=>editD(t=>t.groups.push({id:id(),label:'Group '+(t.groups.length+1)}))}>添加组</button><button className="btn primary" onClick={()=>setView('analysis')}>设置统计分析</button></div></section>}
  {view==='analysis'&&<section><h2>{display.name}</h2><fieldset disabled={disabled} className="stats-analysis-controls"><label>统计方法<select aria-label="统计方法" value={display.analysis.method} onChange={e=>editD(t=>{t.analysis.method=e.target.value})}><option value="descriptive">仅描述统计</option><option value="welch">Welch 独立样本 t 检验</option><option value="paired">配对 t 检验</option><option value="anova">普通单因素 ANOVA</option><option value="welch_anova">Welch 单因素 ANOVA</option></select></label><label>分析尺度<select value={display.analysis.scale} onChange={e=>editD(t=>{t.analysis.scale=e.target.value})}><option value="raw">原始数值</option><option value="log2">log2（仅正值）</option></select></label>{['anova','welch_anova'].includes(display.analysis.method)&&<><label>比较范围<select aria-label="统计比较范围" value={display.analysis.scope} onChange={e=>editD(t=>{t.analysis.scope=e.target.value})}><option value="control">各组与对照</option><option value="all">全部两两比较</option></select></label><label>对照组<select value={display.analysis.control_group} onChange={e=>editD(t=>{t.analysis.control_group=e.target.value})}>{display.groups.map(g=><option value={g.id} key={g.id}>{g.label}</option>)}</select></label></>}</fieldset><label className="stats-confirm"><input type="checkbox" aria-label="确认独立单位" checked={display.confirmed} disabled={disabled||locked} onChange={e=>editD(t=>{t.confirmed=e.target.checked})}/>已确认每格代表独立生物学单位；技术重复已汇总；配对关系由 ID 明确。</label><p className="hint">普通 ANOVA 假定独立、残差近似正态及等方差；Welch 允许不等方差。多组对照采用 Dunnett，全部比较采用 Tukey；Welch 后使用 Games–Howell。方法应由实验设计决定。</p>{!frozen&&<button className="btn primary" disabled={!!busy} onClick={analyze}>运行分析</button>}
  {!run?<p className="stats-empty">{display.runs?.length?'数据或设置已改变，请重新运行分析。':'尚未运行当前分析。'}</p>:<><p className="stats-method">{run.method_text}</p>{run.omnibus&&<p>总体检验：F = {fmt(run.omnibus.statistic)}，P = {fmt(run.omnibus.p_raw)}</p>}<table className="stats-results"><thead><tr><th>组别</th><th>独立 n</th><th>均值</th><th>SD</th><th>SEM</th></tr></thead><tbody>{run.summaries.map(s=><tr key={s.group}><td>{display.groups.find(g=>g.id===s.group)?.label??s.label}</td><td>{s.n}</td><td>{fmt(s.mean)}</td><td>{fmt(s.sd)}</td><td>{fmt(s.sem)}</td></tr>)}</tbody></table>{run.comparisons.length>0&&<table className="stats-results"><thead><tr><th>对比（B−A）</th><th>效应</th><th>95% CI</th><th>P 值</th><th>校正</th></tr></thead><tbody>{run.comparisons.map((r,i)=><tr key={i}><td>{display.groups.find(g=>g.id===r.group_b)?.label} − {display.groups.find(g=>g.id===r.group_a)?.label}</td><td>{fmt(r.effect)}</td><td>{r.ci95?.map(fmt).join(' 至 ')}</td><td>{fmt(r.p_adjusted)}</td><td>{r.adjustment_method}</td></tr>)}</tbody></table>}<p className="hint">图上每组均值区间、组对差值的普通区间与多重比较同时区间分别解释。SciPy {run.scipy_version}。</p><button className="btn secondary" onClick={()=>setView('graph')}>查看图形</button></>}

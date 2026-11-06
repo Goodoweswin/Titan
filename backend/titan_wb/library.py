@@ -74,7 +74,11 @@ def _public(entry):
                 row['figure_error'] = ' · '.join(filter(None, [row.get('figure_error'), str(e)]))
             _include_archived_exports(row, root)
         if row['module'] == 'stats':
-            for figure in p.get('figures', []):
+            figures = p.get('figures', [])
+            if not isinstance(figures, list):
+                row['figure_error'] = '统计图形记录损坏'
+                figures = []
+            for figure in figures:
                 if not isinstance(figure, dict) or not all(isinstance(figure.get(key), str) for key in ('id', 'name')):
                     row['figure_error'] = '统计图形记录损坏'
                     continue
@@ -263,6 +267,23 @@ def entry_for_path(path, session):
     return next((entry for entry in data['entries'] if entry['path'] == canonical), None)
 
 
+def resolve_analysis_source(path, entry_id, project_id, module, session):
+    if not isinstance(project_id, str) or not project_id or (not path and not entry_id):
+        raise ValueError('找不到已保存的来源分析')
+    data = _index(library_root(session))
+    if entry_id:
+        entry = _entry(data, entry_id)
+        path = entry['path']
+    try:
+        folder, manifest = _project(path)
+    except ValueError as e:
+        raise ValueError('找不到来源分析，请先在左栏重新定位原分析') from e
+    if manifest['id'] != project_id or manifest.get('module', 'wb') != module:
+        raise ValueError('来源分析身份不匹配，请重新定位原分析')
+    entry = _registered_entry(data, folder, manifest, entry_id)
+    return dict(path=str(folder), entry_id=entry and entry['entry_id'], project_id=project_id)
+
+
 def _register(data, folder, manifest, *, entry_id=None, source_entry_id=None, touch_opened=True):
     path = str(folder)
     project_id = manifest['id']
@@ -313,6 +334,30 @@ def create_managed_analysis(project, suffix, save, session, *, collection_id=Non
             shutil.rmtree(path)
         raise
     return dict(project=saved, entry=_public(entry))
+
+
+def copy_registered_analysis(project, destination, suffix, save, session):
+    path = Path(destination).expanduser().resolve()
+    if path.suffix != suffix:
+        raise ValueError(f'项目目录名需以 {suffix} 结尾')
+    created = False
+    try:
+        with _edit_index(session) as data:
+            source_path = project.get('project_path')
+            source_path = str(Path(source_path).resolve()) if source_path else None
+            source = next((entry for entry in data['entries'] if entry['path'] == source_path), None)
+            try:
+                path.mkdir(parents=True)
+            except FileExistsError as e:
+                raise ValueError('请选择尚不存在的另存位置') from e
+            created = True
+            saved = save(project, str(path), None, session)
+            _register(data, path, saved, source_entry_id=source and source['entry_id'])
+    except Exception:
+        if created:
+            shutil.rmtree(path)
+        raise
+    return saved
 
 
 def library_create(name, session, *, collection_id=None, new_collection_name=None):

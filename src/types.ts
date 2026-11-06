@@ -5,7 +5,7 @@ export interface Sample{id:string;name?:string;bio_id:string;group:string;pair_i
 export interface Lane{id:string;membrane_id:string;sample_id:string;technical_id:string}
 export interface ROI{id:string;image_id:string;lane_id:string;analyte:string;role:'target'|'reference';rect:Rect;backgrounds:Rect[];reference_id:string|null;reviewed_revision:number|null;lane_layout_id?:string;band_set_id?:string}
 export interface ComparisonSpec{id:string;family_id:string;group_a:string;group_b:string;test:'descriptive'|'welch'|'paired';scale:'raw'|'log2'}
-export interface Project{id:string;name:string;schema_version:2;revision:number;lane_layouts:LaneLayout[];band_sets:BandSet[];figure_settings?:FigureSettings;plot_settings?:PlotSettings;upgrade_from?:string;images:ImageAsset[];samples:Sample[];lanes:Lane[];rois:ROI[];settings:{design_confirmed?:boolean;control_group:string;normalization_mode:'within'|'ibc';ibc_by_membrane:Record<string,Record<string,string>>;analysis_blocks:{id:string;membrane_ids:string[];pooled_reference_id:string;merge_same_sample:boolean}[];comparisons:ComparisonSpec[];multigroup_comparisons?:MultiGroupSpec[]};saved_revision?:number;project_path?:string;read_only?:boolean}
+export interface Project{id:string;demo?:boolean;name:string;schema_version:2;revision:number;lane_layouts:LaneLayout[];band_sets:BandSet[];figure_settings?:FigureSettings;plot_settings?:PlotSettings;upgrade_from?:string;images:ImageAsset[];samples:Sample[];lanes:Lane[];rois:ROI[];settings:{design_confirmed?:boolean;control_group:string;normalization_mode:'within'|'ibc';ibc_by_membrane:Record<string,Record<string,string>>;analysis_blocks:{id:string;membrane_ids:string[];pooled_reference_id:string;merge_same_sample:boolean}[];comparisons:ComparisonSpec[];multigroup_comparisons?:MultiGroupSpec[]};saved_revision?:number;project_path?:string;read_only?:boolean}
 export interface Measurement{id:string;image_id:string;lane_id:string;analyte:string;role:string;area_px:number;raw_sum:number;background_mean:number;corrected_sum:number;clipped_fraction:number|null;flags:string[]}
 export interface Normalized{id:string;sample_id:string;bio_id:string;pair_id:string;group:string;membrane_id:string;analyte:string;normalized:number|null;bridged:number|null;flags:string[];kind:string}
 export interface BioValue{sample_id:string;bio_id:string;pair_id:string;group:string;analyte:string;membrane_id:string;analysis_block:string;value:number;n_technical:number;fold:number|null;flags:string[]}
@@ -78,3 +78,5 @@ export interface LibraryExportReceipt {
  }
  library_export_error?:string
 }
+
+export interface CloseActions{prepare:()=>Promise<boolean>;finish:()=>Promise<void>}

@@ -10,7 +10,7 @@ import appIcon from '../assets/brand/titan-app-icon-128.png'
 import gorillaHead from '../assets/brand/titan-head.svg'
 import {callEngine} from './bridge'
 import {createProject,editProject,commitResult,mergeSaved,restoreHistory,acceptReview,mergeImported,retainResult} from './state'
-import type {Project,AnalysisResult,Rect,PlotSettings,DetectionPreview,ImageInspection,LibraryEntry,FrozenFigure,FigureSettings,FigureDocumentMetadata,PlotPreview,LibraryCollection,LibraryArtifact,LibraryExportReceipt,LibraryResume} from './types'
+import type {CloseActions,Project,AnalysisResult,Rect,PlotSettings,DetectionPreview,ImageInspection,LibraryEntry,FrozenFigure,FigureSettings,FigureDocumentMetadata,PlotPreview,LibraryCollection,LibraryArtifact,LibraryExportReceipt,LibraryResume} from './types'
 import ImagePagePicker from './ImagePagePicker'
 import Workspace from './Workspace'
 import LaneSetup, {type CanvasHistory} from './LaneSetup'
@@ -36,10 +36,10 @@ const native=()=>Boolean((window as any).__TAURI_INTERNALS__)
 async function ask(text:string){return native()?await confirm(text,{title:'Titan',kind:'warning'}):window.confirm(text)}
 export default function App(){
  const [module,setModule]=useState<'wb'|'if'|'stats'>('wb'),moduleRef=useRef(module);moduleRef.current=module
- const ifClose=useRef<()=>Promise<boolean>>(async()=>true)
+ const ifClose=useRef<CloseActions|null>(null)
  const ifLibrary=useRef<IFLibraryActions|null>(null)
  const statsLibrary=useRef<StatsLibraryActions|null>(null)
- const statsClose=useRef<()=>Promise<boolean>>(async()=>true)
+ const statsClose=useRef<CloseActions|null>(null)
  const [libraryDialog,setLibraryDialog]=useState<LibraryDialog|null>(null)
  const [libraryBusy,setLibraryBusy]=useState(false),libraryFlight=useRef(false)
  const [libraryNotice,setLibraryNotice]=useState('')
@@ -61,8 +61,12 @@ export default function App(){
  }
  async function sendStats(){
   await guardLibrary(async()=>{
-   if(!await prepareModule('stats')||!current.current)return false
-   if(!await statsLibrary.current?.fromWB(current.current))return false
+   const source=current.current
+   if(!source)return false
+   // A temporary synthetic example stays open in WB, so no discard is needed.
+   if(source.demo&&!source.project_path){if(!await canLeaveFigure())return false}
+   else if(!await prepareModule('stats'))return false
+   if(!await statsLibrary.current?.fromWB(current.current??source))return false
    setModule('stats')
    return true
   }).catch(error=>setLibraryNotice(String(error)))
@@ -212,7 +216,7 @@ export default function App(){
    setRecoveryPath(path);throw e
   }
  }
- async function openPath(path:string,view:LibraryView='workspace',figureId?:string,entryId?:string,artifact?:LibraryArtifact){
+ async function openPath(path:string,view:LibraryView='workspace',figureId?:string,entryId?:string,artifact?:LibraryArtifact,expectedProjectId?:string){
   const token=++projectNavigation.current;setSwitching(true)
   try{
    if(!await canLeaveFigure()||!await flushCurrent())return
@@ -226,12 +230,18 @@ export default function App(){
      if(candidatePath!==current.current?.project_path)await callEngine('release_project',{path:candidatePath}).catch(()=>{})
     }
     if(!stillCurrent()){await releaseCandidate();return false}
+    if(expectedProjectId&&candidate.id!==expectedProjectId){
+     await releaseCandidate();throw new Error('来源分析身份不匹配，请重新定位原分析')
+    }
     try{
      await library.change('library_register',{path:candidatePath,entry_id:entryId})
     }catch(error){await releaseCandidate();throw error}
     if(!stillCurrent()){await releaseCandidate();return false}
     await activateProject(candidate)
-   }else await library.change('library_register',{path,entry_id:entryId})
+   }else{
+    if(expectedProjectId&&before.id!==expectedProjectId)throw new Error('来源分析身份不匹配，请重新定位原分析')
+    await library.change('library_register',{path,entry_id:entryId})
+   }
    if(token!==projectNavigation.current)return false
    const openProject=current.current
    const actual=openProject?.project_path
@@ -293,7 +303,7 @@ export default function App(){
    return true
   })
  }
- async function openAnalysis(entry:Pick<LibraryEntry,'path'|'module'|'figures'|'resume'|'artifacts'> & {entry_id?:string},view?:LibraryView,figureId?:string,path=entry.path,artifact?:LibraryArtifact){
+ async function openAnalysis(entry:Pick<LibraryEntry,'path'|'module'|'figures'|'resume'|'artifacts'> & {entry_id?:string;project_id?:string},view?:LibraryView,figureId?:string,path=entry.path,artifact?:LibraryArtifact){
   const saved=entry.resume
   const module=entry.module??'wb'
   const savedId=!view&&saved?.view==='figure'?saved.artifact_id:undefined
@@ -319,7 +329,7 @@ export default function App(){
    id:figure!,entry_id:entry.entry_id??'',title:'',kind:'result_export' as const,
    source_revision:null,available:true,version_id:plotVersion,
   }:undefined
-  if(!await openPath(path,next,figure,entry.entry_id,targetArtifact??frozenArtifact))return false
+  if(!await openPath(path,next,figure,entry.entry_id,targetArtifact??frozenArtifact,entry.project_id))return false
   setModule('wb')
   return true
  }
@@ -462,9 +472,19 @@ export default function App(){
  useEffect(()=>{
   if(!native())return;let stop:(()=>void)|undefined
   getCurrentWindow().onCloseRequested(async e=>{
-   e.preventDefault();if(libraryFlight.current||!await ifClose.current()||!await statsClose.current())return;if(!await canLeaveFigure()||!await flushCurrent())return;const p=current.current
-   if(p?.project_path)await callEngine('release_project',{path:p.project_path}).catch(()=>{})
-   await getCurrentWindow().destroy()
+   e.preventDefault()
+   await guardLibrary(async()=>{
+    if(!await canLeaveFigure()||!await flushCurrent())return false
+    if(statsClose.current&&!await statsClose.current.prepare())return false
+    if(ifClose.current&&!await ifClose.current.prepare())return false
+    const p=current.current
+    await Promise.allSettled([
+     ifClose.current?.finish(),statsClose.current?.finish(),
+     p?.project_path?callEngine('release_project',{path:p.project_path}):undefined,
+    ])
+    await getCurrentWindow().destroy()
+    return true
+   }).catch(error=>setLibraryNotice(String(error)))
   }).then(fn=>stop=fn);return()=>stop?.()
  },[])
  useEffect(()=>{
@@ -541,11 +561,10 @@ export default function App(){
   onRelocate={entry=>void openProject(entry).catch(error=>setMessage(String(error)))}/>
  <StatsWorkspace active={module==='stats'} library={library} libraryBusy={libraryBusy}
   onWB={()=>enterModule('wb')} onIF={()=>enterModule('if')}
-  onSource={path=>{
-   const entry=library.entries.find(item=>item.path===path)
-   if(entry)openLibraryEntry(entry,'results')
-   else void guardLibrary(()=>openAnalysis({path,module:'wb',figures:[]},'results')).catch(error=>setLibraryNotice(String(error)))
-  }}
+  onSource={source=>void guardLibrary(async()=>{
+   const resolved=await callEngine<{path:string;entry_id:string|null;project_id:string}>('stats_resolve_source',{source})
+   return openAnalysis({...resolved,entry_id:resolved.entry_id??undefined,module:'wb',figures:[]},'results')
+  }).catch(error=>setLibraryNotice(String(error)))}
   registerLibrary={actions=>{statsLibrary.current=actions}} registerClose={close=>{statsClose.current=close}}
   onOpen={openLibraryEntry} onDialog={setLibraryDialog} onPin={pinCollection}
   onArtifact={openArtifact} onReveal={(entry,artifact)=>void openRegisteredFile(entry,artifact,true)}

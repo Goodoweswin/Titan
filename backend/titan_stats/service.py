@@ -1,8 +1,8 @@
 import copy,json,shutil,tempfile
 from pathlib import Path
 from titan_wb.library import (
-    create_managed_analysis, entry_for_path, library_list, library_register,
-    open_registered_analysis, register_published_export,
+    copy_registered_analysis, create_managed_analysis, entry_for_path, library_list,
+    open_registered_analysis, register_published_export, resolve_analysis_source,
 )
 from titan_wb.projects import release_project
 from . import store
@@ -60,6 +60,22 @@ def export(d,style,run,destination):
         if stage.exists():shutil.rmtree(stage)
     return dict(path=str(dest),files=[p.name for p in dest.iterdir()])
 
+def resolve_wb_source(source, session):
+    if not source or source.get('kind') != 'wb':
+        raise ValueError('找不到 WB 来源分析')
+    return resolve_analysis_source(
+        source.get('path'), source.get('entry_id'), source.get('project_id'), 'wb', session,
+    )
+
+
+def same_wb_source(source, wb, entry):
+    if not source or source.get('kind') != 'wb' or source.get('project_id') != wb['id']:
+        return False
+    if source.get('entry_id'):
+        return entry is not None and source['entry_id'] == entry['entry_id']
+    return source.get('path') == wb.get('project_path')
+
+
 def dispatch(command,payload,session):
     if command=='stats_new':
         return create(payload.get('name','未命名统计项目'), session,
@@ -70,11 +86,13 @@ def dispatch(command,payload,session):
     if command=='stats_open':
         return open_registered_analysis(payload['path'], store.load, session, payload.get('entry_id'))
     if command=='stats_save':
-        p=payload['project'];path=payload.get('path') or p['project_path'];expected=p.get('saved_revision') if path==p.get('project_path') else None
-        source = entry_for_path(p.get('project_path'), session) if path != p.get('project_path') else None
-        p = store.save(p, path, expected, session)
-        library_register(p['project_path'], session, source_entry_id=source and source['entry_id'], touch_opened=source is not None)
-        return p
+        p = payload['project']
+        current = p['project_path']
+        path = payload.get('path') or current
+        if Path(path).expanduser().resolve() != Path(current).resolve():
+            return copy_registered_analysis(p, path, '.titanstats', store.save, session)
+        # The manifest owns the title and saved revision. Autosave never needs the index.
+        return store.save(p, current, p.get('saved_revision'), session)
     if command=='stats_release':release_project(payload['path'],session);return True
     if command=='stats_import':return import_table(payload.get('text'),payload.get('path'),payload.get('sheet'),payload.get('format','wide'))
     if command=='stats_dataset':return new_dataset(payload.get('name','新数据表'))
@@ -83,40 +101,69 @@ def dispatch(command,payload,session):
     if command=='stats_export':
         project, destination = payload.get('project'), payload['destination']
         dataset, style, run = payload['dataset'], payload['style'], payload.get('run')
-        figure = None
-        if project and payload.get('figure_id'):
-            figure = next((item for item in project['figures'] if item['id'] == payload['figure_id']), None)
-            if figure is None:
-                raise ValueError('找不到要导出的冻结统计图')
-            dataset, style, run = figure['dataset'], figure['style'], figure['run']
+        figure = version = None
+        revision = project['revision'] if project else None
+        if payload.get('figure_id') or payload.get('run_id'):
+            if not project or (payload.get('figure_id') and payload.get('run_id')):
+                raise ValueError('导出的统计版本无效')
+            if payload.get('figure_id'):
+                figure = next((f for f in project.get('figures', []) if f['id'] == payload['figure_id']), None)
+                if figure is None:
+                    raise ValueError('找不到要导出的冻结统计图')
+                dataset, style, run = figure['dataset'], figure['style'], figure['run']
+                version, revision = figure['id'], figure.get('source_revision')
+            else:
+                run = next((r for d in project['datasets'] for r in d['runs'] if r['id'] == payload['run_id']), None)
+                if run is None:
+                    raise ValueError('找不到要导出的历史分析')
+                dataset, style = run['dataset'], run['dataset']['style']
+                version, revision = run['id'], run.get('source_revision')
         result = export(dataset, style, run, destination)
         if project:
             return register_published_export(
                 project, result, destination, 'result_export', (figure or dataset)['name']+' · 统计结果',
-                figure.get('source_revision') if figure else project['revision'], session,
-                version_id=figure['id'] if figure else None,
+                revision, session, version_id=version,
             )
         return result
     if command=='stats_from_wb':
         from titan_wb.stats_adapter import datasets
         from titan_wb.analysis import analyze as wb_analyze
-        p=payload['project']
+        p = payload['project']
+        source = entry_for_path(p.get('project_path'), session)
+        if source and (source['project_id'] != p['id'] or source.get('module', 'wb') != 'wb'):
+            raise ValueError('WB 来源分析身份不匹配')
         if not payload.get('as_copy') and p.get('project_path'):
             for entry in library_list(session):
-                if entry.get('module')!='stats' or not entry.get('available'):continue
-                saved=json.loads((Path(entry['path'])/'project.json').read_text(encoding='utf-8'))
-                if any(t.get('source') and t['source'].get('kind')=='wb' and t['source'].get('path')==p['project_path'] and t['source'].get('project_id')==p['id'] for t in saved['datasets']):
-                    return store.load(entry['path'],session)
-        tables=datasets(p,wb_analyze(p))
-        source = entry_for_path(p.get('project_path'), session)
+                if entry.get('module') != 'stats' or not entry.get('available'):
+                    continue
+                try:
+                    saved = validate(json.loads((Path(entry['path'])/'project.json').read_text(encoding='utf-8')))
+                except (OSError, ValueError, KeyError, TypeError):
+                    continue
+                if any(same_wb_source(t.get('source'), p, source) for t in saved['datasets']):
+                    return open_registered_analysis(entry['path'], store.load, session, entry['entry_id'])
+        tables = datasets(p, wb_analyze(p))
+        if source:
+            for table in tables:
+                table['source']['entry_id'] = source['entry_id']
         return create(p['name']+' · 统计', session, tables, collection_id=source and source.get('collection_id'))
+    if command=='stats_resolve_source':
+        return resolve_wb_source(payload.get('source'), session)
     if command=='stats_update_source':
         from titan_wb.projects import open_project
         from titan_wb.analysis import analyze as wb_analyze
         from titan_wb.stats_adapter import datasets
-        p=payload['project'];d=next(d for d in p['datasets'] if d['id']==payload['dataset_id']);source=d['source']
-        wb=open_project(source['path'],session,read_only=True);fresh=next((t for t in datasets(wb,wb_analyze(wb)) if t['source']['endpoint']==source['endpoint'] and t['source']['block']==source['block']),None)
+        p = payload['project']
+        d = next(d for d in p['datasets'] if d['id'] == payload['dataset_id'])
+        source = d['source']
+        resolved = resolve_wb_source(source, session)
+        wb = open_project(resolved['path'], session, read_only=True)
+        if wb['id'] != resolved['project_id']:
+            raise ValueError('来源分析身份不匹配，请重新定位原分析')
+        fresh = next((t for t in datasets(wb, wb_analyze(wb)) if t['source']['endpoint'] == source['endpoint'] and t['source']['block'] == source['block']), None)
         if not fresh:raise ValueError('当前来源中已不存在该终点/分析块')
+        if resolved['entry_id']:
+            fresh['source']['entry_id'] = resolved['entry_id']
         # Explicitly reset analysis configuration when group identities change.
         fresh.update(id=d['id'],name=d['name'],runs=d['runs'],style={**d['style'],'colors':{}});p=copy.deepcopy(p);p['datasets']=[fresh if t['id']==d['id'] else t for t in p['datasets']];p['revision']+=1
         return store.save(p,p['project_path'],p['saved_revision'],{**session,'stats_source_update':True})

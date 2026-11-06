@@ -89,3 +89,114 @@ def test_display_group_order_and_alias_do_not_change_inference():
     result=render(d,style,r)
     assert result['png'].startswith('data:image/png;base64,')
     assert signature(d)==r['signature']
+
+
+def saved_wb(session, tmp_path):
+    from titan_wb.demo import make_demo
+    from titan_wb.library import library_register
+    from titan_wb.projects import save_project
+    wb = save_project(make_demo(), str(tmp_path/'original.titanwb'), None, session)
+    entry = library_register(wb['project_path'], session)
+    return wb, entry
+
+
+def test_wb_source_follows_registered_move_instead_of_replacement(session, tmp_path):
+    from titan_wb.demo import make_demo
+    from titan_wb.library import library_register
+    from titan_wb.projects import save_project
+    wb, entry = saved_wb(session, tmp_path)
+    stats = dispatch('stats_from_wb', {'project': wb}, session)
+    old = Path(wb['project_path'])
+    moved = old.rename(tmp_path/'moved.titanwb')
+    library_register(str(moved), session, entry['entry_id'])
+    save_project(make_demo(), str(old), None, session)
+    d = stats['datasets'][0]
+    assert d['source']['entry_id'] == entry['entry_id']
+    resolved = dispatch('stats_resolve_source', {'source': d['source']}, session)
+    assert resolved == dict(path=str(moved), entry_id=entry['entry_id'], project_id=wb['id'])
+    refreshed = dispatch('stats_update_source', {'project': stats, 'dataset_id': d['id']}, session)
+    assert refreshed['datasets'][0]['source']['path'] == str(moved)
+    assert refreshed['datasets'][0]['source']['project_id'] == wb['id']
+    assert dispatch('stats_from_wb', {'project': {**wb, 'project_path': str(moved)}}, session)['id'] == stats['id']
+
+
+def test_legacy_wb_source_cannot_read_a_replacement_analysis(session, tmp_path):
+    from titan_wb.demo import make_demo
+    from titan_wb.projects import save_project
+    wb, _ = saved_wb(session, tmp_path)
+    stats = dispatch('stats_from_wb', {'project': wb}, session)
+    d = stats['datasets'][0]
+    d['source'].pop('entry_id', None)
+    old = Path(wb['project_path'])
+    old.rename(tmp_path/'moved.titanwb')
+    save_project(make_demo(), str(old), None, session)
+    with pytest.raises(ValueError, match='来源.*身份'):
+        dispatch('stats_update_source', {'project': stats, 'dataset_id': d['id']}, session)
+
+
+def test_historical_export_uses_archived_run_and_revision(session, tmp_path):
+    from titan_wb.library import library_list
+    p = dispatch('stats_new', {'name': '历史'}, session)
+    d = data()
+    run = analyze(d)
+    run['source_revision'] = 2
+    d['runs'].append(run)
+    d['rows'][0]['values'][d['groups'][0]['id']] = '99'
+    p.update(revision=6, datasets=[d])
+    p = dispatch('stats_save', {'project': p}, session)
+    dest = tmp_path/'archive'
+    dispatch('stats_export', dict(project=p, dataset=d, style=d['style'], run=analyze(d),
+             destination=str(dest), run_id=run['id']), session)
+    artifact, = library_list(session)[0]['artifacts']
+    assert artifact['version_id'] == run['id']
+    assert artifact['source_revision'] == 2
+    record = json.loads((dest/'analysis.json').read_text())
+    assert record['run']['id'] == run['id']
+    assert record['dataset']['rows'][0]['values'][d['groups'][0]['id']] == '1'
+
+
+def test_autosave_does_not_depend_on_the_library_index(session, monkeypatch):
+    from titan_wb import library
+    p = dispatch('stats_new', {'name': '待保存'}, session)
+    p.update(revision=1, name='已修改')
+    def fail_index(*args):
+        raise OSError('index unavailable')
+    with monkeypatch.context() as mock:
+        mock.setattr(library, 'atomic_json', fail_index)
+        p = dispatch('stats_save', {'project': p}, session)
+        assert p['saved_revision'] == 1
+    p.update(revision=2, name='继续修改')
+    assert dispatch('stats_save', {'project': p}, session)['saved_revision'] == 2
+
+
+def test_save_as_index_failure_leaves_destination_available_for_retry(session, tmp_path, monkeypatch):
+    from titan_wb import library
+    p = dispatch('stats_new', {'name': '源', 'new_collection_name': '课题'}, session)
+    dest = tmp_path/'copy.titanstats'
+    def fail_index(*args):
+        raise OSError('index unavailable')
+    with monkeypatch.context() as mock:
+        mock.setattr(library, 'atomic_json', fail_index)
+        with pytest.raises(OSError, match='index unavailable'):
+            dispatch('stats_save', {'project': p, 'path': str(dest)}, session)
+    assert not dest.exists()
+    dispatch('stats_save', {'project': p, 'path': str(dest)}, session)
+    rows = library.library_list(session)
+    assert len(rows) == 2 and rows[0]['collection_id'] == rows[1]['collection_id']
+
+
+def test_legacy_missing_and_malformed_figures_are_isolated(session):
+    from titan_wb.library import library_create, library_list
+    library_create('WB', session)
+    p = dispatch('stats_new', {'name': '旧统计分析'}, session)
+    manifest = Path(p['project_path'])/'project.json'
+    data = json.loads(manifest.read_text())
+    del data['figures']
+    manifest.write_text(json.dumps(data))
+    assert store.load(p['project_path'], session)['figures'] == []
+    manifest.write_text(json.dumps({**data, 'figures': None}))
+    rows = {row['module']: row for row in library_list(session)}
+    assert rows['wb']['available']
+    assert rows['stats']['figure_error']
+    with pytest.raises(ValueError, match='统计图形'):
+        store.load(p['project_path'], session)

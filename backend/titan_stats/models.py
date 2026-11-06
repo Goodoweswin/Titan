@@ -17,6 +17,15 @@ def validate(p):
     if not isinstance(p.get('name'),str) or not p['name'].strip():raise ValueError('项目名称不能为空')
     if not isinstance(p.get('revision'),int) or p['revision']<0:raise ValueError('项目版本无效')
     if not isinstance(p.get('datasets'),list) or not p['datasets']:raise ValueError('项目需要至少一张数据表')
+    figures = p.setdefault('figures', [])
+    if not isinstance(figures, list) or any(
+        not isinstance(f, dict)
+        or not all(isinstance(f.get(key), str) for key in ('id', 'name'))
+        or not all(isinstance(f.get(key), dict) for key in ('dataset', 'style'))
+        or 'run' not in f
+        for f in figures
+    ):
+        raise ValueError('统计图形记录损坏')
     ids=[]
     for d in p['datasets']:
         ids.append(d['id']);gids=[g['id'] for g in d['groups']]
