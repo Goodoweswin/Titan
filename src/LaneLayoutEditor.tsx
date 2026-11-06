@@ -4,6 +4,14 @@ import {displayStyle} from './image-display'
 import useImageViewport from './useImageViewport'
 import ImageViewControls from './ImageViewControls'
 
+export const laneTools = [
+ ['region','选择区域'],
+ ['lanes','调整泳道'],
+ ['align','移动整组'],
+ ['peaks','调整峰区'],
+ ['background','画背景'],
+] as const
+
 interface Props{asset:ImageAsset;region:Rect|null;columns:LaneColumn[];laneBounds?:Rect;bands:Record<string,BandCandidate>;selected:string;readOnly:boolean;onSelect:(id:string)=>void;onRegion:(r:Rect)=>void;onColumn:(id:string,r:Rect)=>void;onBand:(id:string,r:Rect)=>void;onBackground:(id:string,r:Rect)=>void;onAlign:(dx:number)=>void;onInvert:()=>void;onRotate?:()=>void}
 type Gesture={start:[number,number];kind:string;id?:string;rect?:Rect}
 export default function LaneLayoutEditor(p:Props){
@@ -67,7 +75,7 @@ export default function LaneLayoutEditor(p:Props){
  const selected=p.columns.find(c=>c.lane_id===p.selected),selectedBox=selected&&(draft&&gesture.current?.id===selected.lane_id&&gesture.current.kind.startsWith('lane')?draft:selected.rect)
  const handleY=selectedBox?(Math.max(selectedBox[1],view[1],p.region?.[1]??view[1])+Math.min(selectedBox[3],view[3],p.region?.[3]??view[3]))/2:0
  const hints:Record<string,string>={region:'拖选蛋白所在区域',lanes:'拖动泳道左右移动 · 两侧手柄调宽度 · ← → 微调，Shift 加速',align:'拖动以左右移动全部泳道',peaks:'拖动绿框上下移动 · 下方手柄调整高度',background:'为选中泳道拖画局部背景'}
- return <div className="lane-canvas-card"><div className="lane-toolbar"><div>{[['region','选择区域'],['lanes','调整泳道'],['align','移动整组'],['peaks','调整峰区'],['background','画背景']].map(([id,label])=><button key={id} className={tool===id&&!viewport.panMode?'tool selected':'tool'} aria-pressed={tool===id&&!viewport.panMode} disabled={p.readOnly||(id!=='region'&&!p.columns.length)} onClick={()=>{cancel();viewport.setPanMode(false);setTool(id)}}>{label}</button>)}</div><div>{p.onRotate&&<button className="text-btn" disabled={p.readOnly} onClick={p.onRotate}>旋转校正</button>}<button className="text-btn" disabled={p.readOnly} onClick={p.onInvert} aria-pressed={!!p.asset.display_inverted}>显示反色</button></div></div>
+ return <div className="lane-canvas-card"><div className="lane-toolbar"><div>{laneTools.map(([id,label])=><button key={id} className={tool===id&&!viewport.panMode?'tool selected':'tool'} aria-pressed={tool===id&&!viewport.panMode} disabled={p.readOnly||(id!=='region'&&!p.columns.length)} onClick={()=>{cancel();viewport.setPanMode(false);setTool(id)}}>{label}</button>)}</div><div>{p.onRotate&&<button className="text-btn" disabled={p.readOnly} onClick={p.onRotate}>旋转校正</button>}<button className="text-btn" disabled={p.readOnly} onClick={p.onInvert} aria-pressed={!!p.asset.display_inverted}>显示反色</button></div></div>
  <div className="image-view-bar"><ImageViewControls zoomPercent={viewport.zoomPercent} panMode={viewport.panMode} onPan={()=>{cancel();viewport.setPanMode(!viewport.panMode)}} onZoom={viewport.zoom} onFit={viewport.reset} fitLabel="查看全图"/><span className="hint">滚轮缩放 · 空格或中键拖动视图</span></div>
  <div className="lane-tool-hint" role="status">{viewport.panMode?'拖动移动视图，不修改区域或条带':hints[tool]}</div>
  <div className="lane-canvas-scroll"><svg ref={svg} tabIndex={0} aria-label="泳道分析画布" viewBox={`${view[0]} ${view[1]} ${w} ${h}`} style={{aspectRatio:`${w}/${h}`,touchAction:'none',cursor:viewport.cursor??(tool==='lanes'?'ew-resize':tool==='align'?'grab':'crosshair')}} onKeyDown={nudge} onKeyUp={viewport.onKeyUp} onBlur={viewport.cancelPan} onPointerDownCapture={e=>{viewport.beginPan(e)}} onPointerDown={e=>{if(e.button===0){svg.current?.focus();down(e)}}} onPointerMove={e=>{if(!viewport.movePan(e))move(e)}} onPointerUp={e=>{if(!viewport.endPan(e))finish(e)}} onPointerCancel={()=>{viewport.cancelPan();cancel()}} onLostPointerCapture={()=>{viewport.stopPan();cancel()}}>

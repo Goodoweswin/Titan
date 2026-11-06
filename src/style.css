@@ -459,6 +459,22 @@ dialog.source-dialog::backdrop { background: #24365066; }
 .export-dialog { margin:auto; width:min(1100px,calc(100vw - 32px)); max-height:90vh; overflow:auto; padding:24px; border:1px solid var(--border); border-radius:12px; background:var(--surface,#fff); color:var(--ink); box-shadow:0 15px 60px #182b4b33; }
 .export-dialog::backdrop { background:#24365066; }
 .export-dialog h2 { margin:0; }
+.wb-guide-entry { display:inline-flex; align-items:center; gap:6px; min-height:36px; }
+.wb-guide { width:min(780px,calc(100vw - 24px)); }
+.wb-guide-header { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:18px; }
+.wb-guide-header p { margin-top:4px; color:var(--muted); font-size:var(--text-sm); }
+.wb-guide-preview { border:1px solid var(--border); border-radius:8px; }
+.wb-guide-tools { display:flex; flex-wrap:wrap; align-items:center; gap:6px; padding:10px 12px; border-bottom:1px solid var(--border); }
+.wb-guide-tools .tool { padding:6px 9px; border:1px solid transparent; transition:none; }
+.wb-guide-tools .tool[aria-pressed=true] { border-color:var(--accent); background:var(--accent-soft); color:var(--accent); }
+.wb-guide-body { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:20px; padding:16px; }
+.wb-guide-diagram { display:block; width:100%; border-radius:6px; }
+.wb-guide-illustration small { display:block; margin-top:5px; font-size:var(--text-xs); }
+.wb-guide-progress { color:var(--accent); font-size:var(--text-xs); font-variant-numeric:tabular-nums; }
+.wb-guide-copy h3 { margin:3px 0 6px; }
+.wb-guide-copy p { color:var(--text-secondary); font-size:var(--text-base); }
+.wb-guide-actions { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px; margin-top:16px; }
+@media(max-width:600px){ .wb-guide-body { grid-template-columns:1fr; gap:10px; padding:12px; } }
 .image-pages-layout { display:grid; grid-template-columns:minmax(220px,1fr) minmax(0,2fr); gap:20px; }
 .image-pages-list { max-height:42vh; overflow:auto; margin-top:12px; }
 .image-page-row { display:flex; align-items:flex-start; gap:10px; border:1px solid var(--border); border-radius:6px; padding:12px; margin-bottom:8px; }

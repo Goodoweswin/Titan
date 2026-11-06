@@ -14,6 +14,50 @@ async function openExperiment(page:any){
  await page.getByRole('button',{name:'打开项目 '+p.name,exact:true}).click();return p
 }
 
+test('Western blot opens home and resumes the current figure draft',async({page})=>{
+ await openExperiment(page)
+ await page.getByRole('button',{name:'WB 组图',exact:true}).click()
+ await page.getByRole('button',{name:'新建组图',exact:true}).click()
+ await page.getByLabel('蛋白名称',{exact:true}).fill('未保存的 AKT')
+
+ await page.getByRole('button',{name:'Western blot',exact:true}).click()
+ await expect(page.getByRole('heading',{name:'Western blot',exact:true})).toBeVisible({timeout:2000})
+ await expect(page.getByLabel('蛋白名称',{exact:true})).toBeHidden()
+ await page.getByRole('button',{name:'图像操作指引',exact:true}).click()
+ const guide=page.getByRole('dialog',{name:'WB 图像操作指引'})
+ await guide.getByRole('button',{name:'调整泳道',exact:true}).click()
+ await expect(guide.getByRole('heading',{name:'调整泳道',exact:true})).toBeVisible()
+ await page.keyboard.press('Escape')
+ await expect(guide).toBeHidden()
+
+ await page.getByRole('button',{name:'继续当前实验',exact:true}).click()
+ await expect(page.getByLabel('蛋白名称',{exact:true})).toHaveValue('未保存的 AKT')
+})
+
+test('module navigation resumes WB and opens saved projects from either module',async({page})=>{
+ const wb=await openExperiment(page)
+ await page.getByRole('button',{name:'WB 组图',exact:true}).click()
+ await page.getByRole('button',{name:'免疫荧光',exact:true}).click()
+ await page.getByRole('button',{name:'体验 IF 合成示例',exact:true}).click()
+ const ifName='跨模块 IF 验收 '+Date.now()
+ await page.getByLabel('IF 实验名称').fill(ifName)
+ await page.getByRole('button',{name:'保存 IF 实验',exact:true}).click()
+ await expect(page.getByRole('status').filter({hasText:'实验已保存'})).toBeVisible()
+ await page.getByRole('button',{name:'3D 查看（原型）',exact:true}).click()
+ const volume=page.getByRole('dialog',{name:'免疫荧光 3D 查看'})
+ await expect(volume).toBeVisible()
+ await volume.getByRole('button',{name:'关闭 3D 查看'}).click()
+
+ await page.getByRole('button',{name:'Western blot',exact:true}).click()
+ await expect(page.getByRole('heading',{name:'Western blot',exact:true})).toBeVisible()
+ await page.getByRole('button',{name:'继续当前实验',exact:true}).click()
+ await expect(page.getByRole('button',{name:'新建组图',exact:true})).toBeVisible()
+ await page.getByRole('button',{name:'打开项目 '+ifName,exact:true}).click()
+ await expect(page.getByLabel('IF 实验名称')).toHaveValue(ifName)
+ await page.getByRole('button',{name:'打开项目 '+wb.name,exact:true}).click()
+ await expect(page.getByLabel('实验名称',{exact:true})).toHaveValue(wb.name)
+})
+
 test('compact title and plain navigation retain accessible experiment operations',async({page})=>{
  await openExperiment(page)
  const nav=page.getByRole('navigation',{name:'实验视图',exact:true})
