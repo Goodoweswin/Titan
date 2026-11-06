@@ -19,6 +19,7 @@
 
 | 标签 | 标签对应提交 | 发布流程停止的位置 |
 | --- | --- | --- |
+| `v0.4.1-beta.1` | `e9a1f15` | Windows 统计组件测试使用了 POSIX Python 路径，构建失败。[Windows 构建日志](https://github.com/Goodoweswin/Titan/actions/runs/42282192428/job/128113755430) |
 | `v0.4.0-beta.2` | `3d8872c` | Windows 免疫荧光任务检查失败。[记录](v0.4.0-beta.3.md) |
 | `v0.4.0-beta.1` | `abe8725` | macOS 14 构建环境退役，任务取消。[记录](v0.4.0-beta.2.md) |
 | `v0.3.3-beta.1` | `de36ab7` | Windows 中文 WB 组图保存检查失败。[记录](v0.3.3-beta.1-verification.json) |

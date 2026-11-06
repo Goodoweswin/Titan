@@ -7,6 +7,7 @@ import {mkdtempSync,rmSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import path from 'node:path'
 import StatsWorkspace,{type StatsLibraryActions} from '../../src/stats/StatsWorkspace'
+const python=path.resolve(process.platform==='win32'?'.venv/Scripts/python.exe':'.venv/bin/python')
 let folder=''
 vi.mock('../../src/bridge',()=>({callEngine:vi.fn()}))
 import {callEngine} from '../../src/bridge'
@@ -18,7 +19,7 @@ let actions:StatsLibraryActions
 let host:HTMLDivElement,root:ReturnType<typeof createRoot>
 const click=async(label:string)=>{const btn=[...host.querySelectorAll('button')].find(b=>b.textContent===label);expect(btn, label).toBeTruthy();await act(async()=>{btn!.click()})}
 const input=async(label:string,value:string)=>{const el=host.querySelector(`[aria-label="${label}"]`) as HTMLInputElement;expect(el,label).toBeTruthy();await act(async()=>{Object.getOwnPropertyDescriptor(el.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:el.tagName==='SELECT'?HTMLSelectElement.prototype:HTMLInputElement.prototype,'value')!.set!.call(el,value);el.dispatchEvent(new Event(el.tagName==='SELECT'?'change':'input',{bubbles:true}))})}
-beforeEach(()=>{folder=mkdtempSync(path.join(tmpdir(),'titan-stats-component-'));host=document.createElement('div');document.body.append(host);root=createRoot(host);vi.mocked(callEngine).mockImplementation(async(command,payload={})=>{const output=execFileSync(path.resolve('.venv/bin/python'),[path.resolve('backend/entry.py')],{input:JSON.stringify({command,payload,session:{pid:process.pid,token:'component',library_root:folder}}),encoding:'utf8',maxBuffer:20*1024*1024});const result=JSON.parse(output);if(!result.ok)throw new Error(result.error);return result.data})})
+beforeEach(()=>{folder=mkdtempSync(path.join(tmpdir(),'titan-stats-component-'));host=document.createElement('div');document.body.append(host);root=createRoot(host);vi.mocked(callEngine).mockImplementation(async(command,payload={})=>{const output=execFileSync(python,[path.resolve('backend/entry.py')],{input:JSON.stringify({command,payload,session:{pid:process.pid,token:'component',library_root:folder}}),encoding:'utf8',maxBuffer:20*1024*1024});const result=JSON.parse(output);if(!result.ok)throw new Error(result.error);return result.data})})
 afterEach(async()=>{await act(async()=>root.unmount());host.remove();rmSync(folder,{recursive:true,force:true});vi.clearAllMocks()})
 async function mount(entries:LibraryEntry[]=[],onSource:(source:DatasetSource)=>void=()=>{}){
  await act(async()=>root.render(React.createElement(StatsWorkspace,{
@@ -47,7 +48,7 @@ it('runs the real engine from table import through inference, stale detection, f
 },120000)
 
 it('reads saved IF sample results, detects source changes and preserves frozen figures on refresh',async()=>{
- const sourcePath=execFileSync(path.resolve('.venv/bin/python'),['-c',`
+ const sourcePath=execFileSync(python,['-c',`
 import json,sys
 from titan_if.service import _demo
 from titan_if.analysis import measure_field
@@ -55,7 +56,7 @@ from titan_if.projects import save_project
 s=json.loads(sys.argv[1]);p=_demo(s)
 for f in p['fields']:f['result']=measure_field(f)
 p['revision']+=1;p=save_project(p,p['project_path'],p['saved_revision'],s)
-print(p['project_path'])`,JSON.stringify({pid:process.pid,token:'component',library_root:folder})],{encoding:'utf8',env:{...process.env,PYTHONPATH:path.resolve('backend')}}).trim()
+print(p['project_path'])`,JSON.stringify({pid:process.pid,token:'component',library_root:folder})],{encoding:'utf8',env:{...process.env,PYTHONPATH:path.resolve('backend'),PYTHONUTF8:'1'}}).trim()
  const onSource=vi.fn()
  await mount(await callEngine<LibraryEntry[]>('library_list'),onSource)
  await click('从项目读取结果');await input('结果来源项目',sourcePath)
