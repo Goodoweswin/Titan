@@ -40,6 +40,17 @@ def analysis_signature(field):
         mask={k:mask.get(k) for k in ["sha256","version","segmentation_signature","confirmed"]} if mask else None))
 
 
+def json_safe_integers(value):
+    # JavaScript JSON numbers cannot represent every integer above this limit.
+    if type(value) is int and abs(value) > 2**53 - 1:
+        return str(value)
+    if isinstance(value, dict):
+        return {key: json_safe_integers(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [json_safe_integers(item) for item in value]
+    return value
+
+
 def bound_result_previews(project):
     """Bound the aggregate IPC table, retaining every full-result artifact."""
     results=[f["result"] for f in project["fields"] if f.get("result") and f["result"].get("artifact")]

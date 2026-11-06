@@ -279,7 +279,7 @@ def resolve_analysis_source(path, entry_id, project_id, module, session):
     except ValueError as e:
         raise ValueError('找不到来源分析，请先在左栏重新定位原分析') from e
     if manifest['id'] != project_id or manifest.get('module', 'wb') != module:
-        raise ValueError('来源分析身份不匹配，请重新定位原分析')
+        raise ValueError('来源分析身份不匹配，路径指向不同项目，请重新定位原分析')
     entry = _registered_entry(data, folder, manifest, entry_id)
     return dict(path=str(folder), entry_id=entry and entry['entry_id'], project_id=project_id)
 

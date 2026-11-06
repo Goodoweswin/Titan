@@ -48,9 +48,12 @@ def signature(d):
 
 def prepared(d):
     values=[];missing=0;excluded=0
+    linked = (d.get('source') or {}).get('kind') in ('wb','if')
     for row in d['rows']:
         for g in d['groups']:
-            key=g['id'];raw=row['values'].get(key,'')
+            key=g['id']
+            if (linked or row.get('units')) and key not in row['values'] and key not in row.get('units',{}):continue  # Sparse rows do not imply missing samples.
+            raw=row['values'].get(key,'')
             if row.get('excluded',{}).get(key):excluded+=1;continue
             if raw is None or str(raw).strip()=='':missing+=1;continue
             try:v=float(raw)

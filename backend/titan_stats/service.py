@@ -2,7 +2,7 @@ import copy,json,shutil,tempfile
 from pathlib import Path
 from titan_wb.library import (
     copy_registered_analysis, create_managed_analysis, entry_for_path, library_list,
-    open_registered_analysis, register_published_export, resolve_analysis_source,
+    open_registered_analysis, register_published_export,
 )
 from titan_wb.projects import release_project
 from . import store
@@ -59,14 +59,6 @@ def export(d,style,run,destination):
     finally:
         if stage.exists():shutil.rmtree(stage)
     return dict(path=str(dest),files=[p.name for p in dest.iterdir()])
-
-def resolve_wb_source(source, session):
-    if not source or source.get('kind') != 'wb':
-        raise ValueError('找不到 WB 来源分析')
-    return resolve_analysis_source(
-        source.get('path'), source.get('entry_id'), source.get('project_id'), 'wb', session,
-    )
-
 
 def same_wb_source(source, wb, entry):
     if not source or source.get('kind') != 'wb' or source.get('project_id') != wb['id']:
@@ -147,24 +139,15 @@ def dispatch(command,payload,session):
             for table in tables:
                 table['source']['entry_id'] = source['entry_id']
         return create(p['name']+' · 统计', session, tables, collection_id=source and source.get('collection_id'))
-    if command=='stats_resolve_source':
-        return resolve_wb_source(payload.get('source'), session)
-    if command=='stats_update_source':
-        from titan_wb.projects import open_project
-        from titan_wb.analysis import analyze as wb_analyze
-        from titan_wb.stats_adapter import datasets
-        p = payload['project']
-        d = next(d for d in p['datasets'] if d['id'] == payload['dataset_id'])
-        source = d['source']
-        resolved = resolve_wb_source(source, session)
-        wb = open_project(resolved['path'], session, read_only=True)
-        if wb['id'] != resolved['project_id']:
-            raise ValueError('来源分析身份不匹配，请重新定位原分析')
-        fresh = next((t for t in datasets(wb, wb_analyze(wb)) if t['source']['endpoint'] == source['endpoint'] and t['source']['block'] == source['block']), None)
-        if not fresh:raise ValueError('当前来源中已不存在该终点/分析块')
-        if resolved['entry_id']:
-            fresh['source']['entry_id'] = resolved['entry_id']
-        # Explicitly reset analysis configuration when group identities change.
-        fresh.update(id=d['id'],name=d['name'],runs=d['runs'],style={**d['style'],'colors':{}});p=copy.deepcopy(p);p['datasets']=[fresh if t['id']==d['id'] else t for t in p['datasets']];p['revision']+=1
-        return store.save(p,p['project_path'],p['saved_revision'],{**session,'stats_source_update':True})
+    if command in ('stats_source_catalog', 'stats_from_source', 'stats_source_status', 'stats_resolve_source', 'stats_update_source'):
+        from . import sources
+        if command == 'stats_source_catalog':
+            return sources.catalog(payload['path'], session)
+        if command == 'stats_from_source':
+            return sources.transfer(payload, session)
+        if command == 'stats_source_status':
+            return sources.status(payload['source'], session)
+        if command == 'stats_resolve_source':
+            return sources.resolve(payload.get('source'), session)
+        return sources.update(payload, session)
     raise ValueError('不支持的统计命令')

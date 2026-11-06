@@ -200,3 +200,14 @@ def test_legacy_missing_and_malformed_figures_are_isolated(session):
     assert rows['stats']['figure_error']
     with pytest.raises(ValueError, match='统计图形'):
         store.load(p['project_path'], session)
+
+
+def test_imported_csv_can_preview_and_export_with_empty_rows(tmp_path):
+    file = tmp_path / 'observations.csv'
+    file.write_text('A,B\n1,2\n3,4', encoding='utf-8')
+    dataset = import_table(path=str(file))['dataset']
+    dataset['rows'].append(dict(id='empty', label='3', values={}, excluded={}))
+    preview = render(dataset, dataset['style'], None)
+    assert '缺失 2' in preview['caption']
+    result = export(dataset, dataset['style'], None, str(tmp_path/'results'))
+    assert {'plot.png', 'results.xlsx'} <= set(result['files'])

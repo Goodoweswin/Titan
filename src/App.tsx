@@ -59,15 +59,36 @@ export default function App(){
    return true
   }).catch(error=>setLibraryNotice(String(error)))
  }
+ const [statsSource,setStatsSource]=useState<{path:string;request:number}|null>(null)
+ function presentStatsSource(path:string){
+  setStatsSource(previous=>({path,request:(previous?.request??0)+1}))
+  setModule('stats')
+ }
+ function sendIFStats(path:string){
+  void guardLibrary(async()=>{
+   if(!await prepareModule('stats'))return false
+   presentStatsSource(path)
+   return true
+  }).catch(error=>setLibraryNotice(String(error)))
+ }
  async function sendStats(){
   await guardLibrary(async()=>{
    const source=current.current
    if(!source)return false
-   // A temporary synthetic example stays open in WB, so no discard is needed.
-   if(source.demo&&!source.project_path){if(!await canLeaveFigure())return false}
-   else if(!await prepareModule('stats'))return false
-   if(!await statsLibrary.current?.fromWB(current.current??source))return false
-   setModule('stats')
+   if(source.demo&&!source.project_path){
+    if(!await canLeaveFigure()||!await statsLibrary.current?.fromWB(source))return false
+    setModule('stats')
+    return true
+   }
+   if(source.read_only&&source.revision!==source.saved_revision){
+    setMessage('请先将修改保存为可写项目后再读取统计结果。')
+    return false
+   }
+   if(!source.project_path||source.upgrade_from)await saveProject()
+   const saved=current.current
+   if(!saved||saved.id!==source.id||!saved.project_path||saved.upgrade_from||!await prepareModule('stats'))return false
+   if(current.current?.saved_revision!==current.current?.revision)return false
+   presentStatsSource(saved.project_path)
    return true
   }).catch(error=>setLibraryNotice(String(error)))
  }
@@ -553,17 +574,18 @@ export default function App(){
    </div>
    <section inert={switching} className={`page-content ${tab==='workspace'?'workbench-page':''}`}>{tab==='wb'?<WbFigureEditor key={project.id+':'+workspaceEpoch+':'+(initialStrip?.version??'')} project={project}
     initialDocument={initialStrip} onDocument={setActiveStrip} onSaved={library.refresh} onExported={reportLibraryExport} externalBusy={!!busy||switching} onBusy={working=>{wbBusy.current=working;setWbWorking(working)}} onBeforeSave={prepareWbSave} onDraft={dirty=>{wbDirty.current=dirty}} onHistory={history=>{wbHistory.current=history}}/>:frozen?<FigureDocument figure={frozen} onArchive={archiveFigure} onPreview={onFigurePreview} onUpdate={updateFigureSource} canUpdate={!!result&&result.input_revision===project.revision} onWorkspace={()=>{setActiveSetId(project.band_sets.find(g=>g.role==='reference')?.id??'');navigate('workspace')}} onVersion={openFigureVersion}/>:guided?(tab==='results'?<LaneResults project={project} result={result} onEdit={edit} onReview={review} onLocate={locate} onAnalyze={analyze} onExport={openExport} onArchive={archiveFigure} onPreview={onFigurePreview} figureDocument={figureDocument}/>:<LaneSetup onHistory={setCanvasHistory} key={workspaceEpoch} project={project} stage={tab==='workspace'?'reference':'targets'} activeSetId={activeSetId} onSet={setActiveSetId} onEdit={edit} onImport={()=>importImages().catch(e=>setMessage(String(e)))} onTarget={()=>{setActiveSetId('');navigate('samples')}} onManual={()=>{setManualMode(true);navigate('workspace')}}/>):<><QualityPanel project={project} result={result} onLocate={locate}/>{tab==='workspace'?<Workspace project={project} onEdit={edit} onDetect={detect} candidates={staged} onCandidates={setCandidates} onAcceptCandidates={acceptCandidates} onReview={review} busy={!!busy} selection={selection} onSelect={setSelection}/>:tab==='samples'?<SampleEditor project={project} onEdit={edit} onReview={review}/>:<Results project={project} result={result} onLocate={locate} onAnalyze={analyze}/>}</>}</section></div>}
-  {pageChoice&&<ImagePagePicker path={pageChoice.path} info={pageChoice.info} onChoose={choosePages}/>} {showExport&&exportContext&&<ExportPreview project={exportContext.project} result={exportContext.result} initialSettings={exportContext.settings} initialFigure={exportContext.figure} initialData={exportContext.preview?.figure_data} onClose={()=>setShowExport(false)} onExport={exportResult}/>}<footer className="statusbar"><div className="status-summary">{project&&!homeVisible&&<><span>{project.images.length} 张原始图像</span><span>{project.rois.length} 个条带区域</span><span>{reviewed} 已复核</span>{((project as any).demo||(project as any).synthetic)&&<b className="synthetic-label">纯合成示例 · 非实验数据</b>}</>}</div><div className="status-system"><span className="connection"><i className={connected?'online':''}/>{connected?'本地引擎就绪':'连接中'}</span>{project&&!homeVisible&&<span className="pixel-note"><ShieldCheck size={12}/>原始像素参与计算</span>}</div></footer></div></div><IFWorkspace active={module==='if'} onWB={openWbHome} onStats={()=>setModule('stats')} registerClose={fn=>{ifClose.current=fn}}
+  {pageChoice&&<ImagePagePicker path={pageChoice.path} info={pageChoice.info} onChoose={choosePages}/>} {showExport&&exportContext&&<ExportPreview project={exportContext.project} result={exportContext.result} initialSettings={exportContext.settings} initialFigure={exportContext.figure} initialData={exportContext.preview?.figure_data} onClose={()=>setShowExport(false)} onExport={exportResult}/>}<footer className="statusbar"><div className="status-summary">{project&&!homeVisible&&<><span>{project.images.length} 张原始图像</span><span>{project.rois.length} 个条带区域</span><span>{reviewed} 已复核</span>{((project as any).demo||(project as any).synthetic)&&<b className="synthetic-label">纯合成示例 · 非实验数据</b>}</>}</div><div className="status-system"><span className="connection"><i className={connected?'online':''}/>{connected?'本地引擎就绪':'连接中'}</span>{project&&!homeVisible&&<span className="pixel-note"><ShieldCheck size={12}/>原始像素参与计算</span>}</div></footer></div></div><IFWorkspace active={module==='if'} onWB={openWbHome} onStats={()=>setModule('stats')} onStatsSource={sendIFStats} registerClose={fn=>{ifClose.current=fn}}
   registerLibrary={actions=>{ifLibrary.current=actions}} library={library} libraryBusy={libraryBusy}
   onOpen={openLibraryEntry} onDialog={setLibraryDialog} onPin={pinCollection}
   onArtifact={openArtifact} onReveal={(entry,artifact)=>void openRegisteredFile(entry,artifact,true)}
   onExported={reportLibraryExport} onOpenFile={()=>void openProject().catch(error=>setLibraryNotice(String(error)))}
   onRelocate={entry=>void openProject(entry).catch(error=>setMessage(String(error)))}/>
- <StatsWorkspace active={module==='stats'} library={library} libraryBusy={libraryBusy}
+ <StatsWorkspace active={module==='stats'} sourceRequest={statsSource} library={library} libraryBusy={libraryBusy}
   onWB={()=>enterModule('wb')} onIF={()=>enterModule('if')}
   onSource={source=>void guardLibrary(async()=>{
    const resolved=await callEngine<{path:string;entry_id:string|null;project_id:string}>('stats_resolve_source',{source})
-   return openAnalysis({...resolved,entry_id:resolved.entry_id??undefined,module:'wb',figures:[]},'results')
+   const sourceModule=source.kind==='if'?'if':'wb'
+   return openAnalysis({...resolved,entry_id:resolved.entry_id??undefined,module:sourceModule,figures:[]},'results')
   }).catch(error=>setLibraryNotice(String(error)))}
   registerLibrary={actions=>{statsLibrary.current=actions}} registerClose={close=>{statsClose.current=close}}
   onOpen={openLibraryEntry} onDialog={setLibraryDialog} onPin={pinCollection}

@@ -95,6 +95,9 @@ def render(d,style,run=None,folder=None):
                 root=Path(folder);(root/'plot.png').write_bytes(buffer.getvalue())
                 fig.savefig(root/'plot.svg',format='svg');fig.savefig(root/'plot.pdf',format='pdf')
             caption=f"每点代表一个独立单位；配对图按明确 ID 连线。误差线：{error}。缺失 {missing}，排除 {excluded}。"
+            if (d.get('source') or {}).get('kind') in ('wb','if'):
+                caption+=' 来源：'+str(d['source'].get('project_name',d['source']['kind']))+' · '+d['source']['endpoint']+' · '+d['source']['block']+'；版本 '+str(d['source']['revision'])+'。'
+                notes.extend(d['source'].get('notes',[]))
             if comparisons:caption+=' '+run['method_text']
             if annotation=='stars':caption+=' 星号：* P<0.05，** P<0.01，*** P<0.001，**** P<0.0001；ns P≥0.05。'
             return dict(png='data:image/png;base64,'+base64.b64encode(buffer.getvalue()).decode(),caption=caption,notes=notes)

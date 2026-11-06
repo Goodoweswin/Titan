@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 import tifffile
 from titan_wb.projects import atomic_json,operation_lock,process_alive
-from .models import validate_project,analysis_signature,segmentation_signature,bound_result_previews
+from .models import validate_project,analysis_signature,segmentation_signature,bound_result_previews,json_safe_integers
 from .projects import stream_hash
 
 _CHILDREN={}
@@ -125,12 +125,7 @@ def stage_result(result,directory):
     preview["total_objects"]=len(result.get("objects",[]))
     preview["objects_truncated"]=preview["total_objects"]>500
     preview["objects"]=preview.get("objects",[])[:500]
-    def safe(value):
-        if isinstance(value,int) and not isinstance(value,bool) and abs(value)>2**53-1:return str(value)
-        if isinstance(value,dict):return {key:safe(v) for key,v in value.items()}
-        if isinstance(value,list):return [safe(v) for v in value]
-        return value
-    preview=safe(preview)
+    preview=json_safe_integers(preview)
     preview["artifact"]=dict(path=str(path),sha256=stream_hash(path))
     return preview
 

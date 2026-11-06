@@ -372,7 +372,7 @@ def _pool(rows):
     return output
 
 
-def aggregate_results(project):
+def aggregate_results(project, channel_name=None):
     """Export current field rows and pool fields at biological-sample level."""
     from .models import analysis_signature
     objects, fields, samples = [], [], []
@@ -399,10 +399,12 @@ def aggregate_results(project):
             raise ValueError('Duplicate channel names cannot be pooled as biological markers')
         metadata = {key: field.get(key, '') for key in ('sample_id', 'bio_id', 'group', 'batch_id')}
         for row in result.get('objects', []):
+            if channel_name is not None and channels[row['channel_id']]['name'] != channel_name:continue
             objects.append({**row, **metadata, 'field_id': field['id'], 'field_name': field.get('name', ''),
                             'channel_name': channels[row['channel_id']]['name']})
         for row in result.get('summary', []):
             marker = channels[row['channel_id']]['name']
+            if channel_name is not None and marker != channel_name:continue
             canonical.setdefault(marker, row['channel_id'])
             enriched = {**row, **metadata, 'field_name': field.get('name', ''), 'channel_name': marker}
             fields.append(enriched)
