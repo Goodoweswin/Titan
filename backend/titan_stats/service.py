@@ -68,6 +68,12 @@ def dispatch(command,payload,session):
     if command=='stats_analyze':return analyze(payload['dataset'])
     if command=='stats_preview':return render(payload['dataset'],payload['style'],payload.get('run'))
     if command=='stats_export':return export(payload['dataset'],payload['style'],payload.get('run'),payload['destination'])
+    if command in ('stats_source_catalog','stats_from_source','stats_source_status','stats_update_source'):
+        from . import sources
+        if command=='stats_source_catalog':return sources.catalog(payload['path'],session)
+        if command=='stats_from_source':return sources.transfer(payload,session)
+        if command=='stats_source_status':return sources.status(payload['source'],session)
+        return sources.update(payload,session)
     if command=='stats_from_wb':
         from titan_wb.stats_adapter import datasets
         from titan_wb.analysis import analyze as wb_analyze
@@ -80,14 +86,4 @@ def dispatch(command,payload,session):
                     return store.load(entry['path'],session)
         tables=datasets(p,wb_analyze(p))
         return create(p['name']+' · 统计',session,tables)
-    if command=='stats_update_source':
-        from titan_wb.projects import open_project
-        from titan_wb.analysis import analyze as wb_analyze
-        from titan_wb.stats_adapter import datasets
-        p=payload['project'];d=next(d for d in p['datasets'] if d['id']==payload['dataset_id']);source=d['source']
-        wb=open_project(source['path'],session,read_only=True);fresh=next((t for t in datasets(wb,wb_analyze(wb)) if t['source']['endpoint']==source['endpoint'] and t['source']['block']==source['block']),None)
-        if not fresh:raise ValueError('当前来源中已不存在该终点/分析块')
-        # Explicitly reset analysis configuration when group identities change.
-        fresh.update(id=d['id'],name=d['name'],runs=d['runs'],style={**d['style'],'colors':{}});p=copy.deepcopy(p);p['datasets']=[fresh if t['id']==d['id'] else t for t in p['datasets']];p['revision']+=1
-        return store.save(p,p['project_path'],p['saved_revision'],{**session,'stats_source_update':True})
     raise ValueError('不支持的统计命令')

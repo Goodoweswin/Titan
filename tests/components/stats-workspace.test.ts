@@ -34,3 +34,42 @@ it('runs the real engine from table import through inference, stale detection, f
  await act(async()=>root.render(React.createElement(StatsWorkspace,{active:true,path:{path:entries[0].path,token:1},onWB:()=>{},onIF:()=>{},onSource:()=>{},registerClose:()=>{}})))
  expect(host.textContent).toContain('导入数据 · 图 1')
 },120000)
+
+it('reads saved IF sample results, detects source changes and preserves frozen figures on refresh',async()=>{
+ const sourcePath=execFileSync(path.resolve('.venv/bin/python'),['-c',`
+import json,sys
+from titan_if.service import _demo
+from titan_if.analysis import measure_field
+from titan_if.projects import save_project
+s=json.loads(sys.argv[1]);p=_demo(s)
+for f in p['fields']:f['result']=measure_field(f)
+p['revision']+=1;p=save_project(p,p['project_path'],p['saved_revision'],s)
+print(p['project_path'])`,JSON.stringify({pid:process.pid,token:'component',library_root:folder})],{encoding:'utf8',env:{...process.env,PYTHONPATH:path.resolve('backend')}}).trim()
+ const onSource=vi.fn()
+ await act(async()=>root.render(React.createElement(StatsWorkspace,{active:true,path:null,onWB:()=>{},onIF:()=>{},onSource,registerClose:()=>{}})))
+ await click('从项目读取结果');await input('结果来源项目',sourcePath)
+ expect(host.textContent).toContain('control: n=3 · treated: n=3')
+ const select=host.querySelector('[aria-label="选择指标 Marker · 原始平均强度 · synthetic"]') as HTMLInputElement
+ await act(async()=>select.click())
+ expect(button('读取所选结果').disabled).toBe(true)
+ await act(async()=>(host.querySelector('[aria-label="确认来源统计单位"]') as HTMLInputElement).click())
+ await click('读取所选结果')
+ expect(host.textContent).toContain('IF 来源：')
+ expect((host.querySelector('[aria-label="数值 1 1"]') as HTMLInputElement).disabled).toBe(true)
+ await click('统计分析');await click('运行分析');await click('查看图形')
+ await act(async()=>{await new Promise(resolve=>setTimeout(resolve,600))})
+ expect(host.querySelector('img[alt="统计图预览"]')).toBeTruthy()
+ await click('保存图形快照');await click('保存')
+ const entries=await callEngine<any[]>('library_list'),statsPath=entries.find(e=>e.module==='stats').path
+ const before=await callEngine<any>('stats_open',{path:statsPath})
+ const source=await callEngine<any>('if_open',{path:sourcePath});source.fields[0].bio_id='new-sample-id';source.revision++
+ await callEngine('if_save',{project:source,expected_revision:source.saved_revision})
+ await click('检查来源更新');expect(host.textContent).toContain('来源已变化')
+ await click('用当前 IF 更新');await click('统计分析')
+ expect(host.textContent).toContain('数据或设置已改变')
+ const after=await callEngine<any>('stats_open',{path:statsPath})
+ expect(after.figures).toEqual(before.figures)
+ expect(after.datasets[0].rows[0].label).toBe('new-sample-id')
+ await click('返回 IF');expect(onSource).toHaveBeenCalledWith(sourcePath,'if')
+ function button(label:string){return [...host.querySelectorAll('button')].find(b=>b.textContent===label)!}
+},120000)

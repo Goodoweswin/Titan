@@ -92,4 +92,19 @@ mod tests {
         let mut w=EngineWorker::new(root.join(if cfg!(windows){".venv/Scripts/python.exe"}else{".venv/bin/python"}),vec!["-c".into(),"import time;time.sleep(10)".into()]);w.timeout=Duration::from_millis(50);
         assert!(w.request(json!({"command":"health"})).await.is_err());assert!(w.process.lock().await.is_none());
     }
+    #[tokio::test]async fn linked_wb_result_can_be_saved_after_round_trip(){
+        let root=std::env::temp_dir().join(format!("titan-linked-wb-{}",uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&root).unwrap();
+        let session=json!({"pid":std::process::id(),"token":"linked-wb-round-trip","library_root":root.join("library")});
+        let w=worker();
+        let demo=w.request(json!({"command":"demo","session":session})).await.unwrap();
+        let wb=w.request(json!({"command":"save_project","payload":{"project":demo,"path":root.join("source.titanwb"),"expected_revision":null},"session":session})).await.unwrap();
+        let catalog=w.request(json!({"command":"stats_source_catalog","payload":{"path":wb["project_path"]},"session":session})).await.unwrap();
+        let mut stats=w.request(json!({"command":"stats_from_source","payload":{"path":wb["project_path"],"keys":[catalog["choices"][0]["key"]],"expected_signature":catalog["signature"],"confirmed":true},"session":session})).await.unwrap();
+        stats["name"]=json!("Renamed without changing source values");
+        stats["revision"]=json!(stats["revision"].as_u64().unwrap()+1);
+        let result=w.request(json!({"command":"stats_save","payload":{"project":stats},"session":session})).await;
+        w.shutdown().await;std::fs::remove_dir_all(root).unwrap();
+        assert!(result.is_ok(),"{:?}",result);
+    }
 }

@@ -1,5 +1,7 @@
 # v0.4 统计与绘图预览检查点
 
+> 此文件保留 beta3 整合时的验收记录。当前主应用及项目结果对接记录见 [项目结果对接](project-results-statistics.md)。
+
 日期：2026-11-07。基础标签 `v0.4.0-beta.3`，基础提交 `80d552c52be86bfd661166fb9268eeac375fc673`。开发分支 `codex/statistics-v04`。本次将 beta3 合入已有统计预览，保留两侧提交历史。
 
 ## beta3 整合

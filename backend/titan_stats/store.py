@@ -26,12 +26,12 @@ def save(p,path,expected,session):
             disk=json.loads(manifest.read_text(encoding='utf-8'))
             if disk['id']!=p['id'] or disk['revision']!=expected:raise ValueError('磁盘版本已改变，请重新打开，当前修改未覆盖')
             if p['revision']<disk['revision']:raise ValueError('不能回退磁盘版本')
-            # WB source tables can only be replaced through the explicit source-update command.
+            # Linked source tables can only be replaced through the explicit source-update command.
             if not session.get('stats_source_update'):
                 for old in disk['datasets']:
                     if old.get('source',{} ) and old['source'].get('locked'):
                         new=next((d for d in p['datasets'] if d['id']==old['id']),None)
-                        if new and any(new.get(k)!=old.get(k) for k in ['rows','source','groups']):raise ValueError('WB 来源表不可修改数值，请更新来源或复制为独立表')
+                        if new and any(new.get(k)!=old.get(k) for k in ['rows','source','groups']):raise ValueError('来源表不可修改数值，请更新来源或复制为独立表')
             (root/'backups').mkdir(exist_ok=True);shutil.copy2(manifest,root/'backups/previous.json')
         elif any(f.name not in ['.save.lock','.writer.lock'] for f in root.iterdir()):raise ValueError('请选择空目录，避免覆盖已有文件')
         data=copy.deepcopy(p)
