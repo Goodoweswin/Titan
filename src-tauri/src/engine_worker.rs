@@ -14,6 +14,11 @@ impl EngineWorker {
     }
     pub async fn request(&self,mut request:Value)->Result<Value,String>{
         let _slot=self.slots.try_acquire().map_err(|_|"等待中的操作太多，请稍后再试".to_string())?;
+        let deadline=match request["command"].as_str() {
+            Some("library_material_add"|"library_material_paths"|"library_export_bundle"|"library_import_bundle"|
+                "library_create_from_wb"|"if_new_from_import")=>Duration::from_secs(30*60),
+            _=>self.timeout,
+        };
         let mut guard=self.process.lock().await;
         if guard.is_none(){
             let mut child=tokio::process::Command::new(&self.program);
@@ -31,14 +36,14 @@ impl EngineWorker {
         if encoded.len()>LIMIT{return Err("请求过大，请减少图像数量".into())}
         encoded.push(b'\n');
         let p=guard.as_mut().unwrap();
-        let result=tokio::time::timeout(self.timeout,async {
+        let result=tokio::time::timeout(deadline,async {
             p.input.write_all(&encoded).await.map_err(|e|e.to_string())?;
             p.input.flush().await.map_err(|e|e.to_string())?;
             let bytes=read_frame(&mut p.output).await?;
             let response:Value=serde_json::from_slice(&bytes).map_err(|_|"计算引擎返回了无效数据".to_string())?;
             if response["request_id"]!=json!(id){return Err("引擎响应顺序异常，请重试当前操作".into())}
             Ok(response)
-        }).await.map_err(|_|"本次操作超过60秒，请重试；未自动重复保存或导出".to_string()).and_then(|v|v);
+        }).await.map_err(|_|format!("本次操作超过{}秒，请检查保存位置后再试；未自动重复保存或导出",deadline.as_secs())).and_then(|v|v);
         match result {
             Ok(response)=>{
                 if response["ok"]!=true{return Err(response["error"].as_str().unwrap_or("计算失败").into())}

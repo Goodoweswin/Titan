@@ -38,11 +38,14 @@ export interface FigureDocumentMetadata{id:string;name:string;current_version:st
 export interface LibraryEntry{module?:'wb'|'if'|'stats';collection_id?:string|null;resume?:LibraryResume;entry_id:string;project_id:string;name:string;path:string;last_opened:string;created_at:string;available:boolean;revision?:number;error?:string;figure_error?:string;artifacts?:LibraryArtifact[];figures:FigureDocumentMetadata[]}
 export interface FrozenFigure{document:FigureDocumentMetadata;project:Project;result:AnalysisResult;figure_settings:FigureSettings;settings:PlotSettings;png:string}
 
+export interface LibraryMaterial { id:string; name:string; size:number; sha256:string; added_at:string }
+
 export interface LibraryCollection {
  id: string
  name: string
  pinned: boolean
  created_at: string
+ materials?: LibraryMaterial[]
 }
 
 export interface LibraryResume {

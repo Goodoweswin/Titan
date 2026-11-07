@@ -6,11 +6,11 @@ test('new experiments autosave and remain in the left project tree after reload'
  await createAnalysis(page,'wb')
  const name='自动保存验收 '+Date.now()
  await page.getByLabel('实验名称').fill(name)
- await expect(page.getByRole('button',{name:'打开项目 '+name,exact:true})).toBeVisible({timeout:10000})
+ await expect(page.getByRole('button',{name:'打开分析 '+name,exact:true})).toBeVisible({timeout:10000})
  await createAnalysis(page,'wb')
  await expect(page.getByLabel('实验名称')).toHaveValue('未命名实验')
  await page.reload()
- await page.getByRole('button',{name:'打开项目 '+name,exact:true}).click()
+ await page.getByRole('button',{name:'打开分析 '+name,exact:true}).click()
  await expect(page.getByLabel('实验名称')).toHaveValue(name)
  await expect(page.getByRole('navigation',{name:'实验项目库'}).getByRole('button',{name:'结果表',exact:true}).first()).toBeVisible()
 })
@@ -32,7 +32,7 @@ async function seedThreeGroups(page:any){
 
 test('three-group figures expose methods/colors and preserve frozen sources in the sidebar',async({page})=>{
  await page.goto('/?integration=1');const source=await seedThreeGroups(page);await page.reload()
- await page.getByRole('button',{name:'打开项目 '+source.name,exact:true}).click()
+ await page.getByRole('button',{name:'打开分析 '+source.name,exact:true}).click()
  await page.getByRole('button',{name:'结果',exact:true}).click()
  await page.getByRole('tab',{name:'统计与图表',exact:true}).click()
  await expect(page.getByRole('img',{name:'当前结果图表',exact:true})).toBeVisible({timeout:15000})
@@ -86,7 +86,7 @@ test('three-group figures expose methods/colors and preserve frozen sources in t
 
 test('invalid drafts remain editable, cancelling navigation preserves them, and late previews cannot cross projects',async({page})=>{
  await page.goto('/?integration=1');const source=await seedThreeGroups(page);await page.reload()
- await page.getByRole('button',{name:'打开项目 '+source.name,exact:true}).click()
+ await page.getByRole('button',{name:'打开分析 '+source.name,exact:true}).click()
  await page.getByRole('button',{name:'结果',exact:true}).click()
  await page.getByRole('tab',{name:'统计与图表',exact:true}).click()
  await expect(page.getByRole('img',{name:'当前结果图表',exact:true})).toBeVisible({timeout:15000})
@@ -125,7 +125,7 @@ for(const operation of ['history','source-update'])test(`late ${operation} docum
   p.revision++;p.samples[0].name='源已变化';p.rois.forEach((r:any)=>r.reviewed_revision=p.revision);p.lane_layouts[0].confirmed_revision=p.revision
   await rpc(page,'save_project',{project:p,path:p.project_path,expected_revision:p.saved_revision})
  }
- await page.reload();await page.getByRole('button',{name:'打开项目 '+p.name,exact:true}).click()
+ await page.reload();await page.getByRole('button',{name:'打开分析 '+p.name,exact:true}).click()
  await page.getByRole('button',{name:'打开图表 '+figureName,exact:true}).click()
  await expect(page.getByRole('img',{name:'当前结果图表',exact:true})).toBeVisible({timeout:15000})
  let release!:()=>void,received!:()=>void
@@ -178,8 +178,8 @@ test('a project groups WB, IF and stats analyses and restores the last IF view',
  const moved = await rpc(page, 'library_workspace')
  expect(moved.entries.find((entry:any)=>entry.name===ifName)).toMatchObject({collection_id:second.id,resume:{view:'results'}})
  await page.reload()
- await library.getByRole('button',{name:'展开课题 '+nextName,exact:true}).click()
- await library.getByRole('button',{name:'打开项目 '+ifName,exact:true}).click()
+ await library.getByRole('button',{name:'展开项目 '+nextName,exact:true}).click()
+ await library.getByRole('button',{name:'打开分析 '+ifName,exact:true}).click()
  await expect(page.getByRole('button',{name:'IF 定量结果',exact:true})).toHaveAttribute('aria-current','page')
  const statsName='独立统计 '+Date.now()
  await create('新建统计分析',statsName,first.id)
@@ -203,7 +203,7 @@ test('IF save failure keeps the current view and dirty inputs when opening a WB 
  })
  const name=page.getByLabel('IF 实验名称',{exact:true})
  await name.fill('必须保留的修改')
- await page.getByRole('button',{name:'打开项目 '+wb.project.name,exact:true}).click()
+ await page.getByRole('button',{name:'打开分析 '+wb.project.name,exact:true}).click()
  await expect(page.getByRole('status').filter({hasText:'验收：保存失败'})).toBeVisible()
  await expect(name).toHaveValue('必须保留的修改')
  await expect(page.getByRole('button',{name:'IF 定量结果',exact:true})).toHaveAttribute('aria-current','page')

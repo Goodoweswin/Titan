@@ -8,7 +8,7 @@ import WbCropEditor from './WbCropEditor'
 import './wb-figure.css'
 import {sameProjectContext} from './project-library-state'
 
-export interface WbHistory {canUndo:boolean;canRedo:boolean;undo:()=>void;redo:()=>void}
+export interface WbHistory {canUndo:boolean;canRedo:boolean;undo:()=>void;redo:()=>void;discard:()=>void}
 interface Props {project:Project;initialDocument:WbDocument|null;onDocument:(value:{id:string;version:string}|null)=>void;onSaved:()=>void;onExported:(receipt:LibraryExportReceipt)=>void;externalBusy:boolean;onBusy:(busy:boolean)=>void;onBeforeSave:()=>Promise<Project>;onDraft:(dirty:boolean)=>void;onHistory:(history:WbHistory|null)=>void}
 export default function WbFigureEditor({project,initialDocument,onDocument,onSaved,onExported,externalBusy,onBusy,onBeforeSave,onDraft,onHistory}:Props){
  const [doc,setDoc]=useState<WbDocument|null>(initialDocument),[entries,setEntries]=useState<WbEntry[]>([]),[templates,setTemplates]=useState<WbRow[]>([])
@@ -53,7 +53,12 @@ export default function WbFigureEditor({project,initialDocument,onDocument,onSav
  function change(edit:(d:WbDocument)=>void){const current=value.current;if(!current||blocked)return;const next=structuredClone(current);edit(next);setPast(v=>[...v.slice(-39),current]);setFuture([]);value.current=next;setDoc(next);setMessage('');onDraft(JSON.stringify(next)!==baseline.current)}
  function editRow(edit:(r:WbRow)=>void){change(d=>{const r=d.rows.find(r=>r.id===selected);if(r)edit(r)})}
  function restore(redo=false){if(blocked)return;const stack=redo?future:past,snapshot=stack.at(-1),current=value.current;if(!snapshot||!current)return;const next={...snapshot,version:current.version,updated_at:current.updated_at};if(redo){setFuture(stack.slice(0,-1));setPast(v=>[...v,current])}else{setPast(stack.slice(0,-1));setFuture(v=>[...v,current])}value.current=next;setDoc(next);setMessage('');setSelected(id=>next.rows.some(r=>r.id===id)?id:next.rows[0]?.id??'');onDraft(JSON.stringify(next)!==baseline.current)}
- useEffect(()=>{onHistory({canUndo:past.length>0&&!blocked,canRedo:future.length>0&&!blocked,undo:()=>restore(),redo:()=>restore(true)})},[past,future,blocked])
+ function restoreBaseline(){
+  if(baseline.current){accept(JSON.parse(baseline.current),true);return}
+  generation.current++;value.current=null;setDoc(null);setSelected('');setPast([]);setFuture([])
+  setMessage('');setError('');setWarning('');onDraft(false);onDocument(null)
+ }
+ useEffect(()=>{onHistory({discard:restoreBaseline,canUndo:past.length>0&&!blocked,canRedo:future.length>0&&!blocked,undo:()=>restore(),redo:()=>restore(true)})},[past,future,blocked])
  async function discard(){return !dirty||await (Boolean((window as any).__TAURI_INTERNALS__)?confirm('当前组图有未保存修改，放弃并切换？',{title:'Titan',kind:'warning'}):window.confirm('当前组图有未保存修改，放弃并切换？'))}
  async function create(){if(!await discard())return;setBusy(true);setError('');const token=++generation.current;try{const d=await callEngine<WbDocument>('wb_new',{project});if(!alive.current||token!==generation.current||!sameProjectContext(context.current,project))return;const suggested=proposedLabels(project,d.rows);d.labels=suggested.labels;accept(d);setWarning(suggested.warning)}catch(e){if(alive.current)setError(String(e))}finally{if(alive.current)setBusy(false)}}
  async function load(id:string){if(unavailable||!id||!await discard())return;setBusy(true);setError('');const token=++generation.current;try{const d=await callEngine<WbDocument>('wb_load',{project,document_id:id});if(alive.current&&token===generation.current&&sameProjectContext(context.current,project))accept(d,true)}catch(e){if(alive.current)setError(String(e))}finally{if(alive.current)setBusy(false)}}

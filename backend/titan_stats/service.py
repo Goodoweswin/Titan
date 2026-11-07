@@ -6,7 +6,7 @@ from titan_wb.library import (
 )
 from titan_wb.projects import release_project
 from . import store
-from .models import new_project,new_dataset,uid,signature,validate
+from .models import new_project,new_dataset,uid,signature,validate,prepared
 from .analysis import analyze
 from .render import render
 from .importers import import_table
@@ -24,7 +24,6 @@ def create(name, session, tables=None, *, collection_id=None, new_collection_nam
 def export(d,style,run,destination):
     from openpyxl import Workbook
     from openpyxl.drawing.image import Image
-    from .models import prepared
     dest=Path(destination).expanduser().resolve()
     if dest.exists():raise ValueError('导出目录已存在，请选择新目录')
     if d['analysis']['method']!='descriptive' and (not run or run['signature']!=signature(d)):raise ValueError('分析结果已过期，请重新运行再导出')
@@ -72,6 +71,12 @@ def dispatch(command,payload,session):
     if command=='stats_new':
         return create(payload.get('name','未命名统计项目'), session,
                       collection_id=payload.get('collection_id'), new_collection_name=payload.get('new_collection_name'))
+    if command == 'stats_new_from_import':
+        dataset = payload['dataset']
+        observations, _, _ = prepared(dataset)
+        if not observations:
+            raise ValueError('请先导入至少一个有效数值')
+        return create(payload['name'], session, [dataset], collection_id=payload.get('collection_id'))
     if command=='stats_demo':
         d=import_table(text='Control\tTreatment A\tTreatment B\n1\t2\t4\n2\t3\t5\n3\t4\t6')['dataset'];d['name']='合成示例 · 非实验数据';d['confirmed']=True;d['analysis']['method']='anova';d['analysis']['scope']='all'
         return create('统计合成示例',session,[d])

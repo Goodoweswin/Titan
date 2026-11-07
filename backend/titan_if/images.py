@@ -223,6 +223,8 @@ def import_field(selections, metadata=None):
             quantitative &= info['quantitative']
             calibrations.append(info['pixel_size_um'])
             digest = file_sha256(path)
+            if selection.get('expected_sha256') is not None and selection['expected_sha256'] != digest:
+                raise ValueError('项目资料副本已变化，请重新添加。')
             for chosen_index in chosen:
                 selected = {**indexers, **({channel_axis: chosen_index} if channel_axis else {})}
                 plane = _plane(series, axes, selected)

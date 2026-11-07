@@ -1,15 +1,18 @@
 import {useEffect,useRef,useState} from 'react'
 import {open} from '@tauri-apps/plugin-dialog'
 import {callEngine} from '../bridge'
-import type {LibraryEntry} from '../types'
+import type {LibraryCollection,LibraryEntry} from '../types'
 import type {SourceCatalog} from './types'
 
-export default function ProjectResultsDialog({entries,initialPath,hasProject,busy,onClose,onImport}:{
- entries:LibraryEntry[];initialPath?:string;hasProject:boolean;busy:boolean;onClose:()=>void;
- onImport:(catalog:SourceCatalog,keys:string[],append:boolean)=>Promise<void>;
+export default function ProjectResultsDialog({entries,projects,initialPath,initialCollectionId,currentName,appendByDefault,busy,onClose,onImport}:{
+ entries:LibraryEntry[];projects:LibraryCollection[];initialPath?:string;initialCollectionId?:string|null;currentName?:string;appendByDefault:boolean;busy:boolean;onClose:()=>void;
+ onImport:(catalog:SourceCatalog,keys:string[],append:boolean,collectionId:string|null)=>Promise<void>;
 }){
  const [path,setPath]=useState(initialPath??''),[catalog,setCatalog]=useState<SourceCatalog|null>(null)
- const [keys,setKeys]=useState<string[]>([]),[confirmed,setConfirmed]=useState(false),[append,setAppend]=useState(hasProject)
+ const dialog=useRef<HTMLDialogElement>(null)
+ useEffect(()=>{dialog.current?.showModal()},[])
+ const [keys,setKeys]=useState<string[]>([]),[confirmed,setConfirmed]=useState(false),[append,setAppend]=useState(!!currentName&&appendByDefault)
+ const [collectionId,setCollectionId]=useState(initialCollectionId??'')
  const [loading,setLoading]=useState(false),[error,setError]=useState(''),generation=useRef(0)
  async function inspect(next=path){
   const token=++generation.current;setPath(next);setLoading(true);setError('');setCatalog(null);setKeys([]);setConfirmed(false)
@@ -20,7 +23,7 @@ export default function ProjectResultsDialog({entries,initialPath,hasProject,bus
  useEffect(()=>{if(initialPath)void inspect(initialPath);return()=>{generation.current++}},[initialPath])
  async function choose(){try{const selected=await open({directory:true,title:'选择 WB / IF 项目'});if(typeof selected==='string')await inspect(selected)}catch(e){setError(String(e))}}
  const disabled=busy||loading
- return <div className="modal-backdrop"><section className="modal stats-source-dialog" role="dialog" aria-modal="true" aria-label="从项目读取结果">
+ return <dialog className="modal stats-source-dialog stats-source-modal" ref={dialog} aria-label="从项目读取结果" onCancel={e=>{e.preventDefault();if(!busy)onClose()}}>
   <header><h2>从项目读取结果</h2><button className="icon-btn" aria-label="关闭项目结果选择" disabled={busy} onClick={onClose}>×</button></header>
   <p className="hint">读取已保存的分析结果。选择指标后生成关联数据表，保留原项目与来源版本。</p>
   <label>项目库<select aria-label="结果来源项目" value={entries.some(e=>e.path===path)?path:''} disabled={disabled} onChange={e=>void inspect(e.target.value)}>
@@ -41,9 +44,10 @@ export default function ProjectResultsDialog({entries,initialPath,hasProject,bus
     {keys.includes(c.key)&&<><details><summary>查看样本预览与汇总规则</summary><table className="stats-results"><thead><tr><th>生物学样本</th><th>分组</th><th>数值</th><th>缺失原因</th></tr></thead><tbody>{c.preview.map((r,i)=><tr key={i}><td>{r.bio_id}</td><td>{r.group}</td><td>{r.value==null?'缺失':Number(r.value).toLocaleString(undefined,{maximumSignificantDigits:6})}</td><td>{r.missing_reason||'—'}</td></tr>)}</tbody></table>{c.notes.map((n,i)=><p className="hint" key={i}>{n}</p>)}</details>
      {c.missing>0&&<p className="library-error">存在缺失样本值；不会补零或将未完成视野当作完整样本。</p>}</>}
    </article>)}</div>
-   {hasProject&&<label>保存到<select aria-label="结果读取目标" value={append?'current':'new'} disabled={disabled} onChange={e=>setAppend(e.target.value==='current')}><option value="current">当前统计项目（已有同一指标不重复添加）</option><option value="new">新建统计项目</option></select></label>}
+   {currentName&&<label>保存到<select aria-label="结果读取目标" value={append?'current':'new'} disabled={disabled} onChange={e=>setAppend(e.target.value==='current')}><option value="current">添加到：{currentName}</option><option value="new">新建统计分析</option></select></label>}
+   {!append&&<label>归属项目<select value={collectionId} disabled={disabled} onChange={e=>setCollectionId(e.target.value)}><option value="">独立分析</option>{projects.map(project=><option key={project.id} value={project.id}>{project.name}</option>)}</select></label>}
    <label className="stats-confirm"><input type="checkbox" aria-label="确认来源统计单位" checked={confirmed} disabled={disabled||!keys.length} onChange={e=>setConfirmed(e.target.checked)}/>我已核对指标、分组、有效样本数与缺失情况；每个数值代表一个生物学样本。</label>
   </>}
-  <footer><button className="btn secondary" disabled={busy} onClick={onClose}>取消</button><button className="btn primary" disabled={disabled||!catalog||!keys.length||!confirmed} onClick={async()=>{try{await onImport(catalog!,keys,append)}catch(e){setError(String(e));setConfirmed(false)}}}>读取所选结果</button></footer>
- </section></div>
+  <footer><button className="btn secondary" disabled={busy} onClick={onClose}>取消</button><button className="btn primary" disabled={disabled||!catalog||!keys.length||!confirmed} onClick={async()=>{try{await onImport(catalog!,keys,append,collectionId||null)}catch(e){setError(String(e));setConfirmed(false)}}}>读取所选结果</button></footer>
+ </dialog>
 }

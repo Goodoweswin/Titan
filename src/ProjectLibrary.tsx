@@ -7,6 +7,9 @@ export type LibraryView='workspace'|'results'|'wb'
 interface Props {
  entries:LibraryEntry[]
  projects:LibraryCollection[]
+ selectedProjectId?:string
+ onProject:(id:string)=>void
+ onOpenBundle:()=>void
  project:{project_path?:string|null}|null
  activeFigure:string
  currentView:LibraryView
@@ -22,7 +25,7 @@ interface Props {
  onReveal:(entry:LibraryEntry,artifact?:LibraryArtifact)=>void
 }
 
-export default function ProjectLibrary({entries,projects,project,activeFigure,currentView,error,busy,onOpen,onRelocate,onRetry,onDialog,onOpenFile,onPin,onArtifact,onReveal}:Props){
+export default function ProjectLibrary({entries,projects,selectedProjectId,onProject,onOpenBundle,project,activeFigure,currentView,error,busy,onOpen,onRelocate,onRetry,onDialog,onOpenFile,onPin,onArtifact,onReveal}:Props){
  const [query,setQuery]=useState('')
  const [expanded,setExpanded]=useState<string[]>(['unassigned'])
  const [expandedEntries,setExpandedEntries]=useState<string[]>([])
@@ -34,6 +37,9 @@ export default function ProjectLibrary({entries,projects,project,activeFigure,cu
   setExpanded(previous=>previous.includes(group)?previous:[...previous,group])
   setExpandedEntries(previous=>previous.includes(active.entry_id)?previous:[...previous,active.entry_id])
  },[active?.entry_id,active?.collection_id])
+ useEffect(()=>{
+  if(selectedProjectId)setExpanded(previous=>previous.includes(selectedProjectId)?previous:[...previous,selectedProjectId])
+ },[selectedProjectId])
  const q=query.trim().toLocaleLowerCase()
  const matches=(name:string)=>name.toLocaleLowerCase().includes(q)
  const groups=projects.map(collection=>({
@@ -56,15 +62,16 @@ export default function ProjectLibrary({entries,projects,project,activeFigure,cu
   const open=expandedEntries.includes(entry.entry_id)||!!q
   return <div className="library-project" key={entry.entry_id}>
    <div className={selected?'library-root active':'library-root'}>
-    <button className="library-chevron" aria-label={`${open?'收起':'展开'}项目 ${entry.name}`} aria-expanded={open}
+    <button className="library-chevron" aria-label={`${open?'收起':'展开'}分析 ${entry.name}`} aria-expanded={open}
      onClick={()=>setExpandedEntries(previous=>toggle(previous,entry.entry_id))}><ChevronRight size={13} className={open?'expanded':''}/></button>
-    <button className="library-title" title={entry.path} aria-label={`打开项目 ${entry.name}`}
+    <button className="library-title" title={entry.path} aria-label={`打开分析 ${entry.name}`} aria-current={selected?'page':undefined}
      disabled={busy} onClick={()=>entry.available?onOpen(entry):onRelocate(entry)}>
      <FlaskConical size={14}/><span>{entry.name}</span><small>{entry.module==='stats'?'统计':entry.module==='if'?'IF':'WB'}</small>
      {!entry.available&&<small>需定位</small>}
     </button>
     {popup('entry-'+entry.entry_id,'分析菜单 '+entry.name,<>
      <button onClick={()=>action(()=>onDialog({kind:'move',entry}))}>移到项目</button>
+     {entry.collection_id&&<button onClick={()=>action(()=>onDialog({kind:'detach',entry}))}>移出项目</button>}
      <button disabled={!entry.available} onClick={()=>action(()=>onReveal(entry))}>在文件管理器中显示</button>
     </>)}
    </div>
@@ -90,14 +97,14 @@ export default function ProjectLibrary({entries,projects,project,activeFigure,cu
       artifact.document_id===figure.id&&artifact.kind==='result_export')
   ).map(figure=>({entry,figure})))
   return <section key={id} className="library-collection" aria-label={name}>
-   <div className="library-root">
-    <button className="library-title" aria-label={`${open?'收起':'展开'}课题 ${name}`} aria-expanded={open} onClick={()=>setExpanded(previous=>toggle(previous,id))}>
-     <ChevronRight size={13} className={open?'expanded':''}/><Folder size={15}/><span>{name}</span>{collection?.pinned&&<Pin size={12}/>}
-    </button>
+   <div className={selectedProjectId===id?'library-root active':'library-root'}>
+    <button className="library-chevron" aria-label={`${open?'收起':'展开'}${collection?'项目 ':''}${name}`} aria-expanded={open}
+     onClick={()=>setExpanded(previous=>toggle(previous,id))}><ChevronRight size={13} className={open?'expanded':''}/></button>
+    {collection?<button className="library-title" aria-label={`打开项目 ${name}`} aria-current={selectedProjectId===id?'page':undefined}
+     disabled={busy} onClick={()=>onProject(id)}><Folder size={15}/><span>{name}</span>{collection.pinned&&<Pin size={12}/>}</button>:
+     <button className="library-title" aria-expanded={open} onClick={()=>setExpanded(previous=>toggle(previous,id))}><span>{name}</span></button>}
     {collection&&popup(id,'项目菜单 '+name,<>
-     <button onClick={()=>action(()=>onDialog({kind:'wb',collectionId:id}))}>新建 WB 分析</button>
-     <button onClick={()=>action(()=>onDialog({kind:'if',collectionId:id}))}>新建 IF 分析</button>
-     <button onClick={()=>action(()=>onDialog({kind:'stats',collectionId:id}))}>新建统计分析</button>
+     <button onClick={()=>action(()=>onDialog({kind:'choose',collectionId:id}))}>新建分析</button>
      <button onClick={()=>action(()=>onDialog({kind:'rename',project:collection}))}>重命名</button>
      <button onClick={()=>action(()=>onPin(collection))}>{collection.pinned?'取消置顶':'置顶'}</button>
      <button onClick={()=>action(()=>onDialog({kind:'remove',project:collection}))}>移出项目列表</button>
@@ -149,11 +156,12 @@ export default function ProjectLibrary({entries,projects,project,activeFigure,cu
     <button onClick={()=>action(()=>onDialog({kind:'if'}))}>新建 IF 分析</button>
     <button onClick={()=>action(()=>onDialog({kind:'stats'}))}>新建统计分析</button>
     <button onClick={()=>action(onOpenFile)}>打开已有分析</button>
+    <button onClick={()=>action(onOpenBundle)}>打开项目包</button>
    </div>}
   </div></div>
   {error&&<div className="library-error" role="alert"><p>项目列表暂不可用：{error}</p><button onClick={onRetry}>重试</button></div>}
-  {!entries.length&&!projects.length&&!error&&<p className="hint library-empty">使用「＋」创建课题或分析。</p>}
+  {!entries.length&&!projects.length&&!error&&<p className="hint library-empty">使用「＋」创建项目或分析。</p>}
   {groups.map(({id,name,entries,collection})=>collectionRows(id,name,entries,collection))}
-  {collectionRows('unassigned','未归类',entries.filter(entry=>!projects.some(collection=>collection.id===entry.collection_id)))}
+  {collectionRows('unassigned','独立分析',entries.filter(entry=>!projects.some(collection=>collection.id===entry.collection_id)))}
  </nav>
 }

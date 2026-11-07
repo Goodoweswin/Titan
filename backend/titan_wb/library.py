@@ -1,12 +1,13 @@
 """A local index of explicitly created/opened portable projects. No disk scan."""
 import json
+import re
 import shutil
 import uuid
 from contextlib import contextmanager
 from datetime import datetime,timezone
 from pathlib import Path
-from .models import new_project
-from .images import file_hash
+from .models import new_project, validate_project
+from .images import file_hash, read_source_pixels
 from .projects import atomic_json,save_project,operation_lock,release_project,writer_identity
 from .figure_documents import save_figure,load_figure,source_signature,figure_catalog_metadata
 
@@ -38,6 +39,10 @@ def _index(root):
             for p in projects
         ):
             raise ValueError()
+        from .project_materials import validate_materials
+        for project in projects:
+            if 'materials' in project:
+                validate_materials(project['materials'])
         return data
     except (ValueError,KeyError,TypeError,AttributeError):raise ValueError('项目列表索引损坏；原项目保持不变，可通过“打开项目”继续访问')
 
@@ -180,6 +185,7 @@ def library_update_collection(collection_id, patch, session):
 
 
 def library_remove_collection(collection_id, session):
+    # Removing a collection detaches its materials and leaves managed copies available on disk.
     with _edit_index(session) as data:
         data['projects'].remove(_collection(data, collection_id))
         for entry in data['entries']:
@@ -363,6 +369,24 @@ def copy_registered_analysis(project, destination, suffix, save, session):
 def library_create(name, session, *, collection_id=None, new_collection_name=None):
     return create_managed_analysis(new_project(_name(name)), '.titanwb', save_project, session,
                                    collection_id=collection_id, new_collection_name=new_collection_name)
+
+
+def library_create_from_wb(project, session, *, collection_id=None):
+    if (not isinstance(project, dict) or project.get('module', 'wb') != 'wb'
+            or project.get('project_path') or project.get('saved_revision') is not None
+            or project.get('read_only') or project.get('upgrade_from')):
+        raise ValueError('仅可从未保存的 WB 分析导入原图')
+    project_id = project.get('id')
+    if not isinstance(project_id, str) or not re.fullmatch(r'[0-9a-f]{32}', project_id):
+        raise ValueError('WB 分析身份无效')
+    validate_project(project)
+    if not project['images']:
+        raise ValueError('请先导入至少一张 WB 原图')
+    for image in project['images']:
+        pixels = read_source_pixels(image)
+        if pixels.shape != (image.get('height'), image.get('width')) or str(pixels.dtype) != image.get('dtype'):
+            raise ValueError('原图尺寸或像素格式与导入信息不符')
+    return create_managed_analysis(project, '.titanwb', save_project, session, collection_id=collection_id)
 
 
 def library_remove(entry_id, session):

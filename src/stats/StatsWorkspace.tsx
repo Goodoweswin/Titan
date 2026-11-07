@@ -1,12 +1,12 @@
 import {useEffect,useRef,useState} from 'react'
 import {open,save} from '@tauri-apps/plugin-dialog'
-import {BarChart3,ScanLine,Microscope,Plus,FolderOpen,Table2,FlaskConical,Image,Download,Undo2,Redo2} from 'lucide-react'
+import {BarChart3,Plus,Table2,FlaskConical,Image,Download,Undo2,Redo2} from 'lucide-react'
 import {callEngine} from '../bridge'
-import ProjectLibrary,{type LibraryView} from '../ProjectLibrary'
+import {createPortal} from 'react-dom'
+import type {ModuleView} from '../App'
 import type {ProjectLibraryModel} from '../useProjectLibrary'
-import type {AnalysisCreation,LibraryDialog} from '../LibraryCreateDialog'
-import type {CloseActions,LibraryArtifact,LibraryCollection,LibraryEntry,LibraryExportReceipt,LibraryResume,Project} from '../types'
-import appIcon from '../../assets/brand/titan-app-icon-128.png'
+import type {AnalysisCreation} from '../LibraryCreateDialog'
+import type {CloseActions,LibraryExportReceipt,LibraryResume,Project} from '../types'
 import type {Dataset,DatasetSource,Figure,Run,SourceCatalog,StatsProject,Style} from './types'
 import {currentRun,inputKey} from './types'
 import ProjectResultsDialog from './ProjectResultsDialog'
@@ -19,37 +19,35 @@ const fmt=(v:unknown)=>typeof v==='number'?v.toLocaleString(undefined,{maximumSi
 export interface StatsLibraryActions {
  prepareLeave:()=>Promise<boolean>
  create:(input:AnalysisCreation)=>Promise<boolean>
+ demo:()=>Promise<boolean>
+ importFirst:(input:AnalysisCreation & {dataset:Dataset})=>Promise<boolean>
  open:(path:string,resume:LibraryResume,entryId?:string)=>Promise<boolean>
  fromWB:(project:Project)=>Promise<boolean>
 }
 
 interface Props {
  active:boolean
- sourceRequest?:{path:string;request:number}|null
+ sourceRequest?:{path?:string;request:number;collectionId?:string|null;forceNew?:boolean}|null
  library:ProjectLibraryModel
  libraryBusy:boolean
- onWB:()=>void
- onIF:()=>void
  onSource:(source:DatasetSource)=>void
  registerClose:(actions:CloseActions)=>void
  registerLibrary:(actions:StatsLibraryActions)=>void
- onOpen:(entry:LibraryEntry,view?:LibraryView,figureId?:string)=>void
- onDialog:(dialog:LibraryDialog)=>void
- onPin:(collection:LibraryCollection)=>void
- onArtifact:(entry:LibraryEntry,artifact:LibraryArtifact)=>void
- onReveal:(entry:LibraryEntry,artifact?:LibraryArtifact)=>void
+ sidebarSlot:HTMLDivElement|null
+ reportView:(view:ModuleView)=>void
+ membership:React.ReactNode
+ beforeSourceImport:()=>Promise<(()=>void)|null>
+ onSourceCreated:()=>void
  onExported:(receipt:LibraryExportReceipt)=>void
- onOpenFile:()=>void
- onRelocate:(entry:LibraryEntry)=>void
 }
 
 export default function StatsWorkspace({
- active,sourceRequest,library,libraryBusy,onWB,onIF,onSource,registerClose,registerLibrary,
- onOpen,onDialog,onPin,onArtifact,onReveal,onExported,onOpenFile,onRelocate,
+ active,sourceRequest,library,libraryBusy,onSource,registerClose,registerLibrary,
+ sidebarSlot,reportView,membership,beforeSourceImport,onSourceCreated,onExported,
 }:Props){
- const [sourceDialog,setSourceDialog]=useState<{path?:string}|null>(null)
+ const [sourceDialog,setSourceDialog]=useState<{path?:string;collectionId?:string|null;forceNew?:boolean;requested?:boolean}|null>(null)
  useEffect(()=>{
-  if(sourceRequest)setSourceDialog({path:sourceRequest.path})
+  if(sourceRequest)setSourceDialog({...sourceRequest,requested:true})
  },[sourceRequest])
  const [p,setP]=useState<StatsProject|null>(null),ref=useRef(p);ref.current=p
  const [datasetId,setDatasetId]=useState(''),[view,setView]=useState<'data'|'analysis'|'graph'>('data'),[busy,setBusy]=useState(''),[message,setMessage]=useState('')
@@ -74,6 +72,8 @@ export default function StatsWorkspace({
   registerLibrary({
    prepareLeave,
    create:input=>change('stats_new',input,undefined,true),
+   demo:()=>change('stats_demo',{},undefined,true),
+   importFirst:input=>change('stats_new_from_import',input,undefined,true),
    open:(path,resume,entryId)=>change('stats_open',{path,entry_id:entryId},resume,true),
    fromWB:project=>change('stats_from_wb',{project},undefined,true),
   })
@@ -125,15 +125,17 @@ export default function StatsWorkspace({
  const previewKey=display&&style?JSON.stringify([display,style,run?.id]):''
  useEffect(()=>{if(!active||!display||!style)return;let cancelled=false;setPreview(null);setPreviewError('');const timer=setTimeout(()=>{callEngine<{png:string;caption:string;notes:string[]}>('stats_preview',{dataset:display,style,run}).then(v=>{if(!cancelled)setPreview(v)}).catch(e=>{if(!cancelled)setPreviewError(String(e))})},350);return()=>{cancelled=true;clearTimeout(timer)}},[active,previewKey])
  async function analyze(){if(!d)return;const before=d,token=epoch.current,revision=ref.current?.revision;await task('运行统计分析',async()=>{const r=await callEngine<Run>('stats_analyze',{dataset:before});const live=ref.current;if(!live||token!==epoch.current)return;const target=live.datasets.find(t=>t.id===before.id);if(!target||inputKey(target)!==inputKey(before))throw new Error('数据已改变，请重新分析');const next=structuredClone(live);next.datasets.find(t=>t.id===before.id)!.runs.push({...r,source_revision:revision});next.revision++;assign(next);setView('analysis');await persist()})}
- async function readProjectResults(catalog:SourceCatalog,keys:string[],append:boolean){
+ async function readProjectResults(catalog:SourceCatalog,keys:string[],append:boolean,collectionId:string|null){
   setBusy('读取项目结果')
   setMessage('')
   try{
+   const afterImport=sourceDialog?.requested?await beforeSourceImport():()=>{}
+   if(!afterImport)return
    if(!await flush())throw new Error('请先完成当前统计项目的保存')
    const previous=ref.current
    const next=await callEngine<StatsProject>('stats_from_source',{
     path:catalog.path,entry_id:catalog.entry_id,keys,expected_signature:catalog.signature,
-    confirmed:true,project:append?previous:undefined,
+    confirmed:true,project:append?previous:undefined,collection_id:collectionId,
    })
    if(previous?.project_path&&previous.project_path!==next.project_path){
     await callEngine('stats_release',{path:previous.project_path}).catch(()=>{})
@@ -148,7 +150,7 @@ export default function StatsWorkspace({
    epoch.current++
    assign(next)
    setDatasetId(dataset?.id??next.datasets[0].id)
-   setFrozen(null);setPast([]);setFuture([]);setView('data');setSourceDialog(null)
+   setFrozen(null);setPast([]);setFuture([]);setView('data');setSourceDialog(null);afterImport();onSourceCreated()
    setMessage('已读取所选结果。已有同一指标保留原快照，可在来源栏显式更新。')
    void library.refresh()
   }finally{setBusy('')}
@@ -195,18 +197,15 @@ export default function StatsWorkspace({
  function copyTable(){if(!display)return;const clone=structuredClone(display);clone.id=id();clone.name+=' · 副本';clone.source=null;clone.confirmed=false;clone.runs=[];void addTable(clone)}
  function paste(event:React.ClipboardEvent<HTMLInputElement>,ri:number,gi:number){const raw=event.clipboardData.getData('text');if(!raw.includes('\t')&&!raw.includes('\n'))return;event.preventDefault();const cells=raw.trimEnd().split(/\r?\n/).map(r=>r.split('\t'));if(cells.some(r=>r.length+gi>(d?.groups.length??0))){setMessage('粘贴列数超过现有分组，请先添加组。');return}editD(t=>{while(t.rows.length<ri+cells.length)t.rows.push({id:id(),label:String(t.rows.length+1),values:{},excluded:{}});cells.forEach((row,i)=>row.forEach((v,j)=>{t.rows[ri+i].values[t.groups[gi+j].id]=v}))})}
  const disabled=!!busy||!!frozen
- return <div className="app-shell stats-shell" style={{display:active?undefined:'none'}} inert={libraryBusy}>
- <aside className="sidebar"><div className="brand"><img className="brand-mark" src={appIcon} alt=""/><strong>Titan</strong></div><nav className="analysis-modules" aria-label="分析模块"><button className="nav module-nav" onClick={onWB}><ScanLine size={18}/>Western blot</button><button className="nav module-nav" onClick={onIF}><Microscope size={18}/>免疫荧光</button><button className="nav active module-nav" aria-current="page"><BarChart3 size={18}/>统计与绘图</button></nav>
- <ProjectLibrary entries={library.entries} projects={library.projects} project={p}
-  activeFigure={view==='graph'&&frozenDocument?'stats:'+frozenDocument.id:''}
-  currentView={view==='data'?'workspace':view==='analysis'?'results':'wb'} error={library.error}
-  busy={!!busy||libraryBusy} onRetry={library.refresh} onRelocate={onRelocate}
-  onOpen={onOpen} onDialog={onDialog} onPin={onPin} onOpenFile={onOpenFile}
-  onArtifact={onArtifact} onReveal={onReveal}/>
- {p&&<div className="stats-tree"><div className="sidebar-label">数据与图形</div>{p?.datasets.map(t=><div key={t.id}><button className={d?.id===t.id&&!frozen?'selected':''} onClick={()=>selectTable(t.id,'data')}><Table2 size={15}/>{t.name}</button><div className="stats-tree-child"><button onClick={()=>selectTable(t.id,'analysis')}><FlaskConical size={14}/>分析结果 · {t.runs.length}</button><button onClick={()=>selectTable(t.id,'graph')}><BarChart3 size={14}/>当前图形</button></div></div>)}{p?.figures.map(f=><button key={f.id} className={frozen?.id===f.id?'selected':''} onClick={()=>{setFrozen(f);setView('graph')}}><Image size={15}/>{f.name}</button>)}</div>}<button className="nav library-demo" disabled={!!busy} onClick={()=>change('stats_demo',{})}>体验统计合成示例</button></aside>
+ useEffect(()=>{reportView({path:p?.project_path,view:view==='data'?'workspace':view==='analysis'?'results':'wb',
+  artifactId:view==='graph'&&frozenDocument?'stats:'+frozenDocument.id:undefined})},
+  [reportView,p?.project_path,view,frozenDocument?.id])
+ return <><div className="module-pane stats-pane" hidden={!active} inert={libraryBusy}>
+ {active&&sidebarSlot&&createPortal(<> {p&&<div className="stats-tree"><div className="sidebar-label">数据与图形</div>{p?.datasets.map(t=><div key={t.id}><button className={d?.id===t.id&&!frozen?'selected':''} onClick={()=>selectTable(t.id,'data')}><Table2 size={15}/>{t.name}</button><div className="stats-tree-child"><button onClick={()=>selectTable(t.id,'analysis')}><FlaskConical size={14}/>分析结果 · {t.runs.length}</button><button onClick={()=>selectTable(t.id,'graph')}><BarChart3 size={14}/>当前图形</button></div></div>)}{p?.figures.map(f=><button key={f.id} className={frozen?.id===f.id?'selected':''} onClick={()=>{setFrozen(f);setView('graph')}}><Image size={15}/>{f.name}</button>)}</div>}<button className="nav library-demo" disabled={!!busy} onClick={()=>change('stats_demo',{})}>体验统计合成示例</button></>,sidebarSlot)}
+
  <div className="main-shell"><header className="app-header stats-header">{p?<><input aria-label="统计项目名称" value={p.name} disabled={!!busy} onChange={e=>edit(p=>{p.name=e.target.value})}/><span>{p.revision===p.saved_revision?'已保存':'待保存'}</span><div className="stats-toolbar"><button className="icon-btn" aria-label="撤销统计修改" disabled={!past.length||!!busy} onClick={()=>undo()}><Undo2 size={16}/></button><button className="icon-btn" aria-label="重做统计修改" disabled={!future.length||!!busy} onClick={()=>undo(true)}><Redo2 size={16}/></button><button className="btn secondary" disabled={!!busy} onClick={()=>flush()}>保存</button><button className="btn secondary" disabled={!!busy} onClick={()=>chooseFolder('copy')}>另存副本</button><button className="btn primary" disabled={!!busy} onClick={()=>chooseFolder('export')}><Download size={15}/>导出</button></div></>:<strong>统计与绘图</strong>}</header>
- {message&&<div className="notice" role="status">{message}<button onClick={()=>setMessage('')}>×</button></div>}{busy&&<div className="busy" role="status">{busy}…</div>}
- {!p?<section className="welcome stats-welcome"><BarChart3 size={48} strokeWidth={1}/><h1>从数据到论文图</h1><p>整理实验数据、运行统计分析，制作可编辑的图形。</p><div className="welcome-actions"><button className="btn primary" onClick={()=>setSourceDialog({})}>从项目读取结果</button><button className="btn secondary" onClick={()=>onDialog({kind:'stats'})}>新建统计项目</button><button className="btn secondary" onClick={()=>change('stats_demo',{})}>体验合成示例</button></div><p className="hint">Excel / CSV / 粘贴 · 独立与配对设计 · 本地保存</p></section>:display&&style&&<>
+ {membership}{message&&<div className="notice" role="status">{message}<button onClick={()=>setMessage('')}>×</button></div>}{busy&&<div className="busy" role="status">{busy}…</div>}
+ {p&&display&&style&&<>
  <nav className="stats-tabs" aria-label="统计工作区"><button className={view==='data'?'selected':''} onClick={()=>setView('data')}>数据表</button><button className={view==='analysis'?'selected':''} onClick={()=>setView('analysis')}>统计分析</button><button className={view==='graph'?'selected':''} onClick={()=>setView('graph')}>图形</button><span/><button disabled={!!busy} onClick={()=>setSourceDialog({})}>从项目读取结果</button><button disabled={!!busy} onClick={()=>addTable()}>＋ 数据表</button><button disabled={!!busy} onClick={()=>{setImported(null);setText('');setLocation('');setModal('import')}}>导入 / 粘贴</button></nav>
  <main className="stats-content">{frozen&&<div className="stats-source">正在查看冻结图形 {frozen.name}。<button className="text-btn" onClick={copyTable}>复制数据为新表</button></div>}
  {(display.source?.kind==='wb'||display.source?.kind==='if')&&<SourceStatus source={display.source} active={active} frozen={!!frozen}
@@ -218,8 +217,10 @@ export default function StatsWorkspace({
  {view==='graph'&&<div className="stats-graph-layout"><section className="stats-paper"><div className="stats-section-title"><h2>{frozen?.name??display.name}</h2><span>{style.width_mm} × {style.height_mm} mm</span></div>{previewError?<p role="alert">{previewError}</p>:preview?<><img src={preview.png} alt="统计图预览"/><p className="stats-caption">{preview.caption}</p>{preview.notes.map(n=><p role="alert" key={n}>{n}</p>)}</>:<p role="status">正在绘图…</p>}{!frozen&&<button className="btn secondary" disabled={!preview||!!busy||(!run&&display.analysis.method!=='descriptive')} onClick={freeze}>保存图形快照</button>}</section><fieldset className="stats-inspector" disabled={disabled}><legend>图形设置</legend>{([['kind','图形类型',[['bar_points','柱形 + 原始点'],['scatter','散点 + 均值'],['bar','柱形'],['paired','配对连线']]],['error','误差线',[['sd','SD'],['sem','SEM'],['ci95','95% CI'],['none','无']]],['annotations','统计标注',[['none','无'],['p','精确 P 值'],['stars','星号']]],['text_mode','矢量文字',[['editable','可编辑文字'],['outline','SVG 文字轮廓']]]] as const).map(([key,label,options])=><label key={key}>{label}<select aria-label={label} value={style[key]} onChange={e=>editD(t=>{t.style[key]=e.target.value})}>{options.map(([value,text])=><option value={value} key={value}>{text}</option>)}</select></label>)}{(['title','y_label'] as const).map((key,i)=><label key={key}>{i?'Y轴标题':'图形标题'}<input value={style[key]} onChange={e=>editD(t=>{t.style[key]=e.target.value})}/></label>)}{([['width_mm','宽度 mm'],['height_mm','高度 mm'],['font_size','字号 pt'],['dpi','DPI']] as const).map(([key,label])=><label key={key}>{label}<input aria-label={label} type="number" value={style[key]} onChange={e=>editD(t=>{t.style[key]=Number(e.target.value)})}/></label>)}{(['y_min','y_max'] as const).map((key,i)=><label key={key}>Y轴{i?'上限':'下限'}<input type="number" placeholder="自动" value={style[key]??''} onChange={e=>editD(t=>{t.style[key]=e.target.value===''?null:Number(e.target.value)})}/></label>)}{run&&run.comparisons.length>0&&<details><summary>选择比较标注</summary>{run.comparisons.map(r=>{const key=r.group_a+':'+r.group_b;return <label key={key}><input type="checkbox" checked={style.comparison_keys?.includes(key)??true} onChange={e=>editD(t=>{const keys=t.style.comparison_keys??run.comparisons.map(c=>c.group_a+':'+c.group_b);t.style.comparison_keys=e.target.checked?[...keys,key]:keys.filter(k=>k!==key)})}/>{display.groups.find(g=>g.id===r.group_a)?.label} ↔ {display.groups.find(g=>g.id===r.group_b)?.label}</label>})}</details>}<details><summary>散点、线条与显示顺序</summary><label>点形<select value={style.point_marker??'circle'} onChange={e=>editD(t=>{t.style.point_marker=e.target.value})}><option value="circle">圆形</option><option value="square">方形</option><option value="triangle">三角形</option></select></label><label><input type="checkbox" checked={style.hollow??false} onChange={e=>editD(t=>{t.style.hollow=e.target.checked})}/>空心散点</label>{([['point_size','点大小',4],['axis_width','坐标轴线宽',.8],['error_width','误差线宽',.8],['error_cap','误差端帽',3],['bar_width','柱宽',.6],['label_angle','组名角度',30]] as const).map(([key,label,fallback])=><label key={key}>{label}<input type="number" step="any" value={style[key]??fallback} onChange={e=>editD(t=>{t.style[key]=Number(e.target.value)})}/></label>)}{[...display.groups].sort((a,b)=>{const order=style.group_order??display.groups.map(g=>g.id);return order.indexOf(a.id)-order.indexOf(b.id)}).map((g,i)=><label key={g.id}>显示名称<input value={style.labels?.[g.id]??g.label} onChange={e=>editD(t=>{t.style.labels={...t.style.labels,[g.id]:e.target.value}})}/><button type="button" disabled={!i} onClick={()=>editD(t=>{const order=t.style.group_order?.length?[...t.style.group_order]:t.groups.map(g=>g.id);const index=order.indexOf(g.id);if(index>0){[order[index-1],order[index]]=[order[index],order[index-1]];t.style.group_order=order}})}>上移 {g.label}</button></label>)}</details>{display.groups.map((g,i)=><label className="stats-color" key={g.id}>{g.label}<input type="color" value={style.colors[g.id]??['#88B8D0','#E29EB6','#D4B483','#879CA6','#BD998B','#A9B9BF'][i%6]} onChange={e=>editD(t=>{t.style.colors[g.id]=e.target.value})}/></label>)}</fieldset></div>}
  </main></>}
  <footer className="statusbar"><span>统计与绘图 · Column / 配对 · 本地数据</span><span>Titan {packageInfo.version}</span></footer></div>
- {active&&sourceDialog&&<ProjectResultsDialog entries={library.entries} initialPath={sourceDialog.path}
-  hasProject={!!p} busy={!!busy} onClose={()=>setSourceDialog(null)} onImport={readProjectResults}/>}
  {modal&&<div className="modal-backdrop"><section className="modal stats-modal" role="dialog" aria-modal="true" aria-label={modal==='import'?'导入统计数据':'统计文件位置'}><h2>{modal==='import'?'导入与粘贴数据':'选择文件位置'}</h2>{modal==='import'?<><label>数据排列<select aria-label="导入数据排列" value={importFormat} onChange={e=>{setImportFormat(e.target.value as 'wide'|'long');setImported(null)}}><option value="wide">宽表：每列一组</option><option value="long">长表：group / value / unit_id</option></select></label><p>{importFormat==='wide'?'首行填写组名；可用第一列 ID 标识配对。支持从 Excel 粘贴。':'首行需要 group、value、unit_id；可添加 pair_id。技术重复须先明确汇总。'}</p><textarea aria-label="粘贴统计数据" rows={7} value={text} onChange={e=>{setText(e.target.value);setImported(null)}} placeholder={'Control\tTreatment\n1\t2\n2\t3'}/><div className="stats-actions"><button className="btn secondary" disabled={!!busy} onClick={()=>inspectImport()}>预览粘贴数据</button>{native()&&<button className="btn secondary" onClick={chooseImport}>选择 Excel / CSV</button>}</div><label>文件完整路径<input aria-label="统计导入路径" value={location} onChange={e=>{setLocation(e.target.value);setImported(null)}}/></label><button className="text-btn" disabled={!!busy||!location} onClick={()=>inspectImport(location)}>读取文件</button>{imported?.sheets.length?<label>工作表<select value={sheet||imported.sheets[0]} onChange={e=>{setSheet(e.target.value);void inspectImport(location,e.target.value)}}>{imported.sheets.map(s=><option key={s}>{s}</option>)}</select></label>:null}{imported&&<div className="stats-import-preview"><strong>{imported.dataset.rows.length} 行 / {imported.dataset.groups.map(g=>g.label).join('、')}</strong><table><tbody>{imported.dataset.rows.slice(0,5).map(r=><tr key={r.id}><th>{r.label}</th>{imported.dataset.groups.map(g=><td key={g.id}>{r.values[g.id]}</td>)}</tr>)}</tbody></table></div>}</>:<label>完整路径<input aria-label="统计文件路径" value={location} onChange={e=>setLocation(e.target.value)}/></label>}<footer><button className="btn secondary" onClick={()=>setModal('')}>取消</button><button className="btn primary" disabled={!!busy||(modal==='import'?!imported:!location)} onClick={()=>modal==='import'?addTable(imported!.dataset):finishPath(modal,location)}>{modal==='import'?'添加数据表':'确认'}</button></footer></section></div>}
  </div>
+ {(active||sourceDialog?.requested)&&sourceDialog&&<ProjectResultsDialog entries={library.entries} initialPath={sourceDialog.path}
+  projects={library.projects} initialCollectionId={sourceDialog.collectionId}
+  currentName={!sourceDialog.forceNew?p?.name:undefined} appendByDefault={!sourceDialog.requested} busy={!!busy} onClose={()=>setSourceDialog(null)} onImport={readProjectResults}/>}
+ </>
 }

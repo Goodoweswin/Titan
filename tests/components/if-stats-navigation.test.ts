@@ -20,10 +20,6 @@ const project = (id: string): IFProject => ({
     width_mm: 85, dpi: 300, font_pt: 9, scale_bar_um: null, locked_ranges: {}},
 })
 const buttons = (name: string) => [...host.querySelectorAll('button')].filter(b => b.textContent === name)
-async function click(name: string) {
-  expect(buttons(name).length).toBeGreaterThan(0)
-  await act(async () => {buttons(name)[0].click()})
-}
 async function editName() {
   await act(async () => {
     const input = host.querySelector('[aria-label="IF 实验名称"]') as HTMLInputElement
@@ -47,13 +43,12 @@ beforeEach(async () => {
     throw new Error(`Unexpected command: ${command}`)
   })
   await act(async () => root.render(React.createElement(IFWorkspace, {
-    active:true, onWB:vi.fn(), onStats, libraryBusy:false,
+    active:true, volumeAvailable:false, onStatsSource:vi.fn(), libraryBusy:false,
     registerClose:vi.fn(), registerLibrary:value=>{actions=value},
     library:{entries:[],projects:[],error:'',refresh:vi.fn(),remember:vi.fn(),resume:vi.fn(),change:vi.fn()},
-    onOpen:vi.fn(), onDialog:vi.fn(), onPin:vi.fn(), onOpenFile:vi.fn(), onRelocate:vi.fn(),
-    onArtifact:vi.fn(), onReveal:vi.fn(), onExported:vi.fn(),
+    sidebarSlot:null, reportView:vi.fn(), membership:null, onExported:vi.fn(),
   })))
-  await click('体验 IF 合成示例'); await editName()
+  await act(async()=>{await actions.demo()}); await editName()
 })
 afterEach(async () => {
   await act(async () => root.unmount()); host.remove(); vi.useRealTimers(); vi.clearAllMocks()
@@ -79,7 +74,7 @@ it('preserves the edited IF project and cancels the switch if saving fails', asy
 })
 
 it('waits for the pending IF save before entering the statistics workspace', async () => {
-  await click('统计与绘图')
+  await act(async()=>{void actions.prepareLeave().then(saved=>{if(saved)onStats()})})
   expect(onStats).not.toHaveBeenCalled()
   await act(async () => resolveSave({...saving, saved_revision: saving.revision}))
   expect(saving.name).toBe('修改待保存')

@@ -7,10 +7,13 @@ def import_table(text=None,path=None,sheet=None,format="wide"):
     if path:
         file=Path(path)
         if file.stat().st_size>20*1024*1024:raise ValueError('导入文件不能超过20MB')
-        source=dict(kind='file',path=str(file.resolve()),sha256=hashlib.sha256(file.read_bytes()).hexdigest())
+        with file.open('rb') as original:
+            content=original.read(20*1024*1024+1)
+        if len(content)>20*1024*1024:raise ValueError('导入文件不能超过20MB')
+        source=dict(kind='file',path=str(file.resolve()),sha256=hashlib.sha256(content).hexdigest())
         if file.suffix.lower()=='.xlsx':
             from openpyxl import load_workbook
-            book=load_workbook(file,read_only=True,data_only=True);formulas=load_workbook(file,read_only=True,data_only=False)
+            book=load_workbook(io.BytesIO(content),read_only=True,data_only=True);formulas=load_workbook(io.BytesIO(content),read_only=True,data_only=False)
             try:
                 sheets=book.sheetnames;name=sheet or sheets[0];ws=book[name];fs=formulas[name]
                 if ws.max_row>10001 or ws.max_column>31:raise ValueError('表格超出10000行/30组，请选择数据区域')
@@ -20,7 +23,7 @@ def import_table(text=None,path=None,sheet=None,format="wide"):
                         if isinstance(v,str) and v.startswith('=') and matrix[i][j] is None:raise ValueError('公式没有缓存值，请在 Excel 中计算并保存或粘贴数值')
                 source['sheet']=name
             finally:book.close();formulas.close()
-        elif file.suffix.lower() in ['.csv','.tsv','.txt']:text=file.read_text(encoding='utf-8-sig')
+        elif file.suffix.lower() in ['.csv','.tsv','.txt']:text=content.decode('utf-8-sig')
         else:raise ValueError('支持 CSV、TSV、TXT 和 XLSX')
     if text is not None:
         delimiter='\t' if '\t' in text else ','

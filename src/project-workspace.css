@@ -1,0 +1,30 @@
+.titan-workspace .module-pane{display:flex;flex:1;min-width:0}
+.titan-workspace .module-pane[hidden]{display:none}
+.titan-workspace .sidebar-tools{display:contents}
+.titan-workspace .sidebar-quick{display:grid;gap:2px;margin-bottom:14px}
+.titan-workspace .analysis-modules{border-top:1px solid var(--border);padding-top:10px}
+.titan-workspace .project-workspace{padding:clamp(30px,6vw,72px) clamp(20px,6vw,80px) 60px;background:var(--surface);min-width:0}
+.project-intro{display:flex;align-items:flex-start;gap:14px;max-width:880px;margin-bottom:32px}
+.project-intro>svg{flex:none;margin-top:5px;color:var(--text-secondary)}
+.project-intro>div{flex:1;min-width:0}
+.project-intro h1{margin:0;color:var(--ink);font-size:clamp(1.65rem,3vw,2.25rem);letter-spacing:-.04em;overflow-wrap:anywhere}
+.project-intro p{max-width:65ch;margin:8px 0 0;color:var(--text-secondary);line-height:1.65}
+.project-intro>button{flex:none}
+.project-section{max-width:880px;border-top:1px solid var(--border);padding:16px 0 22px}
+.project-section-header{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:34px}
+.project-section-header h2{font-size:1.05rem;color:var(--ink);margin:0}
+.project-section .hint,.project-empty{margin:8px 0;font-size:var(--text-sm);color:var(--text-secondary)}
+.project-list{list-style:none;padding:0;margin:8px 0 0}
+.project-list-row{display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid var(--border);min-height:42px;width:100%;text-align:left}
+.project-list-row>span,.project-file-label{flex:1;min-width:0;overflow-wrap:anywhere}
+.project-list-row svg,.project-list-row>small{flex:none;color:var(--text-secondary)}
+.project-list-row>span>small{display:block;color:var(--text-secondary);margin-top:2px}
+.project-file-label{display:flex;align-items:center;gap:8px}
+.project-open-row:hover:not(:disabled){background:var(--accent-soft)}
+.project-material-actions,.tool-entry-actions,.tool-entry-links{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px}
+.project-material-actions label{display:flex;align-items:center;gap:8px}
+.analysis-kind-picker{display:grid;gap:8px}
+.analysis-membership{margin:0 20px;color:var(--text-secondary);font-size:var(--text-xs)}
+.titan-workspace .sidebar-tools .library-demo{margin-top:10px}
+@media(max-width:800px){.titan-workspace .project-workspace{padding:26px 18px 44px}}
+@media(max-width:540px){.project-intro{flex-wrap:wrap}.project-intro>button{margin-left:38px}}

@@ -15,19 +15,20 @@ import type {DatasetSource} from '../../src/stats/types'
 import type {LibraryEntry} from '../../src/types'
 vi.mock('@tauri-apps/plugin-dialog',()=>({open:vi.fn(),save:vi.fn()}))
 ;(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true
+if(!HTMLDialogElement.prototype.showModal)HTMLDialogElement.prototype.showModal=function(){this.open=true}
+
 let actions:StatsLibraryActions
 let host:HTMLDivElement,root:ReturnType<typeof createRoot>
 const click=async(label:string)=>{const btn=[...host.querySelectorAll('button')].find(b=>b.textContent===label);expect(btn, label).toBeTruthy();await act(async()=>{btn!.click()})}
 const input=async(label:string,value:string)=>{const el=host.querySelector(`[aria-label="${label}"]`) as HTMLInputElement;expect(el,label).toBeTruthy();await act(async()=>{Object.getOwnPropertyDescriptor(el.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:el.tagName==='SELECT'?HTMLSelectElement.prototype:HTMLInputElement.prototype,'value')!.set!.call(el,value);el.dispatchEvent(new Event(el.tagName==='SELECT'?'change':'input',{bubbles:true}))})}
 beforeEach(()=>{folder=mkdtempSync(path.join(tmpdir(),'titan-stats-component-'));host=document.createElement('div');document.body.append(host);root=createRoot(host);vi.mocked(callEngine).mockImplementation(async(command,payload={})=>{const output=execFileSync(python,[path.resolve('backend/entry.py')],{input:JSON.stringify({command,payload,session:{pid:process.pid,token:'component',library_root:folder}}),encoding:'utf8',maxBuffer:20*1024*1024});const result=JSON.parse(output);if(!result.ok)throw new Error(result.error);return result.data})})
 afterEach(async()=>{await act(async()=>root.unmount());host.remove();rmSync(folder,{recursive:true,force:true});vi.clearAllMocks()})
-async function mount(entries:LibraryEntry[]=[],onSource:(source:DatasetSource)=>void=()=>{}){
+async function mount(entries:LibraryEntry[]=[],onSource:(source:DatasetSource)=>void=()=>{},requestSource=false){
  await act(async()=>root.render(React.createElement(StatsWorkspace,{
-  active:true,libraryBusy:false,onWB:()=>{},onIF:()=>{},onSource,registerClose:()=>{},
+  active:true,libraryBusy:false,onSource,registerClose:()=>{},sourceRequest:requestSource?{request:1,forceNew:true}:undefined,
   registerLibrary:value=>{actions=value},
   library:{entries,projects:[],error:'',refresh:vi.fn(),remember:vi.fn(),resume:vi.fn(),change:vi.fn()},
-  onOpen:vi.fn(),onDialog:vi.fn(),onPin:vi.fn(),onArtifact:vi.fn(),onReveal:vi.fn(),
-  onExported:vi.fn(),onOpenFile:vi.fn(),onRelocate:vi.fn(),
+  sidebarSlot:null,reportView:vi.fn(),membership:null,beforeSourceImport:async()=>()=>{},onSourceCreated:vi.fn(),onExported:vi.fn(),
  })))
 }
 it('runs the real engine from table import through inference, stale detection, frozen figure and reload',async()=>{
@@ -58,8 +59,8 @@ for f in p['fields']:f['result']=measure_field(f)
 p['revision']+=1;p=save_project(p,p['project_path'],p['saved_revision'],s)
 print(p['project_path'])`,JSON.stringify({pid:process.pid,token:'component',library_root:folder})],{encoding:'utf8',env:{...process.env,PYTHONPATH:path.resolve('backend'),PYTHONUTF8:'1'}}).trim()
  const onSource=vi.fn()
- await mount(await callEngine<LibraryEntry[]>('library_list'),onSource)
- await click('从项目读取结果');await input('结果来源项目',sourcePath)
+ await mount(await callEngine<LibraryEntry[]>('library_list'),onSource,true)
+ await input('结果来源项目',sourcePath)
  expect(host.textContent).toContain('control: n=3 · treated: n=3')
  const select=host.querySelector('[aria-label="选择指标 Marker · 原始平均强度 · synthetic"]') as HTMLInputElement
  await act(async()=>select.click())

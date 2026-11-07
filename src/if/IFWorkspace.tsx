@@ -1,12 +1,13 @@
 import {lazy,Suspense,useEffect,useRef,useState} from 'react'
 import {save} from '@tauri-apps/plugin-dialog'
-import {BarChart3,Box,ImagePlus,Microscope,Plus,Save,ScanLine,Sparkles} from 'lucide-react'
-import appIcon from '../../assets/brand/titan-app-icon-128.png'
+import {Box,ImagePlus,Microscope,Save,Sparkles} from 'lucide-react'
+import {createPortal} from 'react-dom'
+import type {ModuleView} from '../App'
 import {callEngine} from '../bridge'
-import ProjectLibrary,{type LibraryView} from '../ProjectLibrary'
-import type {AnalysisCreation,LibraryDialog} from '../LibraryCreateDialog'
+import type {LibraryView} from '../ProjectLibrary'
+import type {AnalysisCreation} from '../LibraryCreateDialog'
 import type {ProjectLibraryModel} from '../useProjectLibrary'
-import type {CloseActions,LibraryArtifact,LibraryCollection,LibraryEntry,LibraryExportReceipt} from '../types'
+import type {CloseActions,LibraryExportReceipt} from '../types'
 import {canAcceptJob,editField,mergeSaved,copyRecipe,undoMask} from './state'
 import type {ActiveJob,IFField,IFFigure,IFJob,IFProject,IFSelection} from './types'
 import ImportDialog from './ImportDialog'
@@ -21,28 +22,26 @@ export interface IFLibraryActions {
  prepareLeave:()=>Promise<boolean>
  open:(path:string,view:LibraryView,entryId?:string)=>Promise<boolean>
  create:(input:AnalysisCreation)=>Promise<boolean>
+ demo:()=>Promise<boolean>
+ showVolume:()=>void
+ importFirst:(input:AnalysisCreation & {selections:IFSelection[];metadata:Record<string,unknown>})=>Promise<boolean>
 }
 
 interface Props {
  active:boolean
- onWB:()=>void
- onStats:()=>void
+ volumeAvailable:boolean
  onStatsSource:(path:string)=>void
  registerClose:(actions:CloseActions)=>void
  registerLibrary:(actions:IFLibraryActions)=>void
  library:ProjectLibraryModel
  libraryBusy:boolean
- onOpen:(entry:LibraryEntry,view?:LibraryView,figureId?:string)=>void
- onDialog:(dialog:LibraryDialog)=>void
- onPin:(collection:LibraryCollection)=>void
- onArtifact:(entry:LibraryEntry,artifact:LibraryArtifact)=>void
- onReveal:(entry:LibraryEntry,artifact?:LibraryArtifact)=>void
+ sidebarSlot:HTMLDivElement|null
+ reportView:(view:ModuleView)=>void
+ membership:React.ReactNode
  onExported:(receipt:LibraryExportReceipt)=>void
- onOpenFile:()=>void
- onRelocate:(entry:LibraryEntry)=>void
 }
 
-export default function IFWorkspace({active,onWB,onStats,onStatsSource,registerClose,registerLibrary,library,libraryBusy,onOpen,onDialog,onPin,onArtifact,onReveal,onExported,onOpenFile,onRelocate}:Props){
+export default function IFWorkspace({active,volumeAvailable,onStatsSource,registerClose,registerLibrary,library,libraryBusy,sidebarSlot,reportView,membership,onExported}:Props){
  const [project,setProject]=useState<IFProject|null>(null),current=useRef(project);current.current=project
  const [fieldId,setFieldId]=useState(''),[tab,setTab]=useState<'analysis'|'results'|'figure'>('analysis'),[message,setMessage]=useState(''),[busy,setBusy]=useState(''),[job,setJob]=useState<IFJob|null>(null),[showImport,setShowImport]=useState(false),[template,setTemplate]=useState(false),[batch,setBatch]=useState(false),[selectedFields,setSelectedFields]=useState<string[]>([]),[destination,setDestination]=useState(''),[exportKind,setExportKind]=useState<'figure'|'results'|null>(null)
  const [showVolume,setShowVolume]=useState(false)
@@ -57,7 +56,7 @@ export default function IFWorkspace({active,onWB,onStats,onStatsSource,registerC
   const p=current.current;if(p?.project_path)await callEngine('if_release',{path:p.project_path})
  }})})
  useEffect(()=>{if(!project||project.read_only||project.saved_revision===project.revision||busy)return;const timer=setTimeout(()=>persist().catch(e=>setMessage('自动保存未完成：'+e)),1200);return()=>clearTimeout(timer)},[project,busy])
- async function changeProject(command:'if_new'|'if_demo'|'if_open',payload:object={},view:LibraryView='workspace',raiseError=false){
+ async function changeProject(command:'if_new'|'if_demo'|'if_open'|'if_new_from_import',payload:object={},view:LibraryView='workspace',raiseError=false){
   if(busy)return false
   let generation=epoch.current
   setBusy(command==='if_open'?'打开实验':'准备实验')
@@ -93,6 +92,9 @@ export default function IFWorkspace({active,onWB,onStats,onStatsSource,registerC
    prepareLeave,
    open:(path,view,entryId)=>changeProject('if_open',{path,entry_id:entryId},view,true),
    create:input=>changeProject('if_new',input,'workspace',true),
+   demo:()=>changeProject('if_demo',{},'workspace',true),
+   showVolume:()=>setShowVolume(true),
+   importFirst:input=>changeProject('if_new_from_import',input,'workspace',true),
   })
  })
  function edit(change:(p:IFProject)=>void){const p=current.current;if(!p||p.read_only)return;const next=structuredClone(p);change(next);next.revision++;assign(next);setMessage('')}
@@ -104,16 +106,16 @@ export default function IFWorkspace({active,onWB,onStats,onStatsSource,registerC
   setMessage('')
   return true
  }
- async function leave(callback:()=>void){
-  if(!libraryBusy&&await prepareLeave())callback()
- }
  async function exportTo(kind:'figure'|'results'){setExportKind(kind);if((window as any).__TAURI_INTERNALS__){try{const path=await save({defaultPath:project?.name+(kind==='figure'?'-IF组图':'-IF结果'),title:'选择新的导出文件夹'});if(path)await finishExport(kind,path);else setExportKind(null)}catch(e){setMessage(String(e))}}}
  async function finishExport(kind:'figure'|'results',destination:string){if(!current.current||!destination.trim())return;setBusy('导出文件');try{const r=await callEngine<{files:string[]}&LibraryExportReceipt>(kind==='figure'?'if_export_figure':'if_export_results',{project:current.current,destination});setMessage('已导出：'+r.files.join('；'));setExportKind(null);onExported(r)}catch(e){setMessage(String(e))}finally{setBusy('')}}
  function applyTemplate(){if(!field||!current.current)return;assign(copyRecipe(current.current,field.id,selectedFields));setTemplate(false);setMessage('已应用设置；请复核各视野核标签与区域后测量。')}
- return <div className="app-shell if-shell" style={{display:active?undefined:'none'}} inert={libraryBusy}><aside className="sidebar"><div className="brand"><img className="brand-mark" src={appIcon} alt=""/><div className="brand-name"><strong>Titan</strong></div></div><nav className="analysis-modules" aria-label="分析模块"><button className="nav module-nav" onClick={()=>leave(onWB)}><ScanLine size={18}/><span>Western blot</span></button><button className="nav active module-nav" aria-current="page"><Microscope size={18}/><span>免疫荧光</span></button><button className="nav module-nav" onClick={()=>leave(onStats)}><BarChart3 size={18}/>统计与绘图</button></nav><button className="nav" onClick={()=>setShowVolume(true)} disabled={!!busy||!!job}><Box size={18}/>3D 查看（原型）</button><ProjectLibrary entries={library.entries} projects={library.projects} project={project} activeFigure=""
-  currentView={tab==='figure'?'wb':tab==='results'?'results':'workspace'} error={library.error}
-  busy={!!busy||libraryBusy} onRetry={library.refresh} onRelocate={onRelocate}
-  onOpen={onOpen} onDialog={onDialog} onPin={onPin} onOpenFile={onOpenFile} onArtifact={onArtifact} onReveal={onReveal}/>{project&&<div className="if-field-nav"><div className="sidebar-label">视野</div>{project.fields.map(f=><button key={f.id} className={field?.id===f.id?'selected':''} onClick={()=>setFieldId(f.id)}><span>{f.name}</span><small>{f.mask&&!f.mask.confirmed?'待复核':f.result?'已测量':'待测量'}</small></button>)}</div>}<button className="nav library-demo" onClick={()=>changeProject('if_demo')} disabled={!!busy}><Sparkles size={18}/>IF 合成示例</button></aside><div className="main-shell"><header className="app-header"><div className="if-heading">{project?<><input aria-label="IF 实验名称" value={project.name} disabled={project.read_only} onChange={e=>edit(p=>{p.name=e.target.value})}/><span>{project.read_only?'只读':project.saved_revision===project.revision?'已保存':'待保存'}</span></>:<strong>免疫荧光</strong>}</div>{project&&<div className="if-header-actions"><button className="icon-btn header-icon" aria-label="保存 IF 实验" disabled={disabled} onClick={()=>flush().then(ok=>ok&&setMessage('实验已保存。'))}><Save size={17}/></button><button className="btn secondary" disabled={disabled||!!job} onClick={()=>setShowImport(true)}><ImagePlus size={15}/>导入 IF 视野</button></div>}</header>{message&&<div className="notice" role="status"><span>{message}</span><button aria-label="关闭提示" onClick={()=>setMessage('')}>×</button></div>}{busy&&<div className="busy" role="status">{busy}…</div>}{job&&<div className="if-job" role="status"><progress max={job.total||1} value={job.completed||0}/><span>{job.message||'正在处理'} · {job.completed||0}/{job.total||1}</span><button className="btn secondary" onClick={cancel}>取消 IF 任务</button></div>}
- {!project?<section className="welcome if-welcome"><Microscope size={46} strokeWidth={1}/><h1>免疫荧光</h1><p>从原始通道到区域强度、细胞核与论文组图。</p><div className="welcome-actions"><button className="btn primary" onClick={()=>onDialog({kind:'if'})}>新建 IF 实验</button><button className="btn secondary" onClick={()=>changeProject('if_demo')}>体验 IF 合成示例</button></div><p className="hint">二维 TIFF / OME-TIFF / 分通道图像 · 本地分析</p></section>:<><div className="workspace-navigation"><nav className="steps" aria-label="IF 实验视图">{([['analysis','图像与分析'],['results','IF 定量结果'],['figure','IF 论文组图']] as const).map(([key,label])=><button key={key} className={tab===key?'selected':''} aria-current={tab===key?'page':undefined} onClick={()=>setTab(key)}>{label}</button>)}</nav>{project.fields.length>0&&tab==='analysis'&&<div className="if-batch-actions"><button className="btn secondary" disabled={disabled||!!job} onClick={()=>{setSelectedFields(project.fields.map(f=>f.id));setBatch(true)}}>批量测量</button></div>}</div><main className="if-content">{tab==='analysis'?field?<div className="if-analysis-layout"><FieldCanvas key={field.id} field={field} disabled={disabled} onROI={roi=>updateField(f=>{f.rois.push(roi)})} onEditMask={action=>run('edit_mask',{field_id:field.id,action})} onUndoMask={()=>current.current&&assign(undoMask(current.current,field.id))}/><FieldSettings field={field} disabled={disabled} onEdit={updateField} onRun={operation=>run(operation,{field_id:field.id})} onTemplate={()=>{setSelectedFields(project.fields.filter(f=>f.id!==field.id&&f.batch_id===field.batch_id).map(f=>f.id));setTemplate(true)}}/></div>:<div className="if-empty"><Microscope size={36} strokeWidth={1}/><h2>导入第一个视野</h2><p>确认通道、样本与空间标定后开始分析。</p><button className="btn primary" disabled={disabled} onClick={()=>setShowImport(true)}>导入 IF 视野</button></div>:tab==='results'?<IFResults project={project} disabled={!!busy||!!job} onStats={()=>onStatsSource(project.project_path)} onExport={()=>exportTo('results')}/>:<IFFigureEditor project={project} disabled={disabled} onEdit={change=>edit(p=>change(p.figure))} onExport={()=>exportTo('figure')}/>}</main></>}
- <footer className="statusbar"><div className="status-summary">{project&&<><span>{project.fields.length} 个视野</span><span>{project.fields.filter(f=>f.result).length} 已测量</span>{(project.synthetic||project.demo)&&<b className="synthetic-label">纯合成示例 · 非实验数据</b>}</>}</div><div className="status-system"><span className="pixel-note">原始通道参与定量</span></div></footer></div>{active&&showVolume&&<Suspense fallback={<div className="modal-backdrop"><section className="modal">正在打开 3D 查看…</section></div>}><VolumeViewer onClose={()=>setShowVolume(false)}/></Suspense>}{showImport&&<ImportDialog onClose={()=>setShowImport(false)} onImport={(selections:IFSelection[],metadata)=>{setShowImport(false);void run('import',{selections,metadata})}}/>}{(template||batch)&&project&&<div className="modal-backdrop"><section className="modal if-batch-dialog" role="dialog" aria-modal="true" aria-label={template?'应用分析模板':'批量测量视野'}><h2>{template?'复制分析设置':'批量测量'}</h2><p className="hint">{template?'按通道名称匹配，复制分析与冻结阈值。区域保持各视野原图坐标。':'保留各视野设置；核分析需先逐一确认 mask。失败视野保持缺失，不记为零。'}</p>{project.fields.filter(f=>!template||(f.id!==field?.id&&f.batch_id===field?.batch_id)).map(f=><label className="if-check" key={f.id}><input type="checkbox" checked={selectedFields.includes(f.id)} onChange={e=>setSelectedFields(v=>e.target.checked?[...v,f.id]:v.filter(id=>id!==f.id))}/>{f.name} · {f.bio_id} · {f.batch_id}</label>)}<footer><button className="btn secondary" onClick={()=>{setTemplate(false);setBatch(false)}}>取消</button><button className="btn primary" disabled={!selectedFields.length} onClick={()=>{try{if(template)applyTemplate();else{setBatch(false);void run('batch',{field_ids:selectedFields})}}catch(e){setMessage(String(e))}}}>{template?'确认应用到所选视野':'开始批量测量'}</button></footer></section></div>}{exportKind&&!(window as any).__TAURI_INTERNALS__&&<div className="modal-backdrop"><section className="modal" role="dialog" aria-label="IF 导出位置"><h2>导出到新文件夹</h2><label>完整文件夹路径<input aria-label="IF 导出路径" value={destination} onChange={e=>setDestination(e.target.value)}/></label><footer><button className="btn secondary" onClick={()=>setExportKind(null)}>取消</button><button className="btn primary" disabled={!destination.trim()||!!busy} onClick={()=>finishExport(exportKind,destination)}>确认导出</button></footer></section></div>}</div>
+ useEffect(()=>{reportView({path:project?.project_path,view:tab==='figure'?'wb':tab==='results'?'results':'workspace'})},[reportView,project?.project_path,tab])
+ return <><div className="module-pane if-pane" hidden={!active} inert={libraryBusy}>
+ {active&&sidebarSlot&&createPortal(<>
+ <button className="nav" onClick={()=>setShowVolume(true)} disabled={!!busy||!!job}><Box size={18}/>3D 查看（原型）</button>
+ {project&&<div className="if-field-nav"><div className="sidebar-label">视野</div>{project.fields.map(f=><button key={f.id} className={field?.id===f.id?'selected':''} onClick={()=>setFieldId(f.id)}><span>{f.name}</span><small>{f.mask&&!f.mask.confirmed?'待复核':f.result?'已测量':'待测量'}</small></button>)}</div>}<button className="nav library-demo" onClick={()=>changeProject('if_demo')} disabled={!!busy}><Sparkles size={18}/>IF 合成示例</button>
+ </>,sidebarSlot)}
+ <div className="main-shell"><header className="app-header"><div className="if-heading">{project?<><input aria-label="IF 实验名称" value={project.name} disabled={project.read_only} onChange={e=>edit(p=>{p.name=e.target.value})}/><span>{project.read_only?'只读':project.saved_revision===project.revision?'已保存':'待保存'}</span></>:<strong>免疫荧光</strong>}</div>{project&&<div className="if-header-actions"><button className="icon-btn header-icon" aria-label="保存 IF 实验" disabled={disabled} onClick={()=>flush().then(ok=>ok&&setMessage('实验已保存。'))}><Save size={17}/></button><button className="btn secondary" disabled={disabled||!!job} onClick={()=>setShowImport(true)}><ImagePlus size={15}/>导入 IF 视野</button></div>}</header>{membership}{message&&<div className="notice" role="status"><span>{message}</span><button aria-label="关闭提示" onClick={()=>setMessage('')}>×</button></div>}{busy&&<div className="busy" role="status">{busy}…</div>}{job&&<div className="if-job" role="status"><progress max={job.total||1} value={job.completed||0}/><span>{job.message||'正在处理'} · {job.completed||0}/{job.total||1}</span><button className="btn secondary" onClick={cancel}>取消 IF 任务</button></div>}
+ {project&&<><div className="workspace-navigation"><nav className="steps" aria-label="IF 实验视图">{([['analysis','图像与分析'],['results','IF 定量结果'],['figure','IF 论文组图']] as const).map(([key,label])=><button key={key} className={tab===key?'selected':''} aria-current={tab===key?'page':undefined} onClick={()=>setTab(key)}>{label}</button>)}</nav>{project.fields.length>0&&tab==='analysis'&&<div className="if-batch-actions"><button className="btn secondary" disabled={disabled||!!job} onClick={()=>{setSelectedFields(project.fields.map(f=>f.id));setBatch(true)}}>批量测量</button></div>}</div><main className="if-content">{tab==='analysis'?field?<div className="if-analysis-layout"><FieldCanvas key={field.id} field={field} disabled={disabled} onROI={roi=>updateField(f=>{f.rois.push(roi)})} onEditMask={action=>run('edit_mask',{field_id:field.id,action})} onUndoMask={()=>current.current&&assign(undoMask(current.current,field.id))}/><FieldSettings field={field} disabled={disabled} onEdit={updateField} onRun={operation=>run(operation,{field_id:field.id})} onTemplate={()=>{setSelectedFields(project.fields.filter(f=>f.id!==field.id&&f.batch_id===field.batch_id).map(f=>f.id));setTemplate(true)}}/></div>:<div className="if-empty"><Microscope size={36} strokeWidth={1}/><h2>导入第一个视野</h2><p>确认通道、样本与空间标定后开始分析。</p><button className="btn primary" disabled={disabled} onClick={()=>setShowImport(true)}>导入 IF 视野</button></div>:tab==='results'?<IFResults project={project} disabled={!!busy||!!job} onStats={()=>onStatsSource(project.project_path)} onExport={()=>exportTo('results')}/>:<IFFigureEditor project={project} disabled={disabled} onEdit={change=>edit(p=>change(p.figure))} onExport={()=>exportTo('figure')}/>}</main></>}
+ <footer className="statusbar"><div className="status-summary">{project&&<><span>{project.fields.length} 个视野</span><span>{project.fields.filter(f=>f.result).length} 已测量</span>{(project.synthetic||project.demo)&&<b className="synthetic-label">纯合成示例 · 非实验数据</b>}</>}</div><div className="status-system"><span className="pixel-note">原始通道参与定量</span></div></footer></div>{showImport&&<ImportDialog onClose={()=>setShowImport(false)} onImport={(selections:IFSelection[],metadata)=>{setShowImport(false);void run('import',{selections,metadata})}}/>}{(template||batch)&&project&&<div className="modal-backdrop"><section className="modal if-batch-dialog" role="dialog" aria-modal="true" aria-label={template?'应用分析模板':'批量测量视野'}><h2>{template?'复制分析设置':'批量测量'}</h2><p className="hint">{template?'按通道名称匹配，复制分析与冻结阈值。区域保持各视野原图坐标。':'保留各视野设置；核分析需先逐一确认 mask。失败视野保持缺失，不记为零。'}</p>{project.fields.filter(f=>!template||(f.id!==field?.id&&f.batch_id===field?.batch_id)).map(f=><label className="if-check" key={f.id}><input type="checkbox" checked={selectedFields.includes(f.id)} onChange={e=>setSelectedFields(v=>e.target.checked?[...v,f.id]:v.filter(id=>id!==f.id))}/>{f.name} · {f.bio_id} · {f.batch_id}</label>)}<footer><button className="btn secondary" onClick={()=>{setTemplate(false);setBatch(false)}}>取消</button><button className="btn primary" disabled={!selectedFields.length} onClick={()=>{try{if(template)applyTemplate();else{setBatch(false);void run('batch',{field_ids:selectedFields})}}catch(e){setMessage(String(e))}}}>{template?'确认应用到所选视野':'开始批量测量'}</button></footer></section></div>}{exportKind&&!(window as any).__TAURI_INTERNALS__&&<div className="modal-backdrop"><section className="modal" role="dialog" aria-label="IF 导出位置"><h2>导出到新文件夹</h2><label>完整文件夹路径<input aria-label="IF 导出路径" value={destination} onChange={e=>setDestination(e.target.value)}/></label><footer><button className="btn secondary" onClick={()=>setExportKind(null)}>取消</button><button className="btn primary" disabled={!destination.trim()||!!busy} onClick={()=>finishExport(exportKind,destination)}>确认导出</button></footer></section></div>}</div>{volumeAvailable&&showVolume&&<Suspense fallback={<div className="modal-backdrop"><section className="modal">正在打开 3D 查看…</section></div>}><VolumeViewer onClose={()=>setShowVolume(false)}/></Suspense>}</>
 }

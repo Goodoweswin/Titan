@@ -14,7 +14,7 @@ async function seed(page:any){
 
 test('WB crop zoom and middle-button pan preserve crop data and draw in source pixels',async({page})=>{
  await page.goto('/?integration=1');const p=await seed(page);await page.reload()
- await page.getByRole('button',{name:'打开项目 '+p.name,exact:true}).click()
+ await page.getByRole('button',{name:'打开分析 '+p.name,exact:true}).click()
  await page.getByRole('button',{name:'WB 组图',exact:true}).click();await page.getByRole('button',{name:'新建组图',exact:true}).first().click()
  const area=page.locator('.wb-crop-view'),canvas=page.getByRole('img',{name:'原图裁剪画布',exact:true})
  await expect(area.getByRole('button',{name:'放大图像',exact:true})).toBeVisible({timeout:2000})
@@ -36,7 +36,7 @@ test('WB crop zoom and middle-button pan preserve crop data and draw in source p
 
 test('WB figure without quantification saves, reopens and exports a portable assembly',async({page})=>{
  await page.goto('/?integration=1');const p=await seed(page);await page.reload()
- await page.getByRole('button',{name:'打开项目 '+p.name,exact:true}).click()
+ await page.getByRole('button',{name:'打开分析 '+p.name,exact:true}).click()
  await page.getByRole('button',{name:'WB 组图',exact:true}).click()
  await page.getByRole('button',{name:'新建组图',exact:true}).first().click()
  await page.getByLabel('组图名称',{exact:true}).fill('AKT 与内参')
@@ -84,7 +84,7 @@ test('WB figure without quantification saves, reopens and exports a portable ass
 
 test('crop dragging, markers and document switching keep independent drafts',async({page})=>{
  await page.goto('/?integration=1');const p=await seed(page);await page.reload()
- await page.getByRole('button',{name:'打开项目 '+p.name,exact:true}).click()
+ await page.getByRole('button',{name:'打开分析 '+p.name,exact:true}).click()
  await page.getByRole('button',{name:'WB 组图',exact:true}).click()
  await page.getByRole('button',{name:'新建组图',exact:true}).first().click()
  const canvas=page.getByRole('img',{name:'原图裁剪画布',exact:true})
@@ -151,7 +151,7 @@ test('copy and WB loads cannot overlap or reintroduce paths from the original pr
  await page.goto('/?integration=1');const p=await seed(page)
  const d=await rpc(page,'wb_new',{project:p});d.name='saved';d.rows[0].confirmed=true
  const saved=await rpc(page,'wb_save',{project:p,document:d})
- await page.reload();await page.getByRole('button',{name:'打开项目 '+p.name,exact:true}).click()
+ await page.reload();await page.getByRole('button',{name:'打开分析 '+p.name,exact:true}).click()
  await page.getByRole('button',{name:'WB 组图',exact:true}).click()
  let releaseLoad!:()=>void,releaseCopy!:()=>void
  const loadGate=new Promise<void>(r=>releaseLoad=r),copyGate=new Promise<void>(r=>releaseCopy=r)

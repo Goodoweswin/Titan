@@ -13,7 +13,7 @@ async function openResults(page:any){
  p.band_sets=['reference','target'].map(role=>({id:role,layout_id:layout.id,analyte:role==='target'?'TARGET':'Loading control',role,window:role==='target'?[0,20,520,80]:[0,80,520,140],reference_set_id:role==='target'?'reference':null,assignments:p.lanes.map((l:any)=>({lane_id:l.id,roi_id:p.rois.find((r:any)=>r.lane_id===l.id&&r.role===role).id,status:'accepted'}))}))
  p.rois.forEach((r:any)=>{r.band_set_id=r.role;r.lane_layout_id=layout.id})
  p=await rpc(page,'save_project',{project:p,path:p.project_path,expected_revision:0});await rpc(page,'library_register',{path:p.project_path})
- await page.reload();await page.getByRole('button',{name:'打开项目 '+p.name,exact:true}).click()
+ await page.reload();await page.getByRole('button',{name:'打开分析 '+p.name,exact:true}).click()
  await page.getByRole('button',{name:'结果',exact:true}).click()
  return p
 }

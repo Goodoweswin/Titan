@@ -74,6 +74,19 @@ def _mask_preview(field):
 
 def dispatch(command,payload,session):
     if command=="if_new":return _create(payload["name"],session,collection_id=payload.get("collection_id"),new_collection_name=payload.get("new_collection_name"))
+    if command == "if_new_from_import":
+        from .images import import_field
+        metadata = payload.get("metadata")
+        if not isinstance(metadata, dict) or any(
+            not isinstance(metadata.get(key), str) or not metadata[key].strip()
+            for key in ("sample_id", "bio_id", "group", "batch_id")
+        ):
+            raise ValueError("请填写样本编号、生物学样本编号、实验分组和采集批次")
+        project = new_project(payload["name"])
+        project["fields"] = [import_field(payload["selections"], metadata)]
+        return create_managed_analysis(
+            project, ".titanif", projects.save_project, session, collection_id=payload.get("collection_id"),
+        )["project"]
     if command=="if_demo":return _demo(session)
     if command=="if_open":
         load = (lambda path, session: projects.open_project(path, session, True)) if payload.get("read_only") else projects.recover_project

@@ -233,7 +233,7 @@ def transfer(payload, session):
         if entry:
             d['source']['entry_id'] = entry['entry_id']
     if not payload.get('project'):
-        return create(p['name'] + ' · 统计', session, selected, collection_id=entry and entry.get('collection_id'))
+        return create(p['name'] + ' · 统计', session, selected, collection_id=payload.get('collection_id', entry and entry.get('collection_id')))
     target = copy.deepcopy(payload['project'])
     # Selecting an already linked endpoint never silently refreshes its snapshot.
     for d in selected:

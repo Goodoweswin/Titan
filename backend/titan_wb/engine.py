@@ -65,6 +65,9 @@ def dispatch(request):
     if command=='library_create':
         from .library import library_create
         return library_create(payload['name'],session,collection_id=payload.get('collection_id'),new_collection_name=payload.get('new_collection_name'))
+    if command=='library_create_from_wb':
+        from .library import library_create_from_wb
+        return library_create_from_wb(payload['project'], session, collection_id=payload.get('collection_id'))
     if command=='library_register':
         from .library import library_register
         return library_register(payload['path'],session,payload.get('entry_id'),source_entry_id=payload.get('source_entry_id'),touch_opened=payload.get('touch_opened',True))
@@ -83,6 +86,21 @@ def dispatch(request):
         }
         operation, keys = operations[command]
         return operation(*(payload[key] for key in keys), session)
+    if command in ('library_material_add', 'library_material_paths', 'library_material_remove'):
+        from . import project_materials
+        operations = {
+            'library_material_add': (project_materials.library_material_add, 'paths'),
+            'library_material_paths': (project_materials.library_material_paths, 'material_ids'),
+            'library_material_remove': (project_materials.library_material_remove, 'material_id'),
+        }
+        operation, key = operations[command]
+        return operation(payload['collection_id'], payload[key], session)
+    if command=='library_export_bundle':
+        from .project_bundle import library_export_bundle
+        return library_export_bundle(payload['collection_id'], payload['destination'], session)
+    if command=='library_import_bundle':
+        from .project_bundle import library_import_bundle
+        return library_import_bundle(payload['path'], session)
     if command=='library_record_export':
         from .library import library_record_export
         return library_record_export(payload['project_path'],payload['project_id'],payload['record'],session)

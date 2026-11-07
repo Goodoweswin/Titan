@@ -7,3 +7,6 @@
 .stats-shell .modal-backdrop{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:24px;background:#18263766}
 .stats-shell .modal-backdrop>.modal{width:min(680px,100%);max-height:90vh;overflow:auto;background:white;border:1px solid #dce3eb;border-radius:12px;padding:24px;box-shadow:0 16px 64px #17293833;min-width:0}
 .stats-shell .modal-backdrop>.stats-source-dialog{width:min(900px,100%)}
+
+.stats-source-modal{border:1px solid var(--border);border-radius:12px;background:var(--surface);color:var(--ink);padding:24px}
+.stats-source-modal::backdrop{background:#18263766}

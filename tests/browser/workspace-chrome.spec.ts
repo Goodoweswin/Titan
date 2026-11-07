@@ -12,7 +12,7 @@ async function openExperiment(page:any){
  delete p.demo;p.synthetic=true;p.rois=[];p.lanes=[];p.samples=[];p.lane_layouts=[];p.band_sets=[]
  p=await rpc(page,'save_project',{project:p,path:p.project_path,expected_revision:0})
  await rpc(page,'library_register',{path:p.project_path});await page.reload()
- await page.getByRole('button',{name:'打开项目 '+p.name,exact:true}).click();return p
+ await page.getByRole('button',{name:'打开分析 '+p.name,exact:true}).click();return p
 }
 
 test('Western blot opens home and resumes the current figure draft',async({page})=>{
@@ -53,9 +53,9 @@ test('module navigation resumes WB and opens saved projects from either module',
  await expect(page.getByRole('heading',{name:'Western blot',exact:true})).toBeVisible()
  await page.getByRole('button',{name:'继续当前实验',exact:true}).click()
  await expect(page.getByRole('button',{name:'新建组图',exact:true})).toBeVisible()
- await page.getByRole('button',{name:'打开项目 '+ifName,exact:true}).click()
+ await page.getByRole('button',{name:'打开分析 '+ifName,exact:true}).click()
  await expect(page.getByLabel('IF 实验名称')).toHaveValue(ifName)
- await page.locator('.if-shell').getByRole('button',{name:'打开项目 '+wb.name,exact:true}).click()
+ await page.locator('.if-shell').getByRole('button',{name:'打开分析 '+wb.name,exact:true}).click()
  await expect(page.getByLabel('实验名称',{exact:true})).toHaveValue(wb.name)
 })
 
@@ -108,6 +108,12 @@ test('WB empty state has one centered creation action and saved documents remain
  page.once('dialog',dialog=>dialog.dismiss())
  await page.getByRole('button',{name:'内参',exact:true}).click()
  await expect(page.getByLabel('蛋白名称',{exact:true})).toHaveValue('待保存修改')
+ page.once('dialog',dialog=>dialog.accept())
+ await page.getByRole('button',{name:'首页',exact:true}).click()
+ await expect(page.getByRole('heading',{name:'Titan 工作区',exact:true})).toBeVisible()
+ await page.getByRole('button',{name:'Western blot',exact:true}).click()
+ await page.getByRole('button',{name:'继续当前实验',exact:true}).click()
+ await expect(page.getByLabel('蛋白名称',{exact:true})).toHaveValue('AKT')
  await page.setViewportSize({width:390,height:844})
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
  await expect(page.getByRole('img',{name:'WB 组图预览',exact:true})).toBeVisible()
@@ -139,7 +145,7 @@ test('an empty WB experiment offers import and readonly users can inspect saved 
   const response=await route.fetch(),body=await response.json();body.data.read_only=true
   await route.fulfill({response,json:body})
  })
- await page.getByRole('button',{name:'打开项目 '+p.name,exact:true}).click()
+ await page.getByRole('button',{name:'打开分析 '+p.name,exact:true}).click()
  await page.getByRole('button',{name:'WB 组图',exact:true}).click()
  await expect(page.getByRole('button',{name:'新建组图',exact:true})).toHaveCount(1)
  await expect(page.getByRole('button',{name:'新建组图',exact:true})).toBeDisabled()

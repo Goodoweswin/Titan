@@ -18,6 +18,7 @@ export default function SourceStatus({source,active,frozen,busy,onReturn,onUpdat
  return <div className="stats-source">
   <strong>{source.kind==='if'?'IF':'WB'} 来源：{source.project_name??''} · {source.endpoint} · {source.block} · 版本 {source.revision}</strong>
   {!frozen&&status&&<p role="status" className={status.state==='current'?'hint':'library-error'}>{status.message}</p>}
+  {!source.path&&!source.entry_id&&<p className="hint">此表保留当时的来源快照。可复制为独立数据表。</p>}
   {source.blocked&&<p className="library-error">{source.blocked}</p>}
   <div className="stats-source-actions"><button className="text-btn" disabled={busy||(!source.path&&!source.entry_id)} onClick={onReturn}>返回 {source.kind==='if'?'IF':'WB'}</button>
    {!frozen&&(source.path||source.entry_id)&&<><button className="text-btn" disabled={busy||checking} onClick={()=>setTick(v=>v+1)}>{checking?'正在检查来源…':'检查来源更新'}</button><button className="text-btn" disabled={busy||checking||status?.state==='unavailable'} onClick={onUpdate}>用当前 {source.kind==='if'?'IF':'WB'} 更新</button></>}
