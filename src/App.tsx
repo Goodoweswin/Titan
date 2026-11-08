@@ -32,6 +32,7 @@ import WbFigureEditor,{type WbHistory} from './WbFigureEditor'
 import type {WbDocument} from './wb-figure'
 import WbImageGuide from './WbImageGuide'
 import ProjectHome from './ProjectHome'
+import SidebarResize from './SidebarResize'
 import ToolHome,{toolInfo,type Tool} from './ToolHome'
 import ImportDialog from './if/ImportDialog'
 import ToolImport from './stats/ToolImport'
@@ -722,12 +723,13 @@ export default function App(){
  const actions=(operation:Promise<unknown>)=>void operation.catch(error=>setLibraryNotice(String(error)))
  const showDemoWB=()=>showDemo('wb')
  return <><div className={`app-shell titan-workspace${tool==='if'?' if-shell':tool==='stats'?' stats-shell':''}`}>
-  <aside className="sidebar" inert={libraryBusy||!!firstImport||!!pageChoice}>
+  <aside id="titan-sidebar" className="sidebar" inert={libraryBusy||!!firstImport||!!pageChoice}>
    <div className="brand"><img className="brand-mark" src={appIcon} alt="" aria-hidden="true"/><div className="brand-name"><strong>Titan</strong></div></div>
    <div className="sidebar-quick">
     <button className={`nav${screen.kind==='home'?' active':''}`} aria-current={screen.kind==='home'?'page':undefined} onClick={()=>visit({kind:'home'})}><Home size={17}/>首页</button>
     <button className="nav" onClick={()=>setLibraryDialog({kind:'choose'})}><Plus size={17}/>新建分析</button>
    </div>
+   <SidebarResize sidebarId="titan-sidebar"/>
    <nav className="analysis-modules" aria-label="分析模块">{(Object.keys(toolInfo) as Tool[]).map(key=>{
     const {icon:Icon,label}=toolInfo[key]
     return <button type="button" key={key} className={`nav module-nav${tool===key?' active':''}`}

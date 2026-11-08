@@ -28,3 +28,46 @@
 .titan-workspace .sidebar-tools .library-demo{margin-top:10px}
 @media(max-width:800px){.titan-workspace .project-workspace{padding:26px 18px 44px}}
 @media(max-width:540px){.project-intro{flex-wrap:wrap}.project-intro>button{margin-left:38px}}
+
+
+.titan-workspace {
+ --sidebar-default-width:232px;
+ --sidebar-width:min(var(--sidebar-user-width,var(--sidebar-default-width)),max(220px,calc(100vw - 780px)));
+}
+@media (max-width:1100px) {
+ .titan-workspace { --sidebar-default-width:220px; }
+}
+@media (max-width:800px) {
+ .titan-workspace { --sidebar-width:0px; }
+}
+
+.sidebar-resize {
+ position:absolute;
+ inset:0 -6px 0 auto;
+ z-index:1;
+ width:12px;
+ cursor:col-resize;
+ touch-action:none;
+}
+.sidebar-resize::before,
+.sidebar-resize::after {
+ content:'';
+ position:absolute;
+ pointer-events:none;
+}
+.sidebar-resize::before {
+ inset:0 5px;
+ background:transparent;
+}
+.sidebar-resize::after {
+ inset:calc(50% - 12px) 4px auto;
+ height:24px;
+ border-radius:2px;
+ background:var(--muted);
+}
+.sidebar-resize:is(:hover,:focus-visible,[data-dragging])::before,
+.sidebar-resize:is(:hover,:focus-visible,[data-dragging])::after {
+ background:var(--text-secondary);
+}
+.sidebar-resize:focus-visible { outline:none; }
+@media (max-width:800px) { .sidebar-resize { display:none; } }
