@@ -1,6 +1,6 @@
 # Titan 版本注册表
 
-审计日期 **2026-11-07（Asia/Shanghai）**。本表登记公开发布、本机构建和安装事件。按 Git 标签或表中的构建编号识别具体版本。多个构建可以显示同一个应用版本号，例如 `0.4.0`。功能变更见 [CHANGELOG](../../CHANGELOG.md)。
+公开发布审计日期 **2026-11-07（Asia/Shanghai）**。本表登记公开发布、本机构建和安装事件。按 Git 标签或表中的构建编号识别具体版本。多个构建可以显示同一个应用版本号，例如 `0.4.0`。功能变更见 [CHANGELOG](../../CHANGELOG.md)。
 
 ## 公开发布
 
@@ -34,7 +34,8 @@
 
 | 构建编号 | 源码与基础版本 | 主要范围 | 验收及分发状态 |
 | --- | --- | --- | --- |
-| `local-20261107-integrated-041` | `codex/titan-0-4-1` · `0dd290b` · 基础 `v0.4.0-beta.3` | 项目侧栏、WB／IF 来源关联、统计与出图、精度修复 | 已安装至 `/Applications/Titan.app`。隔离 macOS 窗口已通过关联表保存及冻结图重开。[本机验证报告](v0.4.1-beta.1-local-verification.json) |
+| `local-20261108-independent-project` | `codex/independent-project-workspace` · `e7da547` · 基础 `v0.4.1-beta.3` | 独立项目工作区、项目资料副本和项目包搬迁 | 已安装至 `/Applications/Titan.app`。打包引擎通过跨库恢复与 WB 导出验证，原生窗口已核对首页和 WB 工具入口。[本机验证报告](local-20261108-independent-project-verification.json) |
+| `local-20261107-integrated-041` | `codex/titan-0-4-1` · `0dd290b` · 基础 `v0.4.0-beta.3` | 项目侧栏、WB／IF 来源关联、统计与出图、精度修复 | 曾安装至 `/Applications/Titan.app`。隔离 macOS 窗口已通过关联表保存及冻结图重开。[本机验证报告](v0.4.1-beta.1-local-verification.json) |
 | `local-20261107-sidebar` | `codex/project-analysis-sidebar` · `e440e48` · 统计基础 `a4c0711` | 课题侧栏、WB／IF／统计分析归类和续做、冻结图与导出记录 | 独立验收包 `com.titan.wb.sidebarqa`。构建记录包含 63 项浏览器回归及 macOS 原生新建、搜索、冻结图恢复与取消关闭。Windows 原生待验收。[验收记录](../superpowers/plans/2026-11-07-project-analysis-sidebar.md) |
 | `local-20261107-stats-source` | `codex/statistics-v04` · `bba4d7f` · 基础 `a4c0711`。候选包同时包含工作区中的图像指引改动 | 从 WB／IF 按指标取数、版本化来源快照、统计关联表保存的浮点精度修复 | 候选包 `com.titan.wb` 已构建。记录包含打包引擎验证及精度修复前的原生流程检查。最终包安装后保存与重开、浏览器和 Windows 原生验收待做。证据在统计工作区的 `docs/checkpoint-reports/project-results-statistics.md` 和同名 JSON。 |
 | `local-20261107-stats-main` | `2c10023` · 基础 `v0.4.0-beta.3` | 独立统计工作区合入 Titan 主应用，支持表格、分析和冻结图 | 曾安装至 `/Applications/Titan.app`，现为历史安装。[安装记录](../checkpoint-reports/titan-main-installation.json) |
@@ -60,7 +61,8 @@
 
 | 日期（北京时间） | 位置与应用标识 | 安装状态 |
 | --- | --- | --- |
-| 2026-11-07 03:25 | `/Applications/Titan.app` · `com.titan.wb` | **当前安装** `local-20261107-integrated-041`。主程序和内置引擎均与本地构建匹配。旧项目库已备份。macOS 签名变更后，打开桌面来源需在系统提示中重新授权。[本机验证报告](v0.4.1-beta.1-local-verification.json) |
+| 2026-11-08 23:41 | `/Applications/Titan.app` · `com.titan.wb` | **当前安装** `local-20261108-independent-project`。已备份前版应用及本地项目库。[校验值和备份位置](local-20261108-independent-project-verification.json) |
+| 2026-11-07 03:25 | `/Applications/Titan.app` · `com.titan.wb` | 此前安装 `local-20261107-integrated-041`。主程序和内置引擎均与本地构建匹配。旧项目库已备份。macOS 签名变更后，打开桌面来源需在系统提示中重新授权。[本机验证报告](v0.4.1-beta.1-local-verification.json) |
 | 2026-11-07 | `/Applications/Titan.app` · `com.titan.wb` | 前一版包含 WB／IF 结果对接统计，精确提交未单独登记。此前精度修正包与前一版的内置引擎哈希一致，主程序哈希不同。证据见统计工作区 `docs/checkpoint-reports/project-results-statistics.json`。 |
 | 2026-11-07 01:44 | `/Applications/Titan.app` · `com.titan.wb` | 曾安装 `local-20261107-stats-main`，备份了此前的 `0.3.4` 和项目库。[安装记录](../checkpoint-reports/titan-main-installation.json) |
 

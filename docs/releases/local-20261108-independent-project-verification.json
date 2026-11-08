@@ -1,0 +1,42 @@
+{
+  "installed_at": "2026-11-08T23:41:45.500903+08:00",
+  "source_commit": "e7da547c28393be44c290cc173054770e850eccf",
+  "display_version": "0.4.1",
+  "bundle_id": "com.titan.wb",
+  "application": "/Applications/Titan.app",
+  "codesign": "passed",
+  "installed_sha256": {
+    "Contents/MacOS/titan-wb": "110a2ccb98d846b62702ee16bb2b90bbd2bef81f5ae5a29ab061983b40524ccd",
+    "Contents/Resources/engine/wb-engine/wb-engine": "25c5f7ba4e2b4d48de8ad025ced2632e0027a883318ba248a3f3f66240d245e7"
+  },
+  "previous_sha256": {
+    "Contents/MacOS/titan-wb": "9a509b9a4b2b814611d4c78b124b53a64d74fd0c5cc8a69c7cff06e02905b294",
+    "Contents/Resources/engine/wb-engine/wb-engine": "b64a3a858b2af7c43c7da17bab63d69f9237b8dacf2f168df399810a96250b32"
+  },
+  "backup": "~/Library/Application Support/Titan Backups/before-Titan-20261108-234145-u7dv6xy5",
+  "library_index_sha256_before": "a2bcd52a4c232dfe3e4c27cb4744e5ed6f2f44e726a08432b524bf464c72cdfd",
+  "build_id": "local-20261108-independent-project",
+  "base_tag": "v0.4.1-beta.3",
+  "platform": "macos-arm64",
+  "project_library_matches_backup_after_launch": true,
+  "bundled_project_checks": {
+    "version": "0.4.1",
+    "protocol": 1,
+    "material_copy": true,
+    "packaged_import": true,
+    "cross_library_restore": true,
+    "independent_if_excluded": true,
+    "reopened_stats_rows": 2
+  },
+  "bundled_wb_checks": {
+    "save_reopen": true,
+    "excel_workbook_verified": true,
+    "preview_matches_export": true
+  },
+  "native_checks": [
+    "Titan 工作区和旧分析列表可见",
+    "新建项目与打开项目包入口可见",
+    "WB 独立导入工具页可打开",
+    "返回首页后显示本地引擎就绪"
+  ]
+}
