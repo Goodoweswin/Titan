@@ -1,0 +1,101 @@
+/* A shared navigation surface, independent of the active workbench. */
+.app-shell .sidebar {
+ --sidebar: #202224;
+ --ink: #e7e8e9;
+ --text-secondary: #c9cbcd;
+ --muted: #a4a7ab;
+ --border: #424548;
+ --border-strong: #595d62;
+ --sidebar-hover: #2b2e30;
+ --sidebar-selected: #36393c;
+ --accent: #a8c2ff;
+ background:var(--sidebar);
+ color:var(--ink);
+ color-scheme:dark;
+ padding:16px 10px 10px;
+ font-family:system-ui,-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+ font-size:var(--text-base);
+ line-height:1.4;
+}
+.app-shell .sidebar .brand { padding:0 8px 12px; }
+.app-shell .sidebar .brand-mark { width:24px; height:24px; }
+.app-shell .sidebar .brand strong {
+ font-size:var(--text-lg);
+ font-weight:650;
+ letter-spacing:-.2px;
+}
+.app-shell .sidebar .sidebar-quick { margin-bottom:8px; }
+.app-shell .sidebar .nav { padding:6px 8px; min-height:32px; gap:8px; }
+.app-shell .sidebar .project-library {
+ display:flex;
+ flex-direction:column;
+ min-height:0;
+ overflow:visible;
+ padding:6px 1px 10px;
+}
+.sidebar .library-search,.sidebar .library-heading { flex:none; }
+.sidebar .library-scroll {
+ flex:1 1 auto;
+ min-height:0;
+ overflow:auto;
+ padding-bottom:6px;
+}
+.app-shell .sidebar .library-search {
+ margin:0 0 12px;
+ padding:0 8px;
+ border-radius:6px;
+ background:var(--sidebar-hover);
+}
+.app-shell .sidebar .library-search input {
+ min-height:30px;
+ color:var(--ink);
+}
+.sidebar .library-search input:focus-visible { outline-offset:-2px; }
+.app-shell .sidebar .library-search input::placeholder { color:var(--muted); }
+.sidebar .library-heading,
+.sidebar .library-section-label,
+.sidebar .library-section-toggle,
+.sidebar-tools > p { color:var(--muted); font-size:var(--text-xs); }
+.sidebar .library-heading { min-height:29px; padding:0 4px 3px 8px; }
+.sidebar .library-root { min-height:31px; gap:2px; }
+.sidebar .library-chevron { padding:6px 2px 6px 4px; }
+.sidebar .library-title { gap:7px; min-height:31px; padding:4px; font-weight:400; }
+.sidebar .library-collection-body { padding-left:18px; }
+.sidebar .library-analysis .library-title { padding-inline:8px 3px; }
+.sidebar .library-analysis .library-title small { color:var(--muted); }
+.sidebar .library-section-toggle { padding-left:4px; }
+.sidebar .library-artifacts { margin-left:0; padding-left:0; }
+.sidebar .library-artifacts button small { color:var(--muted); }
+.app-shell .sidebar .nav:hover:not(:disabled),
+.app-shell .sidebar .icon-btn:hover:not(:disabled),
+.app-shell .sidebar .library-root:hover,
+.app-shell .sidebar .library-artifacts button:hover:not(:disabled) {
+ background:var(--sidebar-hover);
+ color:var(--ink);
+}
+.app-shell .sidebar .nav.active,
+.app-shell .sidebar .library-root.active,
+.app-shell .sidebar .library-artifacts button.selected {
+ background:var(--sidebar-selected);
+ color:var(--ink);
+}
+.app-shell .sidebar .library-root.active .library-title { font-weight:550; }
+.sidebar .library-popup { background:#2b2e30; }
+.sidebar .library-popup button:is(:hover,:focus-visible) { background:var(--sidebar-selected); }
+.sidebar .library-error { color:#ffcc8f; }
+.sidebar .library-empty { color:var(--muted); }
+.sidebar .sidebar-tools {
+ flex:none;
+ border-top:1px solid var(--border);
+ padding-top:8px;
+}
+.sidebar-tools > p { margin:0 0 4px 8px; }
+.app-shell .sidebar .sidebar-tools .analysis-modules { border:0; padding:0; }
+.sidebar .sidebar-resize::after { background:var(--muted); }
+.sidebar .sidebar-resize:is(:hover,:focus-visible,[data-dragging])::before,
+.sidebar .sidebar-resize:is(:hover,:focus-visible,[data-dragging])::after {
+ background:var(--accent);
+}
+@media(max-width:800px) {
+ .app-shell .sidebar .sidebar-quick { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}

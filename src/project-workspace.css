@@ -1,8 +1,6 @@
 .titan-workspace .module-pane{display:flex;flex:1;min-width:0}
 .titan-workspace .module-pane[hidden]{display:none}
-.titan-workspace .sidebar-tools{display:contents}
 .titan-workspace .sidebar-quick{display:grid;gap:2px;margin-bottom:14px}
-.titan-workspace .analysis-modules{border-top:1px solid var(--border);padding-top:10px}
 .titan-workspace .project-workspace{padding:clamp(30px,6vw,72px) clamp(20px,6vw,80px) 60px;background:var(--surface);min-width:0}
 .project-intro{display:flex;align-items:flex-start;gap:14px;max-width:880px;margin-bottom:32px}
 .project-intro>svg{flex:none;margin-top:5px;color:var(--text-secondary)}
@@ -25,7 +23,6 @@
 .project-material-actions label{display:flex;align-items:center;gap:8px}
 .analysis-kind-picker{display:grid;gap:8px}
 .analysis-membership{margin:0 20px;color:var(--text-secondary);font-size:var(--text-xs)}
-.titan-workspace .sidebar-tools .library-demo{margin-top:10px}
 @media(max-width:800px){.titan-workspace .project-workspace{padding:26px 18px 44px}}
 @media(max-width:540px){.project-intro{flex-wrap:wrap}.project-intro>button{margin-left:38px}}
 
@@ -71,3 +68,32 @@
 }
 .sidebar-resize:focus-visible { outline:none; }
 @media (max-width:800px) { .sidebar-resize { display:none; } }
+
+
+.workbench-pickers {
+ display:flex;
+ align-items:center;
+ flex-wrap:wrap;
+ gap:8px;
+ min-width:0;
+}
+.workbench-pickers label {
+ display:flex;
+ align-items:center;
+ gap:8px;
+ min-width:0;
+ font-size:var(--text-sm);
+ color:var(--text-secondary);
+}
+.workbench-pickers select {
+ min-width:0;
+ max-width:min(250px,100%);
+ padding:5px 8px;
+ font-size:var(--text-sm);
+}
+.stats-resource-picker { padding:12px 28px 0; }
+.workbench-assets { margin-top:16px; padding:12px; }
+.workbench-assets .navigator-rois { max-height:230px; }
+@media(max-width:800px) {
+ .stats-resource-picker { padding-inline:16px; }
+}

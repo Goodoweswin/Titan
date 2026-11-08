@@ -46,7 +46,7 @@ beforeEach(async () => {
     active:true, volumeAvailable:false, onStatsSource:vi.fn(), libraryBusy:false,
     registerClose:vi.fn(), registerLibrary:value=>{actions=value},
     library:{entries:[],projects:[],error:'',refresh:vi.fn(),remember:vi.fn(),resume:vi.fn(),change:vi.fn()},
-    sidebarSlot:null, reportView:vi.fn(), membership:null, onExported:vi.fn(),
+     reportView:vi.fn(), membership:null, onExported:vi.fn(),
   })))
   await act(async()=>{await actions.demo()}); await editName()
 })

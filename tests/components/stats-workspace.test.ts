@@ -28,7 +28,7 @@ async function mount(entries:LibraryEntry[]=[],onSource:(source:DatasetSource)=>
   active:true,libraryBusy:false,onSource,registerClose:()=>{},sourceRequest:requestSource?{request:1,forceNew:true}:undefined,
   registerLibrary:value=>{actions=value},
   library:{entries,projects:[],error:'',refresh:vi.fn(),remember:vi.fn(),resume:vi.fn(),change:vi.fn()},
-  sidebarSlot:null,reportView:vi.fn(),membership:null,beforeSourceImport:async()=>()=>{},onSourceCreated:vi.fn(),onExported:vi.fn(),
+  reportView:vi.fn(),membership:null,beforeSourceImport:async()=>()=>{},onSourceCreated:vi.fn(),onExported:vi.fn(),
  })))
 }
 it('runs the real engine from table import through inference, stale detection, frozen figure and reload',async()=>{

@@ -416,7 +416,6 @@ details[open] > summary { margin-bottom: 14px; }
  .navigator-roi button > small { display: none; }
 }
 @media (max-width: 800px) {
- .project-navigator { display: none; }
  .sidebar-divider { width: 30px; }
  .workspace-grid { grid-template-columns: 1fr; }
  .inspector { position: static; display: block; max-height: none; overflow: visible; }
@@ -569,7 +568,6 @@ dialog.source-dialog::backdrop { background: #24365066; }
 .library-error button { text-decoration:underline; }
 .library-empty { margin:8px 12px; }
 .library-demo { flex-shrink:0; font-size:var(--text-sm); }
-.sidebar>.project-navigator { max-height:40vh; overflow:auto; flex-shrink:1; }
 .workspace-proteins { padding:0 26px 8px; }
 .workspace-proteins label { display:flex; gap:10px; align-items:center; font-size:var(--text-sm); color:var(--muted); }
 .workspace-proteins select { padding:6px 9px; max-width:360px; }

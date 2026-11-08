@@ -31,7 +31,6 @@
 .app-shell .library-children>button.selected { background:#e8e8e5; color:var(--ink); }
 .app-shell .library-children>button.selected svg { color:var(--ink); }
 .app-shell .sidebar-label { font-size:var(--text-xs); color:var(--muted); margin-bottom:8px; }
-.app-shell .sidebar>.project-navigator { border-top:1px solid var(--border); padding-top:10px; }
 .workspace-navigation { display:flex; align-items:center; gap:18px; padding:0 26px; min-height:46px; border-bottom:1px solid var(--border); background:var(--surface); }
 .app-shell .steps { padding:0; display:flex; gap:24px; border:0; flex-wrap:nowrap; min-width:0; }
 .app-shell .steps button { color:var(--muted); font-size:var(--text-sm); padding:12px 0 11px; border-bottom:2px solid transparent; white-space:nowrap; }

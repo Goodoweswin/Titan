@@ -1,8 +1,7 @@
 import {useEffect,useRef,useState} from 'react'
 import {open,save} from '@tauri-apps/plugin-dialog'
-import {BarChart3,Plus,Table2,FlaskConical,Image,Download,Undo2,Redo2} from 'lucide-react'
+import {Download,Undo2,Redo2} from 'lucide-react'
 import {callEngine} from '../bridge'
-import {createPortal} from 'react-dom'
 import type {ModuleView} from '../App'
 import type {ProjectLibraryModel} from '../useProjectLibrary'
 import type {AnalysisCreation} from '../LibraryCreateDialog'
@@ -33,7 +32,6 @@ interface Props {
  onSource:(source:DatasetSource)=>void
  registerClose:(actions:CloseActions)=>void
  registerLibrary:(actions:StatsLibraryActions)=>void
- sidebarSlot:HTMLDivElement|null
  reportView:(view:ModuleView)=>void
  membership:React.ReactNode
  beforeSourceImport:()=>Promise<(()=>void)|null>
@@ -43,7 +41,7 @@ interface Props {
 
 export default function StatsWorkspace({
  active,sourceRequest,library,libraryBusy,onSource,registerClose,registerLibrary,
- sidebarSlot,reportView,membership,beforeSourceImport,onSourceCreated,onExported,
+ reportView,membership,beforeSourceImport,onSourceCreated,onExported,
 }:Props){
  const [sourceDialog,setSourceDialog]=useState<{path?:string;collectionId?:string|null;forceNew?:boolean;requested?:boolean}|null>(null)
  useEffect(()=>{
@@ -166,7 +164,12 @@ export default function StatsWorkspace({
   })
  }
  async function addTable(dataset?:Dataset){if(!p)return;const next=dataset??await callEngine<Dataset>('stats_dataset',{name:'数据表 '+(p.datasets.length+1)});edit(v=>v.datasets.push(next));setDatasetId(next.id);setFrozen(null);setView('data');setModal('')}
- function selectTable(key:string,next:typeof view){setDatasetId(key);setFrozen(null);setView(next)}
+ function selectResource(value:string){
+  const figure=p?.figures.find(item=>value==='figure:'+item.id)
+  if(figure){setFrozen(figure);setView('graph');return}
+  const table=p?.datasets.find(item=>value==='table:'+item.id)
+  if(table){setDatasetId(table.id);setFrozen(null);setView('data')}
+ }
  async function inspectImport(file?:string,worksheet?:string){await task('解析数据',async()=>{const result=await callEngine<{dataset:Dataset;sheets:string[]}>('stats_import',file?{path:file,sheet:worksheet||undefined,format:importFormat}:{text,format:importFormat});setImported(result);if(file)setLocation(file)})}
  async function chooseImport(){if(!native())return;try{const chosen=await open({filters:[{name:'表格',extensions:['xlsx','csv','tsv','txt']}]});if(typeof chosen==='string')await inspectImport(chosen)}catch(e){setMessage(String(e))}}
  async function chooseFolder(kind:'open'|'export'|'copy'){setLocation('');setModal(kind);if(native()){try{const chosen=kind==='open'?await open({directory:true,title:'打开 .titanstats 项目'}):await save({title:kind==='copy'?'另存统计项目':'导出到新文件夹',defaultPath:kind==='copy'?p?.name+'.titanstats':p?.name+'-统计结果'});if(typeof chosen==='string'){setLocation(chosen);await finishPath(kind,chosen)}else setModal('')}catch(e){setMessage(String(e))}}}
@@ -197,15 +200,22 @@ export default function StatsWorkspace({
  function copyTable(){if(!display)return;const clone=structuredClone(display);clone.id=id();clone.name+=' · 副本';clone.source=null;clone.confirmed=false;clone.runs=[];void addTable(clone)}
  function paste(event:React.ClipboardEvent<HTMLInputElement>,ri:number,gi:number){const raw=event.clipboardData.getData('text');if(!raw.includes('\t')&&!raw.includes('\n'))return;event.preventDefault();const cells=raw.trimEnd().split(/\r?\n/).map(r=>r.split('\t'));if(cells.some(r=>r.length+gi>(d?.groups.length??0))){setMessage('粘贴列数超过现有分组，请先添加组。');return}editD(t=>{while(t.rows.length<ri+cells.length)t.rows.push({id:id(),label:String(t.rows.length+1),values:{},excluded:{}});cells.forEach((row,i)=>row.forEach((v,j)=>{t.rows[ri+i].values[t.groups[gi+j].id]=v}))})}
  const disabled=!!busy||!!frozen
- useEffect(()=>{reportView({path:p?.project_path,view:view==='data'?'workspace':view==='analysis'?'results':'wb',
+ useEffect(()=>{reportView({path:p?.project_path,
   artifactId:view==='graph'&&frozenDocument?'stats:'+frozenDocument.id:undefined})},
   [reportView,p?.project_path,view,frozenDocument?.id])
  return <><div className="module-pane stats-pane" hidden={!active} inert={libraryBusy}>
- {active&&sidebarSlot&&createPortal(<> {p&&<div className="stats-tree"><div className="sidebar-label">数据与图形</div>{p?.datasets.map(t=><div key={t.id}><button className={d?.id===t.id&&!frozen?'selected':''} onClick={()=>selectTable(t.id,'data')}><Table2 size={15}/>{t.name}</button><div className="stats-tree-child"><button onClick={()=>selectTable(t.id,'analysis')}><FlaskConical size={14}/>分析结果 · {t.runs.length}</button><button onClick={()=>selectTable(t.id,'graph')}><BarChart3 size={14}/>当前图形</button></div></div>)}{p?.figures.map(f=><button key={f.id} className={frozen?.id===f.id?'selected':''} onClick={()=>{setFrozen(f);setView('graph')}}><Image size={15}/>{f.name}</button>)}</div>}<button className="nav library-demo" disabled={!!busy} onClick={()=>change('stats_demo',{})}>体验统计合成示例</button></>,sidebarSlot)}
-
  <div className="main-shell"><header className="app-header stats-header">{p?<><input aria-label="统计项目名称" value={p.name} disabled={!!busy} onChange={e=>edit(p=>{p.name=e.target.value})}/><span>{p.revision===p.saved_revision?'已保存':'待保存'}</span><div className="stats-toolbar"><button className="icon-btn" aria-label="撤销统计修改" disabled={!past.length||!!busy} onClick={()=>undo()}><Undo2 size={16}/></button><button className="icon-btn" aria-label="重做统计修改" disabled={!future.length||!!busy} onClick={()=>undo(true)}><Redo2 size={16}/></button><button className="btn secondary" disabled={!!busy} onClick={()=>flush()}>保存</button><button className="btn secondary" disabled={!!busy} onClick={()=>chooseFolder('copy')}>另存副本</button><button className="btn primary" disabled={!!busy} onClick={()=>chooseFolder('export')}><Download size={15}/>导出</button></div></>:<strong>统计与绘图</strong>}</header>
  {membership}{message&&<div className="notice" role="status">{message}<button onClick={()=>setMessage('')}>×</button></div>}{busy&&<div className="busy" role="status">{busy}…</div>}
  {p&&display&&style&&<>
+ <div className="workbench-pickers stats-resource-picker">
+  <label>数据与图形<select aria-label="选择数据表或图形" disabled={!!busy}
+   value={frozenDocument?'figure:'+frozenDocument.id:frozen?'history':'table:'+d!.id}
+   onChange={event=>selectResource(event.target.value)}>
+   {frozen&&!frozenDocument&&<option value="history" disabled>{frozen.name}</option>}
+   <optgroup label="数据表">{p.datasets.map(table=><option key={table.id} value={'table:'+table.id}>{table.name}</option>)}</optgroup>
+   {p.figures.length>0&&<optgroup label="图形快照">{p.figures.map(figure=><option key={figure.id} value={'figure:'+figure.id}>{figure.name}</option>)}</optgroup>}
+  </select></label>
+ </div>
  <nav className="stats-tabs" aria-label="统计工作区"><button className={view==='data'?'selected':''} onClick={()=>setView('data')}>数据表</button><button className={view==='analysis'?'selected':''} onClick={()=>setView('analysis')}>统计分析</button><button className={view==='graph'?'selected':''} onClick={()=>setView('graph')}>图形</button><span/><button disabled={!!busy} onClick={()=>setSourceDialog({})}>从项目读取结果</button><button disabled={!!busy} onClick={()=>addTable()}>＋ 数据表</button><button disabled={!!busy} onClick={()=>{setImported(null);setText('');setLocation('');setModal('import')}}>导入 / 粘贴</button></nav>
  <main className="stats-content">{frozen&&<div className="stats-source">正在查看冻结图形 {frozen.name}。<button className="text-btn" onClick={copyTable}>复制数据为新表</button></div>}
  {(display.source?.kind==='wb'||display.source?.kind==='if')&&<SourceStatus source={display.source} active={active} frozen={!!frozen}

@@ -12,7 +12,8 @@ test('new experiments autosave and remain in the left project tree after reload'
  await page.reload()
  await page.getByRole('button',{name:'打开分析 '+name,exact:true}).click()
  await expect(page.getByLabel('实验名称')).toHaveValue(name)
- await expect(page.getByRole('navigation',{name:'实验项目库'}).getByRole('button',{name:'结果表',exact:true}).first()).toBeVisible()
+ await expect(page.getByRole('navigation',{name:'实验视图'}).getByRole('button',{name:'结果',exact:true})).toBeVisible()
+ await expect(page.getByRole('navigation',{name:'实验项目库'}).getByRole('button',{name:'结果表',exact:true})).toHaveCount(0)
 })
 
 async function rpc(page:any,command:string,payload:object={}){

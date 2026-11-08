@@ -18,7 +18,6 @@ import LaneResults from './LaneResults'
 import ExportPreview from './ExportPreview'
 import Results from './Results'
 import SampleEditor from './SampleEditor'
-import ProjectNavigator from './ProjectNavigator'
 import ProjectLibrary,{type LibraryView} from './ProjectLibrary'
 import useProjectLibrary from './useProjectLibrary'
 import FigureDocument from './FigureDocument'
@@ -41,7 +40,7 @@ import type {Dataset} from './stats/types'
 import './project-workspace.css'
 
 type Screen={kind:'home'}|{kind:'project';id:string}|{kind:'tool';tool:Tool}|{kind:'analysis'}
-export type ModuleView={path?:string|null;view:LibraryView;artifactId?:string}
+export type ModuleView={path?:string|null;artifactId?:string}
 type LeaveApproval={discard?:()=>void}
 type FirstImport={tool:'if'|'stats';paths?:string[];collectionId:string|null;hashes?:Map<string,string>}
 const analysisName=(path:string,fallback:string)=>Array.from(filename(path).replace(/\.[^.]+$/,'').trim()).slice(0,120).join('')||fallback
@@ -53,9 +52,8 @@ export default function App(){
  const [module,setModule]=useState<Tool>('wb'),moduleRef=useRef(module);moduleRef.current=module
  const [screen,setScreen]=useState<Screen>({kind:'home'})
  const [firstImport,setFirstImport]=useState<FirstImport|null>(null)
- const [sidebarSlot,setSidebarSlot]=useState<HTMLDivElement|null>(null)
- const [ifView,setIFView]=useState<ModuleView>({view:'workspace'})
- const [statsView,setStatsView]=useState<ModuleView>({view:'workspace'})
+ const [ifView,setIFView]=useState<ModuleView>({})
+ const [statsView,setStatsView]=useState<ModuleView>({})
  const reportIFView=useCallback((view:ModuleView)=>setIFView(view),[])
  const reportStatsView=useCallback((view:ModuleView)=>setStatsView(view),[])
  const ifClose=useRef<CloseActions|null>(null)
@@ -170,8 +168,7 @@ export default function App(){
  const [selection,setSelection]=useState<Selection>({imageId:'',roiId:'',ids:[]})
  const [textSize,setTextSize]=useState(()=>{try{return localStorage.getItem('titan-text-size')==='large'?'large':'standard'}catch{return 'standard'}})
  useEffect(()=>{document.documentElement.dataset.textSize=textSize;try{localStorage.setItem('titan-text-size',textSize)}catch{}},[textSize])
- function select(s:Selection){setSelection(s);navigate('workspace')}
- function locate(id:string){const r=project?.rois.find(r=>r.id===id);if(r){if(guided&&r.band_set_id){setActiveSetId(r.band_set_id);navigate(r.role==='reference'?'workspace':'samples')}else select({imageId:r.image_id,roiId:r.id,ids:[]})}}
+ function locate(id:string){const r=project?.rois.find(r=>r.id===id);if(r){if(guided&&r.band_set_id){setActiveSetId(r.band_set_id);navigate(r.role==='reference'?'workspace':'samples')}else{setSelection({imageId:r.image_id,roiId:r.id,ids:[]});navigate('workspace')}}}
  const [canvasHistory,setCanvasHistory]=useState<CanvasHistory|null>(null)
  const [past,setPast]=useState<Project[]>([]),[future,setFuture]=useState<Project[]>([])
  const current=useRef(project),resultRef=useRef(result),job=useRef(0),persisting=useRef(false),saveFlight=useRef<Promise<Project>|null>(null);current.current=project;resultRef.current=result
@@ -709,7 +706,7 @@ export default function App(){
  const figureDocument=activeEntry?.figures.find(f=>f.default_key===(project?.figure_settings?.panel_key||'all'))
  const reviewed=project?.rois.filter(r=>r.reviewed_revision===project.revision).length??0
  const tool=screen.kind==='tool'?screen.tool:screen.kind==='analysis'?module:null
- const wbView:ModuleView={path:project?.project_path,view:tab==='wb'?'wb':tab==='results'?'results':'workspace',
+ const wbView:ModuleView={path:project?.project_path,
   artifactId:frozen?.document.id??(tab==='wb'&&activeStrip?'strip:'+activeStrip.id:undefined)}
  const currentView=module==='wb'?wbView:module==='if'?ifView:statsView
  const analysisVisible=screen.kind==='analysis'
@@ -723,26 +720,27 @@ export default function App(){
  const actions=(operation:Promise<unknown>)=>void operation.catch(error=>setLibraryNotice(String(error)))
  const showDemoWB=()=>showDemo('wb')
  return <><div className={`app-shell titan-workspace${tool==='if'?' if-shell':tool==='stats'?' stats-shell':''}`}>
-  <aside id="titan-sidebar" className="sidebar" inert={libraryBusy||!!firstImport||!!pageChoice}>
+  <aside id="titan-sidebar" className="sidebar" aria-label="Titan 导航" inert={libraryBusy||!!firstImport||!!pageChoice}>
    <div className="brand"><img className="brand-mark" src={appIcon} alt="" aria-hidden="true"/><div className="brand-name"><strong>Titan</strong></div></div>
    <div className="sidebar-quick">
     <button className={`nav${screen.kind==='home'?' active':''}`} aria-current={screen.kind==='home'?'page':undefined} onClick={()=>visit({kind:'home'})}><Home size={17}/>首页</button>
     <button className="nav" onClick={()=>setLibraryDialog({kind:'choose'})}><Plus size={17}/>新建分析</button>
    </div>
    <SidebarResize sidebarId="titan-sidebar"/>
-   <nav className="analysis-modules" aria-label="分析模块">{(Object.keys(toolInfo) as Tool[]).map(key=>{
-    const {icon:Icon,label}=toolInfo[key]
-    return <button type="button" key={key} className={`nav module-nav${tool===key?' active':''}`}
-     aria-current={screen.kind==='tool'&&tool===key?'page':undefined} onClick={()=>enterModule(key)}><Icon size={18}/><span>{label}</span></button>
-   })}</nav>
-   <ProjectLibrary entries={entries} projects={library.projects} project={analysisVisible?{project_path:currentView.path}:null}
+   <ProjectLibrary entries={entries} projects={library.projects} activeEntry={currentEntry}
     selectedProjectId={selectedProject?.id} onProject={id=>visit({kind:'project',id})} onOpenBundle={()=>actions(openBundle())}
-    activeFigure={currentView.artifactId??''} currentView={currentView.view} error={library.error} busy={switching||libraryBusy}
+    activeFigure={analysisVisible?currentView.artifactId??'':''} error={library.error} busy={switching||libraryBusy}
     onRetry={library.refresh} onRelocate={openFromDisk} onOpen={openLibraryEntry} onDialog={setLibraryDialog} onPin={pinCollection}
     onArtifact={openArtifact} onReveal={(entry,artifact)=>void openRegisteredFile(entry,artifact,true)} onOpenFile={()=>openFromDisk()}/>
-   {project&&!homeVisible&&!guided&&!frozen&&tab!=='wb'&&<ProjectNavigator project={project} selection={selection} onSelect={select}/>}
-   <div className="sidebar-tools" ref={setSidebarSlot}/>
-   {(tool==='wb'&&analysisVisible)&&<button className="nav library-demo" onClick={showDemoWB}><Sparkles size={18}/>探索合成示例</button>}
+   <div className="sidebar-tools">
+    <p>分析工具</p>
+    <nav className="analysis-modules" aria-label="分析模块">{(Object.keys(toolInfo) as Tool[]).map(key=>{
+     const {icon:Icon,label}=toolInfo[key]
+     const selected=screen.kind==='tool'&&tool===key
+     return <button type="button" key={key} className={`nav module-nav${selected?' active':''}`}
+      aria-current={selected?'page':undefined} onClick={()=>enterModule(key)}><Icon size={16}/><span>{label}</span></button>
+    })}</nav>
+   </div>
   </aside>
   {screen.kind==='home'&&<main className="main-shell project-workspace" inert={libraryBusy}>
    <header className="project-intro"><Home size={24}/><div><h1>Titan 工作区</h1><p>从一份独立分析开始，或创建项目来管理资料、分析和图表。</p></div></header>
@@ -796,9 +794,9 @@ export default function App(){
   {showExport&&exportContext&&<ExportPreview project={exportContext.project} result={exportContext.result} initialSettings={exportContext.settings} initialFigure={exportContext.figure} initialData={exportContext.preview?.figure_data} onClose={()=>setShowExport(false)} onExport={exportResult}/>}{!homeVisible&&<footer className="statusbar"><div className="status-summary">{project&&!homeVisible&&<><span>{project.images.length} 张原始图像</span><span>{project.rois.length} 个条带区域</span><span>{reviewed} 已复核</span>{((project as any).demo||(project as any).synthetic)&&<b className="synthetic-label">纯合成示例 · 非实验数据</b>}</>}</div><div className="status-system"><span className="connection"><i className={connected?'online':''}/>{connected?'本地引擎就绪':'连接中'}</span>{project&&!homeVisible&&<span className="pixel-note"><ShieldCheck size={12}/>原始像素参与计算</span>}</div></footer>}</div></div>
   <IFWorkspace active={analysisVisible&&module==='if'} volumeAvailable={tool==='if'} onStatsSource={sendIFStats} registerClose={fn=>{ifClose.current=fn}}
    registerLibrary={actions=>{ifLibrary.current=actions}} library={library} libraryBusy={libraryBusy}
-   sidebarSlot={sidebarSlot} reportView={reportIFView} membership={module==='if'?memberLine:null} onExported={reportLibraryExport}/>
+   reportView={reportIFView} membership={module==='if'?memberLine:null} onExported={reportLibraryExport}/>
   <StatsWorkspace active={analysisVisible&&module==='stats'} sourceRequest={statsSource} library={library} libraryBusy={libraryBusy}
-   sidebarSlot={sidebarSlot} reportView={reportStatsView} membership={module==='stats'?memberLine:null}
+   reportView={reportStatsView} membership={module==='stats'?memberLine:null}
    beforeSourceImport={async()=>{
     const approval:LeaveApproval={}
     if(!await prepareCurrent(false,approval))return null
