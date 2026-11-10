@@ -1,0 +1,39 @@
+{
+  "installed_at": "2026-11-10T18:21:35.077006+08:00",
+  "source_commit": "76ec5c665a588800196af27b873c4dd666cea024",
+  "display_version": "0.4.1",
+  "bundle_id": "com.titan.wb",
+  "application": "/Applications/Titan.app",
+  "codesign": "passed",
+  "installed_sha256": {
+    "Contents/MacOS/titan-wb": "24366bbe7627430045733a11533cb571e6097a28e24f21f689ece44432945ac2",
+    "Contents/Resources/engine/wb-engine/wb-engine": "25c5f7ba4e2b4d48de8ad025ced2632e0027a883318ba248a3f3f66240d245e7"
+  },
+  "previous_sha256": {
+    "Contents/MacOS/titan-wb": "110a2ccb98d846b62702ee16bb2b90bbd2bef81f5ae5a29ab061983b40524ccd",
+    "Contents/Resources/engine/wb-engine/wb-engine": "25c5f7ba4e2b4d48de8ad025ced2632e0027a883318ba248a3f3f66240d245e7"
+  },
+  "backup": "~/Library/Application Support/Titan Backups/before-Titan-20261110-182135-skf9lw86",
+  "library_index_sha256_before": "a2bcd52a4c232dfe3e4c27cb4744e5ed6f2f44e726a08432b524bf464c72cdfd",
+  "build_id": "local-20261110-stable-sidebar",
+  "base_tag": "v0.4.1-beta.3",
+  "platform": "macos-arm64",
+  "project_library_matches_backup_after_launch": true,
+  "bundled_project_checks": {
+    "version": "0.4.1",
+    "protocol": 1,
+    "material_copy": true,
+    "packaged_import": true,
+    "cross_library_restore": true,
+    "independent_if_excluded": true,
+    "reopened_stats_rows": 2
+  },
+  "browser_sidebar_tests": 2,
+  "native_checks": [
+    "深灰统一左栏可见",
+    "拖动宽度从 232 变为 288 像素并复位",
+    "进入统计与绘图时显示同一左栏",
+    "返回首页后本地引擎就绪"
+  ],
+  "native_project_library": "macOS 在应用签名变更后等待重新授权访问桌面。原生项目列表读取超时，旧项目库已备份。"
+}
