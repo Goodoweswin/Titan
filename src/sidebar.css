@@ -9,6 +9,11 @@
  --sidebar-hover: #2b2e30;
  --sidebar-selected: #36393c;
  --accent: #a8c2ff;
+ --text-xs:11px;
+ --text-sm:12px;
+ --text-base:13px;
+ --text-md:13px;
+ --text-lg:16px;
  background:var(--sidebar);
  color:var(--ink);
  color-scheme:dark;
@@ -25,7 +30,7 @@
  letter-spacing:-.2px;
 }
 .app-shell .sidebar .sidebar-quick { margin-bottom:8px; }
-.app-shell .sidebar .nav { padding:6px 8px; min-height:32px; gap:8px; }
+.app-shell .sidebar .nav { padding:6px 8px; min-height:32px; gap:8px; font-size:13px; }
 .app-shell .sidebar .project-library {
  display:flex;
  flex-direction:column;
@@ -60,6 +65,7 @@
 .sidebar .library-root { min-height:31px; gap:2px; }
 .sidebar .library-chevron { padding:6px 2px 6px 4px; }
 .sidebar .library-title { gap:7px; min-height:31px; padding:4px; font-weight:400; }
+.sidebar .library-title small { font-size:10px; }
 .sidebar .library-collection-body { padding-left:18px; }
 .sidebar .library-analysis .library-title { padding-inline:8px 3px; }
 .sidebar .library-analysis .library-title small { color:var(--muted); }
