@@ -2,6 +2,11 @@
 
 公开发布、本机构建和安装状态见 [Titan 版本注册表](docs/releases/INDEX.md)。
 
+## 本机 0.4.1 · 夜间外观修复 — 2026-11-12
+
+- 修复左栏已深色、主工作区仍浅色的问题。WB、IF、统计表格、绘图设置和弹窗实时跟随系统外观。
+- 原始图像、荧光通道颜色及论文图输出保留原配色。安装记录见 [`local-20261112-system-appearance`](docs/releases/local-20261112-system-appearance-verification.json)。
+
 ## 0.4.1-beta.3 — 2026-11-07
 
 - 统一课题侧栏，归类 WB、IF 和独立统计分析，恢复上次视图，打开冻结图和已登记导出。

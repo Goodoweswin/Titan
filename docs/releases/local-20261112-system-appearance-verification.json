@@ -1,0 +1,36 @@
+{
+  "installed_at": "2026-11-12T02:13:09.659097+08:00",
+  "source_commit": "959169baa9ae49a76a6085feca9ff1e1a603ae40",
+  "display_version": "0.4.1",
+  "bundle_id": "com.titan.wb",
+  "application": "/Applications/Titan.app",
+  "codesign": "passed",
+  "installed_sha256": {
+    "Contents/MacOS/titan-wb": "52f0d0c28625ce26897b21f06d13ca7db29baf5681e8aac9b21199e31d08d026",
+    "Contents/Resources/engine/wb-engine/wb-engine": "25c5f7ba4e2b4d48de8ad025ced2632e0027a883318ba248a3f3f66240d245e7"
+  },
+  "previous_sha256": {
+    "Contents/MacOS/titan-wb": "24366bbe7627430045733a11533cb571e6097a28e24f21f689ece44432945ac2",
+    "Contents/Resources/engine/wb-engine/wb-engine": "25c5f7ba4e2b4d48de8ad025ced2632e0027a883318ba248a3f3f66240d245e7"
+  },
+  "backup": "~/Library/Application Support/Titan Backups/before-Titan-20261112-021309-p2vnuy07",
+  "library_index_sha256_before": "099036fb710ce4b41190ed21f3b3304f2b241fe9daebb8b09c605797432f96ee",
+  "build_id": "local-20261112-system-appearance",
+  "base_tag": "v0.4.1-beta.3",
+  "platform": "macos-arm64",
+  "browser_tests": 22,
+  "unit_tests": 82,
+  "native_checks": [
+    "macOS 深色外观下首页、WB、IF、统计工作区均显示深色",
+    "打开原 IF 分析，通道色与 6 个已测量视野保持可见",
+    "打开关联统计表和柱形图，论文图保留白底及原配色",
+    "打开原 WB 分析，原图与条带标记正常显示",
+    "结束时恢复用户原 IF 分析页面"
+  ],
+  "library_changed_files_after_native_checks": [
+    "Projects/03a1f20cc766493798ea61f52e3f3971.titanstats/.writer.lock",
+    "index.json"
+  ],
+  "engine_unchanged": true,
+  "validation_scope": "配色、导航和合成项目的界面回归；本轮不评价真实实验数据的科学准确性或 Windows 原生显示。"
+}
