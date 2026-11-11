@@ -1,0 +1,37 @@
+{
+  "installed_at": "2026-11-12T03:01:06.446029+08:00",
+  "source_commit": "b635b56078a52cebd2506e9368c66ace8a8085dd",
+  "display_version": "0.4.1",
+  "bundle_id": "com.titan.wb",
+  "application": "/Applications/Titan.app",
+  "codesign": "passed",
+  "installed_sha256": {
+    "Contents/MacOS/titan-wb": "4374800c531c97a5666e66415d9eaf00425ade9e9b26e34a366bd5e3369041cb",
+    "Contents/Resources/engine/wb-engine/wb-engine": "25c5f7ba4e2b4d48de8ad025ced2632e0027a883318ba248a3f3f66240d245e7"
+  },
+  "previous_sha256": {
+    "Contents/MacOS/titan-wb": "52f0d0c28625ce26897b21f06d13ca7db29baf5681e8aac9b21199e31d08d026",
+    "Contents/Resources/engine/wb-engine/wb-engine": "25c5f7ba4e2b4d48de8ad025ced2632e0027a883318ba248a3f3f66240d245e7"
+  },
+  "backup": "~/Library/Application Support/Titan Backups/before-Titan-20261112-030106-0by97zz6",
+  "library_index_sha256_before": "0b778d23614378845d6aa51b4a935aa9eb63c6de8df3338d7c1327d2f6af8e75",
+  "build_id": "local-20261112-page-cards",
+  "base_tag": "v0.4.1-beta.3",
+  "platform": "macos-arm64",
+  "browser_tests": 6,
+  "unit_tests": 82,
+  "engine_unchanged": true,
+  "browser_checks": [
+    "点击卡片右下方空白处即可选中并导入正确页码",
+    "重复点击取消选择，选中状态不重复切换",
+    "空格及 Enter 可切换卡片选择",
+    "无效页禁用、全选及 Escape 正常",
+    "工具导入仅在确认页面后创建分析"
+  ],
+  "native_checks": [
+    "恢复原 WB 分析及同一 TIFF 的页面选择窗口",
+    "原生深色窗口可见加大的页面卡片和状态方框",
+    "选中状态与正在预览的页面分别展示"
+  ],
+  "validation_scope": "整卡点击和键盘操作由真实引擎浏览器用例验证；本机核对安装、窗口和卡片状态显示。本轮未修改解码和定量引擎。"
+}
