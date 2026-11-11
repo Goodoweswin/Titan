@@ -1,0 +1,52 @@
+{
+  "installed_at": "2026-11-12T03:45:30.152200+08:00",
+  "source_commit": "924c7000dee8eb05e419dc84d818d3a8dee8c9aa",
+  "display_version": "0.4.1",
+  "bundle_id": "com.titan.wb",
+  "application": "/Applications/Titan.app",
+  "codesign": "passed",
+  "installed_sha256": {
+    "Contents/MacOS/titan-wb": "99e2956c4d1d01e3ad728a62411f3e2bbe6797dbe8e37018d3873300e242ac91",
+    "Contents/Resources/engine/wb-engine/wb-engine": "25c5f7ba4e2b4d48de8ad025ced2632e0027a883318ba248a3f3f66240d245e7"
+  },
+  "previous_sha256": {
+    "Contents/MacOS/titan-wb": "4374800c531c97a5666e66415d9eaf00425ade9e9b26e34a366bd5e3369041cb",
+    "Contents/Resources/engine/wb-engine/wb-engine": "25c5f7ba4e2b4d48de8ad025ced2632e0027a883318ba248a3f3f66240d245e7"
+  },
+  "backup": "~/Library/Application Support/Titan Backups/before-Titan-20261112-034530-jzel0awx",
+  "library_index_sha256_before": "dbf68867d05da6d213ee68558fc5c33fbce8c9f777d669c58378b548e5762b27",
+  "build_id": "local-20261112-navigation-panels-preview",
+  "base_tag": "v0.4.1-beta.3",
+  "platform": "macos-arm64",
+  "engine_unchanged": true,
+  "checks": {
+    "frontend_unit_tests": 88,
+    "python_tests": 346,
+    "python_subtests": 5,
+    "production_build": "passed",
+    "macos_app_build": "passed",
+    "local_full_browser_suite": {
+      "passed": 81,
+      "failed": 1,
+      "failure": "lane workflow graph preview exceeded the default 5 second assertion timeout",
+      "isolated_retry": "passed",
+      "change": "Allow up to 15 seconds for this real-engine preview assertion."
+    },
+    "github_ci": {
+      "run_id": 43090281470,
+      "url": "https://github.com/Goodoweswin/Titan/actions/runs/43090281470",
+      "status": "passed",
+      "source_commit": "924c7000dee8eb05e419dc84d818d3a8dee8c9aa",
+      "browser_tests": 82
+    }
+  },
+  "native_checks": [
+    "Home has no contextual right panel.",
+    "Left sidebar collapses to zero width and restores its saved 232 px width.",
+    "Opening a saved WB analysis enables the contextual right panel.",
+    "Right-panel collapse and restore preserve the current inspector.",
+    "Back returns from analysis to project; Forward restores the same saved analysis.",
+    "Existing analysis remains saved with zero imported images."
+  ],
+  "validation_scope": "Navigation and layout verification only. No real-WB/IF scientific accuracy claim; no Windows native GUI acceptance in this local update."
+}

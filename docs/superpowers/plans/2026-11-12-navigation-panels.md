@@ -26,7 +26,9 @@
 - [x] Extend IF/statistics view reports and register guarded restoration of steps and resources, preserving data edits.
 - [x] Connect App's screen, WB step/figure state and existing navigation guards to the shared controls.
 - [x] Exercise cross-module navigation, collapse persistence, contextual availability, cancelled leave prompts and source identity through browser tests. Run production build and the frontend test suite.
-- [ ] Build the Mac app, back up and install, exercise actual navigation and panel controls, and update the version registry.
+- [x] Build the Mac app, back up and install, exercise actual navigation and panel controls, and update the version registry.
+
+The navigation build was exercised in the native app. The final compact-font build is installed and its sidebar is visible; restoring the old project and pending TIFF chooser still requires macOS account verification to refresh the already-authorized Desktop access. The full final-source GitHub suite passed (83 browser, 88 frontend unit, 346 Python tests and 5 subtests).
 
 ## Review focus
 

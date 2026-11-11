@@ -1,0 +1,62 @@
+{
+  "installed_at": "2026-11-12T03:54:47.489139+08:00",
+  "source_commit": "bb39accc92cf3a8bd07eafc5912b9bba793aed58",
+  "display_version": "0.4.1",
+  "bundle_id": "com.titan.wb",
+  "application": "/Applications/Titan.app",
+  "codesign": "passed",
+  "installed_sha256": {
+    "Contents/MacOS/titan-wb": "fbac34fc2cc348a94967c26a93ed692c894ea759317255afc18c811dd46292b4",
+    "Contents/Resources/engine/wb-engine/wb-engine": "25c5f7ba4e2b4d48de8ad025ced2632e0027a883318ba248a3f3f66240d245e7"
+  },
+  "previous_sha256": {
+    "Contents/MacOS/titan-wb": "99e2956c4d1d01e3ad728a62411f3e2bbe6797dbe8e37018d3873300e242ac91",
+    "Contents/Resources/engine/wb-engine/wb-engine": "25c5f7ba4e2b4d48de8ad025ced2632e0027a883318ba248a3f3f66240d245e7"
+  },
+  "backup": "~/Library/Application Support/Titan Backups/before-Titan-20261112-035447-va17pjj5",
+  "library_index_sha256_before": "25f9121cf25071b8a200c6be068914525573ff832ca2220ca3ff73dcbecf75e8",
+  "build_id": "local-20261112-navigation-panels",
+  "base_tag": "v0.4.1-beta.3",
+  "platform": "macos-arm64",
+  "engine_unchanged": true,
+  "checks": {
+    "frontend_unit_tests": 88,
+    "python_tests": 346,
+    "python_subtests": 5,
+    "production_build": "passed",
+    "macos_app_build": "passed",
+    "local_full_browser_suite": {
+      "passed": 81,
+      "failed": 1,
+      "failure": "lane workflow graph preview exceeded the default 5 second assertion timeout",
+      "isolated_retry": "passed",
+      "change": "Allow up to 15 seconds for this real-engine preview assertion."
+    },
+    "targeted_browser_tests": 19,
+    "github_ci": {
+      "run_id": 43091441077,
+      "url": "https://github.com/Goodoweswin/Titan/actions/runs/43091441077",
+      "status": "passed",
+      "source_commit": "bb39accc92cf3a8bd07eafc5912b9bba793aed58",
+      "tested_ref": "pull/3/merge",
+      "browser_tests": 83,
+      "frontend_unit_tests": 88,
+      "python_tests": 346,
+      "python_subtests": 5,
+      "production_build": "passed"
+    }
+  },
+  "sidebar_typography": {
+    "project_analysis_artifact_px": 13,
+    "captions_px": 11,
+    "workspace_text_size_independent": true
+  },
+  "native_checks": [
+    "Installed main executable and engine match the recorded candidate hashes.",
+    "Compact sidebar is visible in the running dark-mode native window."
+  ],
+  "native_pending": [
+    "Final font build requires macOS account verification to refresh the already-authorized Desktop folder access. Old-project reopen and restoration of the unconfirmed TIFF chooser remain pending this user action."
+  ],
+  "validation_scope": "Navigation and layout verification only. No real-WB/IF scientific accuracy claim; no Windows native GUI acceptance in this local update."
+}
