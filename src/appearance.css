@@ -1,0 +1,165 @@
+/* System appearance belongs to the whole workspace. Image pixels, channel
+   swatches and publication figures keep their original/export colors. */
+@media (prefers-color-scheme: dark) {
+ :root {
+  color-scheme:dark;
+  --background:#181a1b;
+  --surface:#202224;
+  --surface-muted:#26292c;
+  --control:#282b2e;
+  --ink:#e9ebed;
+  --text-secondary:#bfc5cb;
+  --muted:#a6aeb6;
+  --border:#3b4045;
+  --border-strong:#555c64;
+  --accent:#a8c2ff;
+  --accent-soft:#29364b;
+  --warning:#f0c281;
+  --warning-surface:#332c22;
+  --success:#8ed3b4;
+  --success-surface:#20372f;
+ }
+ .if-shell { --if-divider:var(--border); --if-muted:var(--muted); }
+
+ /* Shared chrome and controls, including native dialogs outside the sidebar. */
+ input,select,textarea {
+  color:var(--ink);
+  background-color:var(--control);
+  border-color:var(--border-strong);
+ }
+ input::placeholder,textarea::placeholder { color:var(--muted); }
+ .secondary { color:var(--ink); background:var(--surface); border-color:var(--border); }
+ .app-shell :is(input,select,textarea) {
+  color:var(--ink);
+  border-color:var(--border-strong);
+ }
+ .app-shell :is(.secondary,.canvas-toolbar,.image-card,.welcome-card,.busy),
+ .app-shell :is(.lane-task,.lane-canvas-card,.lane-check-list button,.lane-profile),
+ .app-shell :is(.results-tabs,.results-table-scroll,.sample-table-scroll,.stats-grid-scroll),
+ .app-shell :is(.if-settings,.if-table-scroll,.stats-results,.stats-empty,.stats-inspector),
+ .app-shell :is(.source-dialog,.export-dialog,.library-dialog),
+ .app-shell:is(.if-shell,.stats-shell) .modal-backdrop>.modal {
+  background:var(--surface);
+  color:var(--ink);
+  border-color:var(--border);
+ }
+ .primary,.app-shell .primary {
+  color:#181a1b;
+  background:#e9ebed;
+  border-color:#e9ebed;
+ }
+ .primary:hover:not(:disabled),.app-shell .primary:hover:not(:disabled) { background:#cdd2d7; border-color:#cdd2d7; }
+ .app-shell .statusbar { background:var(--surface); }
+ .app-shell :is(.project-name:hover:not([readonly]),.project-name:focus,
+  .secondary:hover:not(:disabled),.icon-btn:hover:not(:disabled),.tool:hover,.asset.selected,
+  .text-size:hover,.tag,.card-heading h3>span,.image-tab.active,.wb-row-list>button:hover,
+  .sample-table-scroll input:hover,.sample-table-scroll select:hover,
+  .sample-table-scroll input:focus,.sample-table-scroll select:focus) {
+  background:var(--surface-muted);
+ }
+ .app-shell :is(.if-content,.stats-content,.canvas-viewport,.wb-sheet-area,.wb-crop-frame,
+  .if-figure-preview,.export-canvas,.signal-preview,.sample-paste,.if-volume-controls) {
+  background-color:var(--background);
+  border-color:var(--border);
+ }
+ .app-shell :is(.page-content:has(.results-workspace),.page-content:has(>.sample-editor)) {
+  background:var(--background);
+ }
+
+ /* IF's legacy module stylesheet specifies its own input and text colors. */
+ .app-shell :is(.if-settings,.if-import,.if-figure,.if-canvas-toolbar) :is(input,select,textarea),
+ .app-shell.if-shell .modal input {
+  color:var(--ink);
+  background-color:var(--control);
+  border-color:var(--border-strong);
+ }
+ .app-shell :is(.if-settings h3,.if-empty h2,.if-empty h3,.if-results td,
+  .results-workspace,.lane-identity,.results-workspace .result-value,
+  .results-table-scroll td,.sample-table-scroll td,.sample-table-scroll tbody th,
+  .sample-table-scroll input:not([type=checkbox]),.sample-table-scroll select,
+  .sample-design-footer strong,td strong,.empty h3,.empty-image,.empty-icon,
+  .project-name,.if-volume-dialog) { color:var(--ink); }
+ .app-shell :is(.if-settings label,.if-import label,.if-figure label,.if-import legend,
+  .if-canvas-toolbar label,.if-canvas-caption,.if-empty,.if-welcome>p,.if-roi-list small,
+  .stats-header>span,.stats-tabs button,.stats-section-title span,.stats-caption,
+  .stats-analysis-controls label,.stats-inspector label,.stats-grid button,
+  .results-section-heading p,.sample-header p,.results-table-footer,.sample-table-footer,
+  .results-empty,.results-empty h3,.sample-batch small,.sample-feedback,
+  .results-disclosure>summary,.results-disclosure>.card-heading p,
+  .normalization-settings label,.normalization-settings p,.sample-design-footer p,
+  .inspector label,.advanced label,.section-title p,.advanced p,
+  .image-caption,.canvas-legend,.zoom-label,.ruler,.empty,.eyebrow,
+  .preview-heading,.preview-heading>span,.preview-lanes,.preview-legend,
+  .steps-note,.roi-chip,.roi-chip strong,.if-volume-header p,.if-volume-empty,
+  .if-volume-footer) { color:var(--text-secondary); }
+
+ /* Tables use one palette across quantitative workspaces. */
+ .app-shell :is(th,.table-wrap th,.results-workspace thead th,.sample-table-scroll thead th,
+  .if-results th,.stats-grid th,.stats-results th) {
+  background:var(--surface-muted);
+  color:var(--text-secondary);
+  border-color:var(--border);
+ }
+ .app-shell :is(td,.table-wrap td,.results-table-scroll td,.stats-grid td,
+  .if-results td,.stats-results td) { color:var(--ink); border-color:var(--border); }
+ .app-shell tbody tr:hover,.app-shell .sample-table-scroll tbody tr:hover {
+  background:var(--surface-muted);
+ }
+ .app-shell .stats-grid input:focus { background:var(--accent-soft); }
+ .app-shell .stats-grid .excluded input { color:var(--muted); background:var(--surface-muted); }
+ .app-shell .stats-content .stats-empty { color:var(--muted); }
+ .app-shell :is(.stats-tabs,.if-channel,.if-results th,.if-results td,
+  .if-import fieldset,.if-figure .if-settings,.stats-source-choices article,.if-canvas-wrap,
+  .canvas-toolbar,.canvas-legend,
+  .results-disclosure,.results-workspace .figure-details,.results-workspace .multi-spec,
+  .results-workspace .with-inspector>.figure-inspector) { border-color:var(--border); }
+
+ /* Selected rows and contextual information retain a distinct, quiet accent. */
+ .app-shell :is(.tool.selected,.segmented button.selected,.roi-chip.active,
+  .if-roi-list button.selected,.if-subtabs button.selected,.stats-tabs button.selected,
+  .lane-check-list button.selected,.protein-navigator button.selected,.navigator-roi.selected,
+  .sample-table-scroll tbody tr.is-selected,.wb-row-list>button.selected,
+  .if-volume-modes button[aria-pressed=true]) {
+  color:var(--accent);
+  background:var(--accent-soft);
+  border-color:var(--border-strong);
+ }
+ .app-shell :is(.if-roi-list button,.roi-chip,.stats-source-choices article,.issue) {
+  background:var(--surface);
+  color:var(--text-secondary);
+  border-color:var(--border);
+ }
+ .app-shell :is(.stats-method,.stats-source,.stats-import-preview,.method-explanation,
+  .results-workspace .method-explanation,.sample-batch,.group-label,.flag,.if-job,
+  .if-volume-status,.if-volume-header h2 small) {
+  background:var(--accent-soft);
+  color:var(--ink);
+  border-color:var(--border);
+ }
+ .app-shell :is(.source-link,.source-link:hover,.lane-count) { color:var(--accent); }
+
+ /* Warnings and confirmation states must also stay readable at night. */
+ .app-shell :is(.notice,.quality-panel,.quality-note,.synthetic-label,.pill,
+  .flag.warning,.if-note,.wb-alert,.metric.warning) {
+  background:var(--warning-surface);
+  color:var(--warning);
+  border-color:#695336;
+ }
+ .app-shell :is(.quality-panel summary,.issue:not(.info),.blocked-number,
+  .stat-row .error-text,.metric.warning strong,.lane-message,.wb-pending,
+  .sample-review,.result-status.blocked) { color:var(--warning); }
+ .app-shell :is(.flag.success,.wb-message) { background:var(--success-surface); color:var(--success); }
+ .app-shell :is(.wb-confirmed,.lane-confirmed,.sample-review.reviewed,.result-status.valid) { color:var(--success); }
+ .app-shell :is(.result-status.not_detected,.result-status.excluded) { color:var(--muted); }
+ .app-shell .icon-btn.danger { color:#f1b4aa; }
+ .app-shell .stats-source-choices article.unavailable { background:var(--surface-muted); color:var(--muted); }
+
+ /* Change the frame around publication previews, never the image itself. */
+ .app-shell :is(.stats-paper,.result-figure) { background:var(--surface); border-color:var(--border); }
+ .app-shell .wb-sheet { color:#202123; }
+ .app-shell :is(.stats-paper>img,.result-figure>img) { background:white; }
+ .app-shell .if-volume-dialog { color:var(--ink); background:var(--surface); border-color:var(--border); }
+ .if-volume-dialog :is(.if-volume-header,.if-volume-toolbar,.if-volume-status,.if-volume-footer,fieldset) {
+  border-color:var(--border);
+ }
+}
