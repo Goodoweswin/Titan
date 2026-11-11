@@ -32,6 +32,10 @@ import type {WbDocument} from './wb-figure'
 import WbImageGuide from './WbImageGuide'
 import ProjectHome from './ProjectHome'
 import SidebarResize from './SidebarResize'
+import WorkspaceNavigation from './WorkspaceNavigation'
+import useWorkspaceHistory from './useWorkspaceHistory'
+import useWorkspacePanels from './useWorkspacePanels'
+import type {Screen,ModuleView,AnalysisLocation,WorkspaceLocation} from './workspace-navigation'
 import ToolHome,{toolInfo,type Tool} from './ToolHome'
 import ImportDialog from './if/ImportDialog'
 import ToolImport from './stats/ToolImport'
@@ -39,8 +43,6 @@ import type {IFSelection} from './if/types'
 import type {Dataset} from './stats/types'
 import './project-workspace.css'
 
-type Screen={kind:'home'}|{kind:'project';id:string}|{kind:'tool';tool:Tool}|{kind:'analysis'}
-export type ModuleView={path?:string|null;artifactId?:string}
 type LeaveApproval={discard?:()=>void}
 type FirstImport={tool:'if'|'stats';paths?:string[];collectionId:string|null;hashes?:Map<string,string>}
 const analysisName=(path:string,fallback:string)=>Array.from(filename(path).replace(/\.[^.]+$/,'').trim()).slice(0,120).join('')||fallback
@@ -49,6 +51,7 @@ const filename=(path:string)=>path.split(/[\\/]/).pop()||'未命名分析'
 const native=()=>Boolean((window as any).__TAURI_INTERNALS__)
 async function ask(text:string){return native()?await confirm(text,{title:'Titan',kind:'warning'}):window.confirm(text)}
 export default function App(){
+ const panels=useWorkspacePanels()
  const [module,setModule]=useState<Tool>('wb'),moduleRef=useRef(module);moduleRef.current=module
  const [screen,setScreen]=useState<Screen>({kind:'home'})
  const [firstImport,setFirstImport]=useState<FirstImport|null>(null)
@@ -160,7 +163,6 @@ export default function App(){
  const homeVisible=!project||screen.kind!=='analysis'||module!=='wb'
  const [manualMode,setManualMode]=useState(false),[activeSetId,setActiveSetId]=useState('')
  const guided=!!project&&!(project as any).demo&&!manualMode
- useEffect(()=>{setManualMode(false);setActiveSetId('')},[project?.id])
  const navigation=useRef(0)
  async function navigate(next:typeof tab,discardApproved=false){if(!discardApproved&&!await canLeaveFigure())return;navigation.current++;frozenRef.current=null;setFrozen(null);figurePreview.current=null;setInitialStrip(null);setActiveStrip(null);setTab(next)}
  const [busy,setBusy]=useState(''),[message,setMessage]=useState(''),[connected,setConnected]=useState(false)
@@ -706,21 +708,82 @@ export default function App(){
  const figureDocument=activeEntry?.figures.find(f=>f.default_key===(project?.figure_settings?.panel_key||'all'))
  const reviewed=project?.rois.filter(r=>r.reviewed_revision===project.revision).length??0
  const tool=screen.kind==='tool'?screen.tool:screen.kind==='analysis'?module:null
- const wbView:ModuleView={path:project?.project_path,
-  artifactId:frozen?.document.id??(tab==='wb'&&activeStrip?'strip:'+activeStrip.id:undefined)}
+ const wbView:ModuleView={path:project?.project_path,projectId:project?.id,name:project?.name,view:tab,resourceId:selection.imageId,
+  artifactId:frozen?.document.id??(tab==='wb'&&activeStrip?.version?'strip:'+activeStrip.id:undefined),
+  versionId:frozen?.document.selected_version??(tab==='wb'?activeStrip?.version:undefined)}
  const currentView=module==='wb'?wbView:module==='if'?ifView:statsView
  const analysisVisible=screen.kind==='analysis'
  const currentEntry=analysisVisible?entries.find(entry=>entry.path===currentView.path):undefined
  const membership=library.projects.find(item=>item.id===currentEntry?.collection_id)
  const selectedProject=screen.kind==='project'?library.projects.find(item=>item.id===screen.id):undefined
+ const browsingLocation:WorkspaceLocation|null=screen.kind==='analysis'?
+  currentView.projectId&&currentView.view?{kind:'analysis',module,projectId:currentView.projectId,view:currentView.view,
+   path:currentView.path,name:currentView.name,entryId:currentEntry?.entry_id,resourceId:currentView.resourceId,
+   artifactId:currentView.artifactId,versionId:currentView.versionId,runId:currentView.runId,
+   ...(module==='wb'?{manualMode,activeSetId,roiId:selection.roiId}:{})}:null:screen
+ const browsingBlocked=libraryBusy||switching||!!currentView.busy||module==='wb'&&(!!busy||wbWorking)||
+  !!firstImport||!!pageChoice||!!libraryDialog||showExport||showWbGuide
+ const browsing=useWorkspaceHistory(browsingLocation,browsingBlocked,restoreLocation)
+ async function restoreWB(location:AnalysisLocation){
+  if(!await canLeaveFigure()||!await flushCurrent())return false
+  const before=current.current
+  let candidate=before
+  let acquired=false
+  try{
+   if(!candidate||candidate.id!==location.projectId||candidate.project_path!==location.path){
+    if(!location.path)throw new Error('此临时分析已关闭，请从左栏重新打开已保存的分析。')
+    candidate=await readProject(location.path);acquired=candidate.project_path!==before?.project_path
+   }
+   if(candidate.id!==location.projectId)throw new Error('原 WB 分析身份已变化，请从左栏重新打开。')
+   if(location.resourceId&&!candidate.images.some(image=>image.id===location.resourceId))throw new Error('原图已移除，请从当前图像列表选择。')
+   if(location.activeSetId&&!candidate.band_sets.some(set=>set.id===location.activeSetId))throw new Error('原蛋白已移除，请从当前列表选择。')
+   let figure:FrozenFigure|null=null,strip:WbDocument|null=null
+   if(location.artifactId){
+    if(!location.path)throw new Error('图形来源尚未保存。')
+    if(location.artifactId.startsWith('strip:'))strip=await callEngine<WbDocument>('wb_load',{project:candidate,document_id:location.artifactId.slice(6),version_id:location.versionId})
+    else figure=await callEngine<FrozenFigure>('load_figure',{path:location.path,figure_id:location.artifactId,version_id:location.versionId})
+   }
+   if(candidate!==before)await activateProject(candidate)
+   await navigate(location.view as typeof tab,true)
+   setManualMode(!!location.manualMode);setActiveSetId(location.activeSetId??'')
+   setSelection({imageId:location.resourceId??candidate.images[0]?.id??'',roiId:candidate.rois.some(roi=>roi.id===location.roiId)?location.roiId!:'',ids:[]})
+   if(figure){frozenRef.current=figure;setFrozen(figure);setTab('results')}
+   if(strip){setInitialStrip(strip);setActiveStrip({id:strip.id,version:strip.version!})}
+   return true
+  }catch(error){
+   if(acquired&&candidate?.project_path!==current.current?.project_path)await callEngine('release_project',{path:candidate?.project_path}).catch(()=>{})
+   throw error
+  }
+ }
+ async function restoreLocation(location:WorkspaceLocation){
+  try{return await guardLibrary(async()=>{
+   if(location.kind!=='analysis'){
+    if(location.kind==='project'&&!library.projects.some(project=>project.id===location.id))throw new Error('原项目已移出列表，请从左栏选择当前项目。')
+    const keepDraft=location.kind==='tool'&&location.tool==='wb'&&moduleRef.current==='wb'
+    if(!await prepareCurrent(keepDraft))return false
+    setShowExport(false);setScreen(location);return true
+   }
+   if(!await prepareModule(location.module))return false
+   const entry=location.entryId?library.entries.find(entry=>entry.entry_id===location.entryId):undefined
+   const target={...location,path:entry?.path??location.path}
+   if(target.path&&target.entryId)await callEngine('library_check_path',{path:target.path,entry_id:target.entryId})
+   const restored=target.module==='wb'?await restoreWB(target):target.module==='if'?await ifLibrary.current?.restore(target):await statsLibrary.current?.restore(target)
+   if(restored)activateModule(target.module)
+   return !!restored
+  })}catch(error){setLibraryNotice('未能切换页面：'+(error instanceof Error?error.message:String(error)));return false}
+ }
+ const browsingTitle=screen.kind==='home'?'Titan 工作区':screen.kind==='project'?selectedProject?.name??'项目':screen.kind==='tool'?toolInfo[screen.tool].label:currentView.name??currentEntry?.name??'分析'
  const memberLine=currentEntry&&<div className="analysis-membership">
   {membership?<button className="text-btn" onClick={()=>visit({kind:'project',id:membership.id})}><Folder size={13}/>{membership.name}</button>:<span>独立分析</span>}
  </div>
  const openFromDisk=(entry?:LibraryEntry)=>void openProject(entry).catch(error=>setLibraryNotice(String(error)))
  const actions=(operation:Promise<unknown>)=>void operation.catch(error=>setLibraryNotice(String(error)))
  const showDemoWB=()=>showDemo('wb')
- return <><div className={`app-shell titan-workspace${tool==='if'?' if-shell':tool==='stats'?' stats-shell':''}`}>
-  <aside id="titan-sidebar" className="sidebar" aria-label="Titan 导航" inert={libraryBusy||!!firstImport||!!pageChoice}>
+ return <><div ref={panels.root} className={`app-shell titan-workspace${tool==='if'?' if-shell':tool==='stats'?' stats-shell':''}${panels.leftCollapsed?' sidebar-collapsed':''}${panels.rightCollapsed?' inspector-collapsed':''}`}>
+  <WorkspaceNavigation title={browsingTitle} blocked={browsingBlocked||browsing.restoring} canBack={browsing.canBack} canForward={browsing.canForward}
+   leftCollapsed={panels.leftCollapsed} rightCollapsed={panels.rightCollapsed} hasInspector={panels.hasInspector}
+   onBack={()=>void browsing.go(-1)} onForward={()=>void browsing.go(1)} onToggleLeft={panels.toggleLeft} onToggleRight={panels.toggleRight}/>
+  <aside id="titan-sidebar" className="sidebar" aria-label="Titan 导航" hidden={panels.leftCollapsed} inert={libraryBusy||!!firstImport||!!pageChoice}>
    <div className="brand"><img className="brand-mark" src={appIcon} alt="" aria-hidden="true"/><div className="brand-name"><strong>Titan</strong></div></div>
    <div className="sidebar-quick">
     <button className={`nav${screen.kind==='home'?' active':''}`} aria-current={screen.kind==='home'?'page':undefined} onClick={()=>visit({kind:'home'})}><Home size={17}/>首页</button>

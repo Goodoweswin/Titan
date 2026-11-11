@@ -1,7 +1,7 @@
 import {lazy,Suspense,useEffect,useRef,useState} from 'react'
 import {save} from '@tauri-apps/plugin-dialog'
 import {Box,ImagePlus,Microscope,Save} from 'lucide-react'
-import type {ModuleView} from '../App'
+import type {AnalysisLocation,ModuleView} from '../workspace-navigation'
 import {callEngine} from '../bridge'
 import type {LibraryView} from '../ProjectLibrary'
 import type {AnalysisCreation} from '../LibraryCreateDialog'
@@ -19,6 +19,7 @@ const VolumeViewer=lazy(()=>import('./VolumeViewer'))
 const fingerprint=(p:IFProject)=>JSON.stringify(p.fields.map(f=>({id:f.id,channels:f.channels.map(c=>({id:c.id,name:c.name,source:c.source})),rois:f.rois,recipe:f.recipe,mask:f.mask,pixel_size_um:f.pixel_size_um,quantitative:f.quantitative,sample_id:f.sample_id,bio_id:f.bio_id,group:f.group,batch_id:f.batch_id})))
 export interface IFLibraryActions {
  prepareLeave:()=>Promise<boolean>
+ restore:(location:AnalysisLocation)=>Promise<boolean>
  open:(path:string,view:LibraryView,entryId?:string)=>Promise<boolean>
  create:(input:AnalysisCreation)=>Promise<boolean>
  demo:()=>Promise<boolean>
@@ -54,7 +55,7 @@ export default function IFWorkspace({active,volumeAvailable,onStatsSource,regist
   const p=current.current;if(p?.project_path)await callEngine('if_release',{path:p.project_path})
  }})})
  useEffect(()=>{if(!project||project.read_only||project.saved_revision===project.revision||busy)return;const timer=setTimeout(()=>persist().catch(e=>setMessage('自动保存未完成：'+e)),1200);return()=>clearTimeout(timer)},[project,busy])
- async function changeProject(command:'if_new'|'if_demo'|'if_open'|'if_new_from_import',payload:object={},view:LibraryView='workspace',raiseError=false){
+ async function changeProject(command:'if_new'|'if_demo'|'if_open'|'if_new_from_import',payload:object={},view:LibraryView='workspace',raiseError=false,expected?:AnalysisLocation){
   if(busy)return false
   let generation=epoch.current
   setBusy(command==='if_open'?'打开实验':'准备实验')
@@ -67,6 +68,12 @@ export default function IFWorkspace({active,volumeAvailable,onStatsSource,regist
    if(generation!==epoch.current)return false
    setMessage('')
    const p=await callEngine<IFProject>(command,payload)
+   const invalid=expected&&(p.id!==expected.projectId?'原 IF 分析身份已变化，请从左栏重新打开。':
+    expected.resourceId&&!p.fields.some(field=>field.id===expected.resourceId)?'原视野已移除，请从当前视野列表选择。':'')
+   if(invalid){
+    if(p.project_path!==current.current?.project_path)await callEngine('if_release',{path:p.project_path}).catch(()=>{})
+    throw new Error(invalid)
+   }
    if(generation!==epoch.current){
     if(p.project_path&&p.project_path!==current.current?.project_path)await callEngine('if_release',{path:p.project_path}).catch(()=>{})
     return false
@@ -77,7 +84,7 @@ export default function IFWorkspace({active,volumeAvailable,onStatsSource,regist
    assign(p);setFieldId(p.fields[0]?.id??'');setTab(view==='results'?'results':view==='wb'?'figure':'analysis')
    void library.refresh()
    return true
-  }catch(e){setMessage(String(e));if(raiseError)throw e;return false}
+  }catch(e){if(!expected)setMessage(String(e));if(raiseError)throw e;return false}
   finally{setBusy('')}
  }
  const activeEntryId=library.entries.find(entry=>entry.path===project?.project_path)?.entry_id
@@ -88,6 +95,7 @@ export default function IFWorkspace({active,volumeAvailable,onStatsSource,regist
  useEffect(()=>{
   registerLibrary({
    prepareLeave,
+   restore:restoreLocation,
    open:(path,view,entryId)=>changeProject('if_open',{path,entry_id:entryId},view,true),
    create:input=>changeProject('if_new',input,'workspace',true),
    demo:()=>changeProject('if_demo',{},'workspace',true),
@@ -97,6 +105,18 @@ export default function IFWorkspace({active,volumeAvailable,onStatsSource,regist
  })
  function edit(change:(p:IFProject)=>void){const p=current.current;if(!p||p.read_only)return;const next=structuredClone(p);change(next);next.revision++;assign(next);setMessage('')}
  function updateField(change:(f:IFField)=>void,kind:'display'|'analysis'|'segmentation'='analysis'){const p=current.current;if(!p||!field)return;assign(editField(p,field.id,change,kind));setMessage('')}
+ async function restoreLocation(location:AnalysisLocation){
+  if(!['analysis','results','figure'].includes(location.view))return false
+  if(current.current?.id!==location.projectId||current.current?.project_path!==location.path){
+   if(!location.path||!await prepareLeave()||!await changeProject('if_open',{path:location.path,entry_id:location.entryId},'workspace',true,location))return false
+  }
+  const target=current.current
+  if(!target)return false
+  if(location.resourceId&&!target.fields.some(field=>field.id===location.resourceId))throw new Error('原视野已移除，请从当前视野列表选择。')
+  if(location.resourceId)setFieldId(location.resourceId)
+  setTab(location.view as 'analysis'|'results'|'figure')
+  return true
+ }
  async function run(operation:string,options:Record<string,unknown>){const input=current.current;if(!input||input.read_only||activeJob.current||busy)return;const generation=epoch.current;setBusy('提交任务');setMessage('');try{const started=await callEngine<IFJob>('if_start_job',{project:input,operation,options});if(generation!==epoch.current||current.current?.id!==input.id){await callEngine('if_cancel_job',{job_id:started.job_id});return}const key={job_id:started.job_id,epoch:generation,project_id:input.id};activeJob.current=key;setJob({...started,completed:0,total:1});setBusy('');const tick=async()=>{if(!canAcceptJob(key.job_id,epoch.current,activeJob.current,current.current))return;try{const status=await callEngine<IFJob>('if_job_status',{job_id:key.job_id});if(!canAcceptJob(key.job_id,epoch.current,activeJob.current,current.current))return;setJob(status);if(status.status==='completed'){const before=current.current!;const accepted=await callEngine<IFProject>('if_accept_job',{project:before,job_id:key.job_id});if(!canAcceptJob(key.job_id,epoch.current,activeJob.current,current.current))return;const latest=current.current!;if(latest.revision!==before.revision){if(fingerprint(latest)!==fingerprint(before))throw new Error('任务完成时分析输入已改变，请重新运行');accepted.fields=accepted.fields.map(f=>{const live=latest.fields.find(v=>v.id===f.id);return live?{...f,channels:live.channels}:f});accepted.figure=latest.figure;accepted.name=latest.name;accepted.revision=Math.max(accepted.revision,latest.revision+1)}assign(accepted);setFieldId(id=>accepted.fields.some(f=>f.id===id)?id:accepted.fields[0]?.id??'');activeJob.current=null;setJob(null);setMessage(status.failures?.length?'部分视野处理失败：'+status.failures.map(f=>`${accepted.fields.find(v=>v.id===f.field_id)?.name??f.field_id}：${f.error}`).join('；'):(operation==='segment'||operation==='edit_mask'?'任务已完成。请复核核标签，然后确认分割。':'任务已完成，结果已应用。'));void library.refresh();return}if(status.status==='failed'||status.status==='cancelled'){activeJob.current=null;setJob(null);setMessage(status.error||status.message||'任务未完成');return}poll.current=setTimeout(tick,350)}catch(e){if(canAcceptJob(key.job_id,epoch.current,activeJob.current,current.current)){activeJob.current=null;setJob(null);setMessage('任务结果未应用：'+e)}}};void tick()}catch(e){setMessage(String(e))}finally{setBusy('')}}
  async function prepareLeave(){
   if(busy||!await flush())return false
@@ -107,7 +127,9 @@ export default function IFWorkspace({active,volumeAvailable,onStatsSource,regist
  async function exportTo(kind:'figure'|'results'){setExportKind(kind);if((window as any).__TAURI_INTERNALS__){try{const path=await save({defaultPath:project?.name+(kind==='figure'?'-IF组图':'-IF结果'),title:'选择新的导出文件夹'});if(path)await finishExport(kind,path);else setExportKind(null)}catch(e){setMessage(String(e))}}}
  async function finishExport(kind:'figure'|'results',destination:string){if(!current.current||!destination.trim())return;setBusy('导出文件');try{const r=await callEngine<{files:string[]}&LibraryExportReceipt>(kind==='figure'?'if_export_figure':'if_export_results',{project:current.current,destination});setMessage('已导出：'+r.files.join('；'));setExportKind(null);onExported(r)}catch(e){setMessage(String(e))}finally{setBusy('')}}
  function applyTemplate(){if(!field||!current.current)return;assign(copyRecipe(current.current,field.id,selectedFields));setTemplate(false);setMessage('已应用设置；请复核各视野核标签与区域后测量。')}
- useEffect(()=>{reportView({path:project?.project_path})},[reportView,project?.project_path])
+ useEffect(()=>{reportView({path:project?.project_path,projectId:project?.id,name:project?.name,view:tab,resourceId:field?.id,
+  busy:!!busy||!!job||showImport||template||batch||!!exportKind||showVolume})},
+  [reportView,project?.project_path,project?.id,project?.name,tab,field?.id,busy,job,showImport,template,batch,exportKind,showVolume])
  return <><div className="module-pane if-pane" hidden={!active} inert={libraryBusy}>
  <div className="main-shell"><header className="app-header"><div className="if-heading">{project?<><input aria-label="IF 实验名称" value={project.name} disabled={project.read_only} onChange={e=>edit(p=>{p.name=e.target.value})}/><span>{project.read_only?'只读':project.saved_revision===project.revision?'已保存':'待保存'}</span></>:<strong>免疫荧光</strong>}</div>{project&&<div className="if-header-actions">
  <button className="btn secondary" onClick={()=>setShowVolume(true)} disabled={!!busy||!!job}><Box size={15}/>3D 查看（原型）</button>

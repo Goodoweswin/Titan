@@ -51,7 +51,8 @@ test('reference first workflow preserves missing target slot and simple three-st
  const rows=page.getByRole('table',{name:'泳道定量结果'}).locator('tbody tr')
  await expect(rows).toHaveCount(5)
  await page.getByRole('tab',{name:'统计与图表',exact:true}).click()
- await expect(page.getByRole('img',{name:'当前结果图表',exact:true})).toBeVisible()
+ // Real Python rendering can outlast the default assertion window in the full suite.
+ await expect(page.getByRole('img',{name:'当前结果图表',exact:true})).toBeVisible({timeout:15000})
  await page.getByRole('tab',{name:'定量结果',exact:true}).click()
  await expect(rows.nth(0)).toContainText('L1 / 样本 A')
  await expect(rows.nth(0)).toContainText('pAKT')

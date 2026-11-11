@@ -2,7 +2,7 @@ import {useEffect,useRef,useState} from 'react'
 import {open,save} from '@tauri-apps/plugin-dialog'
 import {Download,Undo2,Redo2} from 'lucide-react'
 import {callEngine} from '../bridge'
-import type {ModuleView} from '../App'
+import type {AnalysisLocation,ModuleView} from '../workspace-navigation'
 import type {ProjectLibraryModel} from '../useProjectLibrary'
 import type {AnalysisCreation} from '../LibraryCreateDialog'
 import type {CloseActions,LibraryExportReceipt,LibraryResume,Project} from '../types'
@@ -15,8 +15,16 @@ import './stats.css'
 const id=()=>crypto.randomUUID()
 const native=()=>Boolean((window as any).__TAURI_INTERNALS__)
 const fmt=(v:unknown)=>typeof v==='number'?v.toLocaleString(undefined,{maximumSignificantDigits:5}):v==null?'—':String(v)
+function locationResources(target:StatsProject,location:AnalysisLocation){
+ const table=target.datasets.find(table=>table.id===location.resourceId)
+ const figure=location.artifactId?target.figures.find(figure=>'stats:'+figure.id===location.artifactId):undefined
+ const run=location.runId?target.datasets.flatMap(table=>table.runs).find(run=>run.id===location.runId):undefined
+ if(location.artifactId&&!figure||location.runId&&!run||!figure&&!run&&!table)throw new Error('原数据表或图形已移除，请从当前列表选择。')
+ return {table,figure,run}
+}
 export interface StatsLibraryActions {
  prepareLeave:()=>Promise<boolean>
+ restore:(location:AnalysisLocation)=>Promise<boolean>
  create:(input:AnalysisCreation)=>Promise<boolean>
  demo:()=>Promise<boolean>
  importFirst:(input:AnalysisCreation & {dataset:Dataset})=>Promise<boolean>
@@ -69,6 +77,7 @@ export default function StatsWorkspace({
   }})
   registerLibrary({
    prepareLeave,
+   restore:restoreLocation,
    create:input=>change('stats_new',input,undefined,true),
    demo:()=>change('stats_demo',{},undefined,true),
    importFirst:input=>change('stats_new_from_import',input,undefined,true),
@@ -91,7 +100,7 @@ export default function StatsWorkspace({
  async function prepareLeave(){
   return !busy&&!opening.current&&await flush()
  }
- async function change(command:string,payload:object,resume?:LibraryResume,raiseError=false){
+ async function change(command:string,payload:object,resume?:LibraryResume,raiseError=false,expected?:AnalysisLocation){
   if(opening.current||busy)return false
   opening.current=true
   setBusy('打开统计项目')
@@ -100,6 +109,15 @@ export default function StatsWorkspace({
    if(!await flush())return false
    const old=ref.current
    const next=await callEngine<StatsProject>(command,payload)
+   if(expected){
+    try{
+     if(next.id!==expected.projectId)throw new Error('原统计分析身份已变化，请从左栏重新打开。')
+     locationResources(next,expected)
+    }catch(error){
+     if(next.project_path!==old?.project_path)await callEngine('stats_release',{path:next.project_path}).catch(()=>{})
+     throw error
+    }
+   }
    if(old?.project_path&&old.project_path!==next.project_path){
     await callEngine('stats_release',{path:old.project_path}).catch(()=>{})
    }
@@ -114,7 +132,7 @@ export default function StatsWorkspace({
    setModal('')
    void library.refresh()
    return true
-  }catch(e){setMessage(String(e));if(raiseError)throw e;return false}
+  }catch(e){if(!expected)setMessage(String(e));if(raiseError)throw e;return false}
   finally{opening.current=false;setBusy('')}
  }
  function edit(fn:(p:StatsProject)=>void){const before=ref.current;if(!before||busy)return;const next=structuredClone(before);fn(next);next.revision++;setPast(v=>[...v.slice(-29),before]);setFuture([]);assign(next)}
@@ -170,6 +188,19 @@ export default function StatsWorkspace({
   const table=p?.datasets.find(item=>value==='table:'+item.id)
   if(table){setDatasetId(table.id);setFrozen(null);setView('data')}
  }
+ async function restoreLocation(location:AnalysisLocation){
+  if(!['data','analysis','graph'].includes(location.view))return false
+  if(ref.current?.id!==location.projectId||ref.current?.project_path!==location.path){
+   if(!location.path||!await prepareLeave()||!await change('stats_open',{path:location.path,entry_id:location.entryId},undefined,true,location))return false
+  }
+  const target=ref.current
+  if(!target)return false
+  const {table,figure,run}=locationResources(target,location)
+  if(table)setDatasetId(table.id)
+  setFrozen(figure??(run?{id:run.id,name:'历史分析 '+run.created_at,dataset:run.dataset,run,style:run.dataset.style}:null))
+  setView(location.view as 'data'|'analysis'|'graph')
+  return true
+ }
  async function inspectImport(file?:string,worksheet?:string){await task('解析数据',async()=>{const result=await callEngine<{dataset:Dataset;sheets:string[]}>('stats_import',file?{path:file,sheet:worksheet||undefined,format:importFormat}:{text,format:importFormat});setImported(result);if(file)setLocation(file)})}
  async function chooseImport(){if(!native())return;try{const chosen=await open({filters:[{name:'表格',extensions:['xlsx','csv','tsv','txt']}]});if(typeof chosen==='string')await inspectImport(chosen)}catch(e){setMessage(String(e))}}
  async function chooseFolder(kind:'open'|'export'|'copy'){setLocation('');setModal(kind);if(native()){try{const chosen=kind==='open'?await open({directory:true,title:'打开 .titanstats 项目'}):await save({title:kind==='copy'?'另存统计项目':'导出到新文件夹',defaultPath:kind==='copy'?p?.name+'.titanstats':p?.name+'-统计结果'});if(typeof chosen==='string'){setLocation(chosen);await finishPath(kind,chosen)}else setModal('')}catch(e){setMessage(String(e))}}}
@@ -200,9 +231,10 @@ export default function StatsWorkspace({
  function copyTable(){if(!display)return;const clone=structuredClone(display);clone.id=id();clone.name+=' · 副本';clone.source=null;clone.confirmed=false;clone.runs=[];void addTable(clone)}
  function paste(event:React.ClipboardEvent<HTMLInputElement>,ri:number,gi:number){const raw=event.clipboardData.getData('text');if(!raw.includes('\t')&&!raw.includes('\n'))return;event.preventDefault();const cells=raw.trimEnd().split(/\r?\n/).map(r=>r.split('\t'));if(cells.some(r=>r.length+gi>(d?.groups.length??0))){setMessage('粘贴列数超过现有分组，请先添加组。');return}editD(t=>{while(t.rows.length<ri+cells.length)t.rows.push({id:id(),label:String(t.rows.length+1),values:{},excluded:{}});cells.forEach((row,i)=>row.forEach((v,j)=>{t.rows[ri+i].values[t.groups[gi+j].id]=v}))})}
  const disabled=!!busy||!!frozen
- useEffect(()=>{reportView({path:p?.project_path,
-  artifactId:view==='graph'&&frozenDocument?'stats:'+frozenDocument.id:undefined})},
-  [reportView,p?.project_path,view,frozenDocument?.id])
+ useEffect(()=>{reportView({path:p?.project_path,projectId:p?.id,name:p?.name,view,resourceId:display?.id,
+  artifactId:frozenDocument?'stats:'+frozenDocument.id:undefined,runId:!frozenDocument?frozen?.run?.id:undefined,
+  busy:!!busy||!!modal||!!sourceDialog})},
+  [reportView,p?.project_path,p?.id,p?.name,view,display?.id,frozenDocument?.id,frozen?.run?.id,busy,modal,sourceDialog])
  return <><div className="module-pane stats-pane" hidden={!active} inert={libraryBusy}>
  <div className="main-shell"><header className="app-header stats-header">{p?<><input aria-label="统计项目名称" value={p.name} disabled={!!busy} onChange={e=>edit(p=>{p.name=e.target.value})}/><span>{p.revision===p.saved_revision?'已保存':'待保存'}</span><div className="stats-toolbar"><button className="icon-btn" aria-label="撤销统计修改" disabled={!past.length||!!busy} onClick={()=>undo()}><Undo2 size={16}/></button><button className="icon-btn" aria-label="重做统计修改" disabled={!future.length||!!busy} onClick={()=>undo(true)}><Redo2 size={16}/></button><button className="btn secondary" disabled={!!busy} onClick={()=>flush()}>保存</button><button className="btn secondary" disabled={!!busy} onClick={()=>chooseFolder('copy')}>另存副本</button><button className="btn primary" disabled={!!busy} onClick={()=>chooseFolder('export')}><Download size={15}/>导出</button></div></>:<strong>统计与绘图</strong>}</header>
  {membership}{message&&<div className="notice" role="status">{message}<button onClick={()=>setMessage('')}>×</button></div>}{busy&&<div className="busy" role="status">{busy}…</div>}

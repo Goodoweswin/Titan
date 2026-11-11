@@ -66,7 +66,8 @@ test('compact title and plain navigation retain accessible experiment operations
  await expect(page.locator('.app-header').getByLabel('实验名称')).toBeVisible()
  await expect(page.locator('.project-heading')).toHaveCount(0)
  expect(await nav.innerText()).not.toMatch(/0[1-4]/)
- expect((await nav.boundingBox())!.y+(await nav.boundingBox())!.height).toBeLessThan(155)
+ const browsing=(await page.getByRole('navigation',{name:'浏览导航',exact:true}).boundingBox())!
+ expect((await nav.boundingBox())!.y+(await nav.boundingBox())!.height-browsing.height).toBeLessThan(155)
  await expect(page.getByRole('button',{name:'保存实验',exact:true})).toBeVisible()
  await expect(page.getByRole('button',{name:'另存副本',exact:true})).toBeVisible()
  await expect(page.getByRole('button',{name:'导入图像',exact:true})).toBeVisible()

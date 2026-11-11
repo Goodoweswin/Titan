@@ -1,0 +1,15 @@
+.titan-workspace { --workspace-bar-height:40px; padding-top:var(--workspace-bar-height); }
+.workspace-browsing {
+ position:fixed; inset:0 0 auto; z-index:15; height:var(--workspace-bar-height);
+ display:flex; align-items:center; gap:4px; padding:0 12px;
+ color:var(--text-secondary); background:var(--surface); border-bottom:1px solid var(--border);
+}
+.workspace-browsing .icon-btn { width:30px; height:30px; padding:6px; }
+.browsing-divider { width:1px; height:16px; background:var(--border); margin:0 4px; }
+.browsing-title { min-width:0; flex:1; margin:0 12px; font-size:var(--text-sm); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.titan-workspace>.sidebar { top:var(--workspace-bar-height); }
+.titan-workspace.sidebar-collapsed { --sidebar-width:0px; }
+.titan-workspace.sidebar-collapsed>.sidebar { display:none; }
+.titan-workspace.inspector-collapsed :is(.workspace-grid,.lane-workspace,.wb-columns,.if-analysis-layout,.if-figure-layout,.stats-graph-layout,.figure-workbench.with-inspector) { grid-template-columns:minmax(0,1fr); }
+.titan-workspace.inspector-collapsed :is(.workspace-grid>.inspector,.lane-workspace>.lane-task,.wb-columns>.wb-inspector,.if-analysis-layout>.if-settings,.if-figure-layout>.if-settings,.stats-graph-layout>.stats-inspector,.figure-workbench.with-inspector>.figure-inspector) { display:none; }
+@media(max-width:800px){.workspace-browsing{padding-inline:8px}.browsing-title{margin-inline:6px}.titan-workspace>.sidebar{top:auto}}
