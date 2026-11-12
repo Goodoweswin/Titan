@@ -107,6 +107,6 @@ GREEN / final validation:
 - `uvx ruff check accounts/admin.py accounts/tests/test_admin_concurrency.py accounts/tests/test_operations.py --select E4,E7,E9,F,I --ignore F403`: all checks passed after formatting/import cleanup.
 - `python services/accounts/manage.py check` with the private local environment loaded: no issues.
 - `git diff --check`: clean; no dependency or schema changes.
-- Sent Gunicorn HUP using `/tmp/titan-accounts-local/gunicorn.pid` to replace its worker with the updated service; readiness and discovery HTTP smoke both returned 200. PostgreSQL and Gunicorn remain available for the parent's integration work.
+- Local reload caveat: sending Gunicorn HUP caused repeated worker SIGKILL/restart messages and the pending readiness request failed (curl timeout/status 000). The generic log suggested possible OOM but no cause was established. Stopped that master immediately with TERM and cold-started the same Gunicorn command against the existing private environment; readiness and discovery then both returned HTTP 200. The running service now uses this fix. Use TERM + cold start for subsequent local updates; do not treat HUP reload as validated. PostgreSQL was unaffected and both services remain available for integration.
 
 No remote actions, actual mail, new secrets, schema changes or unrelated workspace edits. The previous dependency audit, deployment check and scope limitations remain the earlier recorded evidence and were not represented as newly repeated checks.
