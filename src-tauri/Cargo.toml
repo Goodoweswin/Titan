@@ -28,3 +28,7 @@ subtle = "2.6"
 url = "2"
 zeroize = { version = "1", features = ["derive"] }
 open = "5.3"
+
+[dev-dependencies]
+rsa = { version = "0.9", features = ["pem"] }
+rand = "0.8"

@@ -83,7 +83,7 @@ impl Auth {
         let (tx, rx) = watch::channel(false);
         inner.pending = Some(tx);
         if self.store.block().is_err() {
-            inner.snapshot = Snapshot::new("unavailable").error("credential_cleanup_failed");
+            inner.snapshot = Snapshot::new("unavailable").error("credential_invalidation_failed");
         }
         (inner.generation, rx)
     }
@@ -104,7 +104,10 @@ impl Auth {
         inner.initialized = true;
         inner.snapshot = Snapshot::new("guest").error("login_cancelled");
         if self.store.block().is_err() {
-            inner.snapshot = inner.snapshot.clone().error("credential_cleanup_failed");
+            inner.snapshot = inner
+                .snapshot
+                .clone()
+                .error("credential_invalidation_failed");
         }
         inner.snapshot.clone()
     }
@@ -260,7 +263,14 @@ impl Auth {
         }
         let mut inner = self.inner.lock().unwrap();
         if generation == inner.generation && (!blocked || !deleted) {
-            inner.snapshot = inner.snapshot.clone().error("credential_cleanup_failed");
+            // Either durable removal is sufficient to prevent restart restore.
+            // When both fail, preserve the local guest state without claiming that guarantee.
+            let invalidated = blocked || deleted;
+            inner.snapshot = inner.snapshot.clone().error(if invalidated {
+                "credential_cleanup_failed"
+            } else {
+                "credential_invalidation_failed"
+            });
         }
         inner.snapshot.clone()
     }
@@ -392,10 +402,13 @@ impl Auth {
         }
         // Discovery can fail without consuming a rotating refresh credential. Once a
         // POST can be sent, restore is disabled until the replacement is committed.
-        if let Err(code) = network.discover().await {
-            self.fail(generation, code, "offline");
-            return Err(code);
-        }
+        let metadata = match network.discover().await {
+            Ok(metadata) => metadata,
+            Err(code) => {
+                self.fail(generation, code, "offline");
+                return Err(code);
+            }
+        };
         {
             let inner = self.inner.lock().unwrap();
             if inner.generation != generation {
@@ -407,7 +420,7 @@ impl Auth {
                 return Err("credential_storage_failed");
             }
         }
-        let credentials = match network.refresh(&previous).await {
+        let credentials = match network.refresh(&previous, metadata).await {
             Ok(credentials) => credentials,
             Err(code) => {
                 self.fail(generation, code, "reauth_required");
@@ -609,6 +622,7 @@ mod tests {
         saved: Mutex<Option<String>>,
         fail_write: AtomicBool,
         fail_delete: AtomicBool,
+        fail_block: AtomicBool,
     }
     impl CredentialStore for Store {
         fn load(&self) -> Result<Option<StoredCredentials>, &'static str> {
@@ -634,6 +648,9 @@ mod tests {
             Ok(())
         }
         fn block(&self) -> Result<(), &'static str> {
+            if self.fail_block.load(Ordering::SeqCst) {
+                return Err("credential_cleanup_failed");
+            }
             self.active.store(false, Ordering::SeqCst);
             Ok(())
         }
@@ -723,6 +740,30 @@ mod tests {
         let snapshot = auth.logout().await;
         assert_eq!(snapshot.status, "guest");
         assert_eq!(snapshot.error_code, Some("credential_cleanup_failed"));
+        assert!(store.load().unwrap().is_none());
+    }
+    #[tokio::test]
+    async fn dual_cleanup_failure_reports_possible_restart_restore() {
+        let store = Arc::new(Store::default());
+        let auth = Auth::with_store(store.clone());
+        let generation = auth.begin();
+        auth.commit(generation, credentials(), profile(), true)
+            .await;
+        store.fail_block.store(true, Ordering::SeqCst);
+        store.fail_delete.store(true, Ordering::SeqCst);
+        let snapshot = auth.logout().await;
+        assert_eq!(snapshot.status, "guest");
+        assert_eq!(snapshot.error_code, Some("credential_invalidation_failed"));
+        assert!(snapshot.message.unwrap().contains("可能"));
+        assert!(!snapshot.message.unwrap().contains("自动恢复已禁用"));
+        assert!(store.load().unwrap().is_some());
+        assert!(auth.inner.lock().unwrap().credentials.is_none());
+        // A retry that removes the OS credential also makes restore impossible,
+        // even when the marker filesystem remains unavailable.
+        store.fail_delete.store(false, Ordering::SeqCst);
+        let retry = auth.logout().await;
+        assert_eq!(retry.error_code, Some("credential_cleanup_failed"));
+        assert!(!retry.message.unwrap().contains("可能"));
         assert!(store.load().unwrap().is_none());
     }
     #[tokio::test]
@@ -1055,12 +1096,20 @@ mod transport_tests {
     use tokio::io::{AsyncReadExt, AsyncWriteExt};
     async fn issuer(
         drop_refresh: bool,
-    ) -> (Network, Arc<AtomicUsize>, tokio::task::JoinHandle<()>) {
+        fail_second_discovery: bool,
+    ) -> (
+        Network,
+        Arc<AtomicUsize>,
+        Arc<AtomicUsize>,
+        tokio::task::JoinHandle<()>,
+    ) {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let base = format!("http://{}", listener.local_addr().unwrap());
         let config = Config::parse(&base, true).unwrap();
         let count = Arc::new(AtomicUsize::new(0));
         let calls = count.clone();
+        let discovery_count = Arc::new(AtomicUsize::new(0));
+        let discovery_calls = discovery_count.clone();
         let task = tokio::spawn(async move {
             loop {
                 let Ok((mut socket, _)) = listener.accept().await else {
@@ -1068,6 +1117,7 @@ mod transport_tests {
                 };
                 let base = base.clone();
                 let calls = calls.clone();
+                let discovery_calls = discovery_calls.clone();
                 tokio::spawn(async move {
                     let mut raw = Vec::new();
                     loop {
@@ -1097,6 +1147,12 @@ mod transport_tests {
                     }
                     let raw = String::from_utf8(raw).unwrap();
                     let path = raw.split(' ').nth(1).unwrap_or("");
+                    if path == "/.well-known/openid-configuration"
+                        && discovery_calls.fetch_add(1, Ordering::SeqCst) > 0
+                        && fail_second_discovery
+                    {
+                        return;
+                    }
                     let body=match path {
     "/.well-known/openid-configuration"=>serde_json::json!({"issuer":base,"authorization_endpoint":format!("{base}/o/authorize/"),"token_endpoint":format!("{base}/o/token/"),"jwks_uri":format!("{base}/jwks"),"response_types_supported":["code"],"subject_types_supported":["public"],"id_token_signing_alg_values_supported":["RS256"],"code_challenge_methods_supported":["S256"]}).to_string(),
     "/jwks"=>"{\"keys\":[]}".into(),
@@ -1108,11 +1164,11 @@ mod transport_tests {
                 });
             }
         });
-        (Network::new(config).unwrap(), count, task)
+        (Network::new(config).unwrap(), count, discovery_count, task)
     }
     #[tokio::test]
     async fn concurrent_refresh_posts_once_and_keeps_rotated_descendant() {
-        let (network, count, server) = issuer(false).await;
+        let (network, count, _, server) = issuer(false, false).await;
         let store = Arc::new(Store::default());
         let auth = Auth::create(store.clone(), Some(network), "guest");
         let generation = auth.begin();
@@ -1139,7 +1195,7 @@ mod transport_tests {
     }
     #[tokio::test]
     async fn lost_refresh_response_is_never_retried_or_restored() {
-        let (network, count, server) = issuer(true).await;
+        let (network, count, _, server) = issuer(true, false).await;
         let store = Arc::new(Store::default());
         let auth = Auth::create(store.clone(), Some(network), "guest");
         let generation = auth.begin();
@@ -1158,6 +1214,65 @@ mod transport_tests {
         assert!(store.load().unwrap().is_none());
         assert_eq!(auth.status().await.status, "reauth_required");
         assert_eq!(count.load(Ordering::SeqCst), 1);
+        server.abort();
+    }
+    #[tokio::test]
+    async fn refresh_uses_successful_discovery_once_without_second_preflight() {
+        let (network, posts, discoveries, server) = issuer(false, true).await;
+        let store = Arc::new(Store::default());
+        let auth = Auth::create(store.clone(), Some(network), "guest");
+        let generation = auth.begin();
+        auth.commit(generation, credentials(), profile(), true)
+            .await;
+        auth.inner
+            .lock()
+            .unwrap()
+            .credentials
+            .as_mut()
+            .unwrap()
+            .access_expires = 0;
+        let snapshot = auth.status().await;
+        assert_eq!(snapshot.status, "authenticated");
+        assert_eq!(discoveries.load(Ordering::SeqCst), 1);
+        assert_eq!(posts.load(Ordering::SeqCst), 1);
+        assert_eq!(store.load().unwrap().unwrap().refresh, "new-refresh");
+        server.abort();
+    }
+    #[tokio::test]
+    async fn pre_consumption_discovery_failure_preserves_offline_refresh_credentials() {
+        let (network, posts, discoveries, server) = issuer(false, true).await;
+        network.discover().await.unwrap();
+        let store = Arc::new(Store::default());
+        let auth = Auth::create(store.clone(), Some(network), "guest");
+        let generation = auth.begin();
+        auth.commit(generation, credentials(), profile(), true)
+            .await;
+        auth.inner
+            .lock()
+            .unwrap()
+            .credentials
+            .as_mut()
+            .unwrap()
+            .access_expires = 0;
+        let snapshot = auth.status().await;
+        assert_eq!(snapshot.status, "offline");
+        assert_eq!(snapshot.error_code, Some("network_unavailable"));
+        assert!(snapshot.profile.is_some());
+        assert!(snapshot.persistent);
+        assert_eq!(
+            auth.inner
+                .lock()
+                .unwrap()
+                .credentials
+                .as_ref()
+                .unwrap()
+                .refresh
+                .as_str(),
+            "secret-refresh"
+        );
+        assert_eq!(store.load().unwrap().unwrap().refresh, "secret-refresh");
+        assert_eq!(discoveries.load(Ordering::SeqCst), 2);
+        assert_eq!(posts.load(Ordering::SeqCst), 0);
         server.abort();
     }
 }

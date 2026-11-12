@@ -57,6 +57,43 @@ mod tests {
         assert!(validate_response(&response(), None).is_ok());
     }
     #[test]
+    fn signed_id_token_with_conflicting_authorized_party_is_rejected() {
+        use rsa::pkcs1::EncodeRsaPrivateKey;
+        let pem = rsa::RsaPrivateKey::new(&mut rand::rngs::OsRng, 2048)
+            .unwrap()
+            .to_pkcs1_pem(rsa::pkcs8::LineEnding::LF)
+            .unwrap();
+        let signing_key = CoreRsaPrivateSigningKey::from_pem(&pem, None).unwrap();
+        let metadata:NativeMetadata=serde_json::from_value(serde_json::json!({"issuer":"https://accounts.example.org","authorization_endpoint":"https://accounts.example.org/authorize","token_endpoint":"https://accounts.example.org/token","jwks_uri":"https://accounts.example.org/jwks","response_types_supported":["code"],"subject_types_supported":["public"],"id_token_signing_alg_values_supported":["RS256"],"code_challenge_methods_supported":["S256"]})).unwrap();
+        let client = NativeClient::from_provider_metadata(
+            metadata.set_jwks(CoreJsonWebKeySet::new(vec![
+                signing_key.as_verification_key()
+            ])),
+            ClientId::new("titan-desktop".into()),
+            None,
+        );
+        for (party, accepted) in [("titan-desktop", true), ("other-client", false)] {
+            let claims:CoreIdTokenClaims=serde_json::from_value(serde_json::json!({"iss":"https://accounts.example.org","aud":"titan-desktop","sub":"u1","iat":now(),"exp":now()+600,"nonce":"nonce","azp":party})).unwrap();
+            let id = CoreIdToken::new(
+                claims,
+                &signing_key,
+                CoreJwsSigningAlgorithm::RsaSsaPkcs1V15Sha256,
+                Some(response().access_token()),
+                None,
+            )
+            .unwrap();
+            let mut value = serde_json::to_value(response()).unwrap();
+            value["id_token"] = serde_json::json!(id.to_string());
+            let response: NativeTokenResponse = serde_json::from_value(value).unwrap();
+            assert_eq!(
+                Network::verify_id(&client, &response, &Nonce::new("nonce".into()), None, true)
+                    .is_ok(),
+                accepted,
+                "authorized party {party}"
+            );
+        }
+    }
+    #[test]
     fn refuses_missing_refresh_and_absolute_expiry_reset() {
         let mut value = serde_json::to_value(response()).unwrap();
         value["refresh_token"] = serde_json::json!("");
@@ -321,8 +358,13 @@ impl Network {
         let subject = Self::verify_id(&client, &response, &login.nonce, None, true)?;
         Self::credentials(response, subject, login.nonce.secret().clone(), None)
     }
-    pub async fn refresh(&self, previous: &Credentials) -> Result<Credentials, &'static str> {
-        let metadata = self.discover().await?;
+    pub async fn refresh(
+        &self,
+        previous: &Credentials,
+        metadata: NativeMetadata,
+    ) -> Result<Credentials, &'static str> {
+        // Discovery is completed before the caller disables restore. From this
+        // boundary onward the rotating credential may be consumed by a token POST.
         let client = NativeClient::from_provider_metadata(
             metadata,
             ClientId::new("titan-desktop".into()),
@@ -405,7 +447,12 @@ impl Network {
                 }
             })
             .map_err(|_| "invalid_id_token")?;
-        if claims.expiration() <= claims.issue_time()
+        // openidconnect 4.1 deliberately leaves azp verification to its caller.
+        if claims
+            .authorized_party()
+            .is_some_and(|party| party.as_str() != "titan-desktop")
+            || (claims.audiences().len() > 1 && claims.authorized_party().is_none())
+            || claims.expiration() <= claims.issue_time()
             || expected.is_some_and(|subject| claims.subject().as_str() != subject)
         {
             return Err("invalid_id_token");

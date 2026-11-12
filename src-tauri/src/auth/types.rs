@@ -44,7 +44,8 @@ impl Snapshot {
         self.error_code = Some(code);
         self.message = Some(match code {
             "credential_storage_failed" => "系统凭据存储不可用，请重试或选择仅本次登录。",
-            "credential_cleanup_failed" => "已退出本机账户，但系统凭据清理失败；自动恢复已禁用。",
+            "credential_cleanup_failed" => "已退出本机账户，凭据清理未全部完成；已阻止自动恢复。",
+            "credential_invalidation_failed" => "已退出当前运行的账户，但无法清除登录凭据或禁用自动恢复；重启后可能再次登录，请重试退出。",
             "recent_auth_required" => "请重新登录后再退出所有设备。",
             "refresh_ambiguous" => "登录凭据更新结果不确定，请重新登录。",
             "login_cancelled" => "已取消登录。",

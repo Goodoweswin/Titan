@@ -136,7 +136,9 @@ pub async fn receive(
             };
             let result=tokio::select!{biased;_ = cancel.changed()=>return Err("login_cancelled"),_=&mut deadline=>return Err("login_timeout"),r=tokio::time::timeout(Duration::from_secs(2),read)=>r.ok().flatten()};
             let status=if result.is_some(){"200 OK"}else{"400 Bad Request"};
-            let response=format!("HTTP/1.1 {status}\r\nContent-Type: text/plain; charset=utf-8\r\nCache-Control: no-store\r\nReferrer-Policy: no-referrer\r\nContent-Security-Policy: default-src 'none'\r\nConnection: close\r\nContent-Length: 34\r\n\r\nReturn to Titan to continue login.");
+            let body = "Return to Titan to continue login.";
+            let length = body.len();
+            let response=format!("HTTP/1.1 {status}\r\nContent-Type: text/plain; charset=utf-8\r\nCache-Control: no-store\r\nReferrer-Policy: no-referrer\r\nContent-Security-Policy: default-src 'none'\r\nConnection: close\r\nContent-Length: {length}\r\n\r\n{body}");
             let _=tokio::time::timeout(Duration::from_millis(100),stream.write_all(response.as_bytes())).await;
             match result {Some(Reply::Code(code))=>return Ok(code),Some(Reply::Denied)=>return Err("login_denied"),None=>{}}
           }
@@ -252,6 +254,15 @@ mod socket_tests {
             socket.write_all(format!("GET /oauth/callback?code=abc&state={state} HTTP/1.1\r\nHost: {addr}\r\n\r\n").as_bytes()).await.unwrap();
             let mut response = Vec::new();
             socket.read_to_end(&mut response).await.unwrap();
+            let text = std::str::from_utf8(&response).unwrap();
+            let (head, body) = text.split_once("\r\n\r\n").unwrap();
+            let length = head
+                .lines()
+                .find_map(|line| line.strip_prefix("Content-Length: "))
+                .unwrap()
+                .parse::<usize>()
+                .unwrap();
+            assert_eq!(body.len(), length);
             assert!(std::str::from_utf8(&response)
                 .unwrap()
                 .starts_with(if state == "wrong" {
