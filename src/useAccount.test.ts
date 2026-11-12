@@ -51,3 +51,34 @@ it('leaves pending login after an IPC failure so a guest can retry',async()=>{
  vi.mocked(invoke).mockImplementation(async command=>{if(command==='auth_login')throw new Error('private IPC detail');return guest as any})
  await mount();await act(async()=>state.login());expect(state.busy).toBeNull();expect(state.snapshot.status).toBe('unavailable');expect(state.snapshot.errorCode).toBe('service_unavailable');expect(JSON.stringify(state)).not.toContain('private IPC detail')
 })
+
+it.each([
+ ['authenticated','offline','network_unavailable'],
+ ['offline','authenticated',null],
+ ['authenticated','unavailable','credential_storage_failed'],
+ ['authenticated','reauth_required','refresh_ambiguous'],
+] as const)('reconciles session outcome from %s to %s',async(initial,final,code)=>{
+ let native:AccountSnapshot={...alice,status:initial}
+ vi.mocked(invoke).mockImplementation(async command=>{
+  if(command==='auth_status')return native as any
+  if(command==='auth_sessions'){
+   native={...alice,status:final,errorCode:code,profile:final==='unavailable'||final==='reauth_required'?null:alice.profile,persistent:final==='authenticated'||final==='offline'}
+   if(code)throw code
+   return [] as any
+  }
+  return guest as any
+ })
+ await mount();await act(async()=>state.loadSessions())
+ expect(state.snapshot.status).toBe(final);expect(state.snapshot.errorCode).toBe(code)
+ expect(state.snapshot.profile).toEqual(native.profile)
+ expect(state.sessionsError).toBe(code)
+})
+it.each(['logout','switch'] as const)('fences delayed session snapshot after %s',async(action)=>{
+ const delayed=pending<AccountSnapshot>();let statusCalls=0
+ const bob={...alice,profile:{...alice.profile!,id:'b',name:'Bob',sessionId:'session-b'}}
+ vi.mocked(invoke).mockImplementation(async command=>command==='auth_status'?(++statusCalls===1?alice:delayed.promise):command==='auth_sessions'?[]:command==='auth_login'?bob:guest as any)
+ await mount();await act(async()=>{void state.loadSessions()})
+ await act(async()=>action==='logout'?state.logout():state.login(false,true))
+ await act(async()=>delayed.resolve({...alice,status:'offline'}))
+ expect(state.snapshot).toEqual(action==='logout'?guest:bob);expect(state.sessions).toEqual([])
+})

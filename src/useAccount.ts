@@ -53,14 +53,21 @@ export default function useAccount(){
   const epoch=generation.current,request=++sessionRequest.current,identity=current.current.profile?.sessionId
   if(!identity)return
   setSessionsError(null)
+  const ownsRequest=()=>mounted.current&&epoch===generation.current&&request===sessionRequest.current&&current.current.profile?.sessionId===identity
+  let rows:AccountSession[]=[],failure:string|null=null
+  try{rows=await accountBridge.sessions()}catch(error){failure=errorCode(error)}
+  if(!ownsRequest())return
+  // Listing devices can refresh, recover, or invalidate native credentials. Read the
+  // sanitized state on either outcome, with fences around this second IPC await.
   try{
-   const rows=await accountBridge.sessions()
-   if(mounted.current&&epoch===generation.current&&request===sessionRequest.current&&current.current.profile?.sessionId===identity)setSessions(rows)
+   const next=await accountBridge.status()
+   if(!ownsRequest())return
+   if(next.profile&&next.profile.sessionId!==identity)return
+   apply(next)
+   setSessions(next.profile?rows:[])
+   setSessionsError(failure)
   }catch(error){
-   if(mounted.current&&epoch===generation.current&&request===sessionRequest.current){
-    const code=errorCode(error);setSessions([]);setSessionsError(code)
-    if(code==='unauthorized'||code==='refresh_ambiguous')apply({...current.current,status:'reauth_required',profile:null,errorCode:code,message:accountErrorText(code)})
-   }
+   if(ownsRequest()){setSessions([]);setSessionsError(errorCode(error))}
   }
  },[apply])
  return {snapshot,busy,sessions,sessionsError,notice,refresh,

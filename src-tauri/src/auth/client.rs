@@ -28,22 +28,26 @@ pub struct Auth {
     network: Option<Network>,
 }
 impl Auth {
-    pub fn new(root: PathBuf) -> Self {
-        match Config::environment() {
+    pub fn new(root: PathBuf, application: &str) -> Result<Self, &'static str> {
+        Ok(match Config::environment() {
             Ok(Some(config)) => {
-                let store = Arc::new(OsStore::new(root, &config.issuer_string()));
+                let store = Arc::new(OsStore::new(root, application, &config.issuer_string())?);
                 match Network::new(config) {
                     Ok(network) => Self::create(store, Some(network), "guest"),
                     Err(_) => Self::create(store, None, "unavailable"),
                 }
             }
             Ok(None) => Self::create(
-                Arc::new(OsStore::new(root, "unconfigured")),
+                Arc::new(OsStore::new(root, application, "unconfigured")?),
                 None,
                 "unconfigured",
             ),
-            Err(_) => Self::create(Arc::new(OsStore::new(root, "invalid")), None, "unavailable"),
-        }
+            Err(_) => Self::create(
+                Arc::new(OsStore::new(root, application, "invalid")?),
+                None,
+                "unavailable",
+            ),
+        })
     }
     fn create(
         store: Arc<dyn CredentialStore>,
@@ -1060,14 +1064,19 @@ mod live_tests {
         network.revoke(&valid).await;
         let root =
             std::env::temp_dir().join(format!("titan-native-keychain-{}", uuid::Uuid::new_v4()));
-        let store = Arc::new(OsStore::new(
-            root.clone(),
-            &format!("isolated-native-test:{}", uuid::Uuid::new_v4()),
-        ));
+        let isolated_issuer = format!("isolated-native-test:{}", uuid::Uuid::new_v4());
+        let store = Arc::new(
+            OsStore::new(root.clone(), "com.titan.native-test", &isolated_issuer).unwrap(),
+        );
         let persistent = Auth::create(store.clone(), Some(network.clone()), "guest");
         let snapshot = login(&persistent, &fixture, true, true).await;
         assert!(snapshot.persistent);
         assert!(store.load().unwrap().is_some());
+        drop(persistent);
+        drop(store);
+        let store = Arc::new(
+            OsStore::new(root.clone(), "com.titan.native-test", &isolated_issuer).unwrap(),
+        );
         let restored = Auth::create(store.clone(), Some(network), "guest");
         let snapshot = restored.status().await;
         assert_eq!(
@@ -1084,6 +1093,8 @@ mod live_tests {
         );
         assert!(store.load().unwrap().is_none());
         let _ = store.delete();
+        drop(restored);
+        drop(store);
         std::fs::remove_dir_all(root).unwrap();
     }
 }
@@ -1165,6 +1176,27 @@ mod transport_tests {
             }
         });
         (Network::new(config).unwrap(), count, discovery_count, task)
+    }
+    #[tokio::test]
+    async fn authorization_request_carries_native_device_metadata() {
+        let (network, _, _, server) = issuer(false, false).await;
+        let login = network.prepare(47991, false).await.unwrap();
+        let query: std::collections::HashMap<_, _> = login.url.query_pairs().into_owned().collect();
+        let (platform, label) = if cfg!(target_os = "macos") {
+            ("macos", "Titan on macOS")
+        } else if cfg!(target_os = "windows") {
+            ("windows", "Titan on Windows")
+        } else if cfg!(target_os = "linux") {
+            ("linux", "Titan on Linux")
+        } else {
+            ("desktop", "Titan Desktop")
+        };
+        assert_eq!(
+            query.get("device_platform").map(String::as_str),
+            Some(platform)
+        );
+        assert_eq!(query.get("device_label").map(String::as_str), Some(label));
+        server.abort();
     }
     #[tokio::test]
     async fn concurrent_refresh_posts_once_and_keeps_rotated_descendant() {

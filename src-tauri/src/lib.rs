@@ -1,6 +1,7 @@
 mod auth;
 use serde_json::{json,Value};
 use tauri::Manager;
+use tauri_plugin_dialog::DialogExt;
 mod engine_worker;
 mod if_volume;
 mod library_files;
@@ -24,7 +25,26 @@ async fn engine(mut request:Value,session:tauri::State<'_,Session>,worker:tauri:
 pub fn run(){
     tauri::Builder::default()
       .setup(|app| {
-        app.manage(auth::Auth::new(app.path().app_local_data_dir()?.join("accounts")));
+        // Acquire the lifetime account owner before initializing either account or
+        // scientific state. A duplicate process cannot restore/rotate/delete credentials.
+        let auth = match auth::Auth::new(app.path().app_local_data_dir()?.join("accounts"), &app.config().identifier) {
+          Ok(auth) => auth,
+          Err(code) => {
+            for window in app.webview_windows().values() { let _ = window.hide(); }
+            let message = if code == "account_owner_busy" {
+              "此账户环境的 Titan 已在运行。请使用已打开的窗口，或退出该实例后再启动。"
+            } else {
+              "无法取得 Titan 账户存储的独占访问权限，启动已停止。请检查应用数据目录是否可访问后重试。"
+            };
+            let handle = app.handle().clone();
+            // Dialog callbacks keep the main event loop responsive. No account or
+            // scientific state exists in this refused process.
+            app.dialog().message(message).title("Titan 无法启动")
+              .kind(tauri_plugin_dialog::MessageDialogKind::Error).show(move |_| handle.exit(1));
+            return Ok(());
+          }
+        };
+        app.manage(auth);
         app.manage(Session{token:uuid::Uuid::new_v4().to_string(),library_root:app.path().app_local_data_dir()?.join("library")});
         let (program,args)=if cfg!(debug_assertions){
           let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
@@ -36,7 +56,7 @@ pub fn run(){
       })
       .plugin(tauri_plugin_dialog::init()).invoke_handler(tauri::generate_handler![auth::auth_status, auth::auth_login, auth::auth_cancel, auth::auth_logout, auth::auth_update_profile, auth::auth_sessions, auth::auth_revoke_session, auth::auth_revoke_all, engine, if_volume::if_volume_read, library_files::library_open_file])
       .build(tauri::generate_context!()).expect("Titan WB启动失败")
-      .run(|app,event|{if matches!(event,tauri::RunEvent::Exit){tauri::async_runtime::block_on(app.state::<EngineWorker>().shutdown());}});
+      .run(|app,event|{if matches!(event,tauri::RunEvent::Exit){if let Some(worker) = app.try_state::<EngineWorker>() { tauri::async_runtime::block_on(worker.shutdown()); }}});
 }
 
 #[cfg(test)]

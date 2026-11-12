@@ -71,6 +71,8 @@ class GrantContext(models.Model):
     auth_time = models.DateTimeField()
     epoch = models.CharField(max_length=128)
     credential = models.CharField(max_length=128)
+    label = models.CharField(max_length=80, default="Titan Desktop")
+    platform = models.CharField(max_length=32, default="desktop")
     created_at = models.DateTimeField(auto_now_add=True)
 
 

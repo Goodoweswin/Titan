@@ -1,4 +1,5 @@
 import json
+import unicodedata
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 from urllib.parse import urlsplit
@@ -60,6 +61,8 @@ class Validator(OAuth2Validator):
             auth_time=request.user._titan_auth_time,
             epoch=settings.SESSION_EPOCH,
             credential=request.user.get_session_auth_hash(),
+            label=request.user._titan_device_label,
+            platform=request.user._titan_device_platform,
         )
 
     def validate_code(self, client_id, code, client, request, *args, **kwargs):
@@ -99,6 +102,8 @@ class Validator(OAuth2Validator):
                 expires_at=timezone.now() + timedelta(days=30),
                 epoch=context.epoch,
                 credential=context.credential,
+                label=context.label,
+                platform=context.platform,
             )
         else:
             TokenBinding.objects.filter(
@@ -167,6 +172,17 @@ class NativeAuthorizationView(AuthorizationView):
         params = request.GET if request.method == "GET" else request.POST
         if any(len(v) != 1 for _, v in params.lists()):
             return JsonResponse({"error": "invalid_request"}, status=400)
+        # Descriptive only: bind validated metadata to this authorization code,
+        # never to token endpoint parameters or an authorization decision.
+        platform = params.get("device_platform", "desktop")
+        label = params.get("device_label", "Titan Desktop")
+        if (
+            platform not in {"macos", "windows", "linux", "desktop"}
+            or not 1 <= len(label) <= 80
+            or not label.strip()
+            or any(unicodedata.category(char).startswith("C") for char in label)
+        ):
+            return JsonResponse({"error": "invalid_request"}, status=400)
         if "max_age" in params:
             try:
                 max_age = int(params["max_age"])
@@ -200,6 +216,8 @@ class NativeAuthorizationView(AuthorizationView):
                 from django.contrib.auth.views import redirect_to_login
 
                 return redirect_to_login(request.get_full_path(), "/login")
+            request.user._titan_device_label = label.strip()
+            request.user._titan_device_platform = platform
             request.user._titan_auth_time = datetime.fromtimestamp(
                 auth_time, dt_timezone.utc
             )

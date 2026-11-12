@@ -314,3 +314,41 @@ def test_pkce_plain_duplicates_and_unregistered_client_rejected(
         content_type="application/x-www-form-urlencoded",
     )
     assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_device_metadata_is_code_bound_and_survives_refresh(client, user, application):
+    minted = []
+    for platform, label in [("macos", "Titan on macOS"), ("windows", "Titan on Windows"), (None, None)]:
+        metadata = {} if platform is None else {"device_platform": platform, "device_label": label}
+        response = authorize(client, user, application, **metadata)
+        assert response.status_code == 302
+        code = parse_qs(urlparse(response["Location"]).query)["code"][0]
+        response = client.post("/o/token/", {
+            "grant_type": "authorization_code", "client_id": "titan-desktop",
+            "code": code, "redirect_uri": CALLBACK, "code_verifier": VERIFIER,
+            "device_platform": "linux", "device_label": "Unbound replacement",
+        })
+        assert response.status_code == 200
+        tokens = response.json()
+        rotated = client.post("/o/token/", {
+            "grant_type": "refresh_token", "client_id": "titan-desktop",
+            "refresh_token": tokens["refresh_token"],
+            "device_platform": "linux", "device_label": "Refresh replacement",
+        })
+        assert rotated.status_code == 200
+        minted.append((tokens["session_id"], platform or "desktop", label or "Titan Desktop"))
+    rows = client.get("/api/v1/sessions", **headers(rotated.json())).json()["sessions"]
+    assert {(row["id"], row["platform"], row["label"]) for row in rows} == set(minted)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("metadata", [
+    {"device_platform": "hostname"}, {"device_platform": "x" * 33},
+    {"device_label": "x" * 81}, {"device_label": ""},
+    {"device_label": "bad\nname"}, {"device_label": "bad\u202ename"},
+])
+def test_device_metadata_is_bounded_before_authorization(client, user, application, metadata):
+    response = authorize(client, user, application, **metadata)
+    assert response.status_code == 400
+    assert "Location" not in response

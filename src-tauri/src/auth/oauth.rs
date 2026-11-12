@@ -351,6 +351,17 @@ impl Network {
         .set_redirect_uri(redirect.clone())
         .set_auth_type(AuthType::RequestBody);
         let (challenge, verifier) = PkceCodeChallenge::new_random_sha256();
+        // Compile-target platform only: no hostname, account name, hardware ID,
+        // project information or operating-system version is collected.
+        let (platform, label) = if cfg!(target_os = "macos") {
+            ("macos", "Titan on macOS")
+        } else if cfg!(target_os = "windows") {
+            ("windows", "Titan on Windows")
+        } else if cfg!(target_os = "linux") {
+            ("linux", "Titan on Linux")
+        } else {
+            ("desktop", "Titan Desktop")
+        };
         let mut request = client
             .authorize_url(
                 CoreAuthenticationFlow::AuthorizationCode,
@@ -359,7 +370,9 @@ impl Network {
             )
             .add_scope(Scope::new("profile".into()))
             .add_scope(Scope::new("email".into()))
-            .set_pkce_challenge(challenge);
+            .set_pkce_challenge(challenge)
+            .add_extra_param("device_platform", platform)
+            .add_extra_param("device_label", label);
         if switch {
             request = request
                 .add_prompt(CoreAuthPrompt::Login)
