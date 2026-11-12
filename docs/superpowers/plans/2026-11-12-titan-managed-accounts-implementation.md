@@ -81,3 +81,7 @@
 - [x] Exercise actual independent local PG/service environment withmanaged settings, safe provision/reset commands and real browser endpoints; confirm no outbox and unavailable mail routes, sessions and invalidation, then stop only ownedprocesses. Do not use scientific .venv or installedapp data. Config/private fixtures remain0600 and excluded fromGit.
 - [x] Verify structure/YAML/shell syntax and affected service suite; retain Task2 native evidence rather than repeat it. Write durable handoff: exact commits/tests, public old-site200/SSHkeydenied management absent, newdomain/authorizedWorkbench required; no deployment/current Keychain claim. Preserve previous evidence/history.
 - [x] Commit and request whole-feature independent review. User already chose implementation scope; do not ask routine method approval. Address actionable findings and retain honest external gates. InstalledApp update is a separate explicit user request.
+
+## Final local acceptance
+
+Whole-feature review `ea735dc..2b8533c` found two operator-input P2 defects. Repair `18d5dd0` passed focused72/full191 service tests and the original reviewer accepted both fixes with no new Critical/Important issue. All three task reviews and the final scoped review are approved. Controller-owned test services and browser preview were confirmed closed. [Durable managed checkpoint](../../checkpoint-reports/accounts/managed-2026-11-12.md) preserves exact evidence, both rulings and all nine accepted deferred/excluded boundaries. No public ECS deployment or installed-app update is claimed.
