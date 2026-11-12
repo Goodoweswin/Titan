@@ -1,14 +1,10 @@
 /* A shared navigation surface, independent of the active workbench. */
 .app-shell .sidebar {
- --sidebar: #202224;
- --ink: #e7e8e9;
- --text-secondary: #c9cbcd;
- --muted: #a4a7ab;
- --border: #424548;
- --border-strong: #595d62;
- --sidebar-hover: #2b2e30;
- --sidebar-selected: #36393c;
- --accent: #a8c2ff;
+ --muted:#636663;
+ --sidebar-hover:#ececea;
+ --sidebar-selected:#e6e6e3;
+ --sidebar-popup:var(--surface);
+ --sidebar-error:#895921;
  --text-xs:11px;
  --text-sm:12px;
  --text-base:13px;
@@ -16,7 +12,6 @@
  --text-lg:16px;
  background:var(--sidebar);
  color:var(--ink);
- color-scheme:dark;
  padding:16px 10px 10px;
  font-family:system-ui,-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
  font-size:var(--text-base);
@@ -86,9 +81,9 @@
  color:var(--ink);
 }
 .app-shell .sidebar .library-root.active .library-title { font-weight:550; }
-.sidebar .library-popup { background:#2b2e30; }
+.sidebar .library-popup { background:var(--sidebar-popup); }
 .sidebar .library-popup button:is(:hover,:focus-visible) { background:var(--sidebar-selected); }
-.sidebar .library-error { color:#ffcc8f; }
+.sidebar .library-error { color:var(--sidebar-error); }
 .sidebar .library-empty { color:var(--muted); }
 .sidebar .sidebar-tools {
  flex:none;
@@ -101,6 +96,21 @@
 .sidebar .sidebar-resize:is(:hover,:focus-visible,[data-dragging])::before,
 .sidebar .sidebar-resize:is(:hover,:focus-visible,[data-dragging])::after {
  background:var(--accent);
+}
+@media (prefers-color-scheme:dark) {
+ .app-shell .sidebar {
+  --sidebar:#202224;
+  --ink:#e7e8e9;
+  --text-secondary:#c9cbcd;
+  --muted:#a4a7ab;
+  --border:#424548;
+  --border-strong:#595d62;
+  --sidebar-hover:#2b2e30;
+  --sidebar-selected:#36393c;
+  --sidebar-popup:#2b2e30;
+  --sidebar-error:#ffcc8f;
+  --accent:#a8c2ff;
+ }
 }
 @media(max-width:800px) {
  .app-shell .sidebar .sidebar-quick { grid-template-columns:repeat(2,minmax(0,1fr)); }

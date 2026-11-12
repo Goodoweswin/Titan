@@ -19,6 +19,24 @@ async function readableDarkSurface(locator:Locator,dark=true){
  },{message:'Surface should follow system appearance with readable text'}).toBe(true)
 }
 
+test('sidebar and project menu follow light and dark appearance live',async({page})=>{
+ await page.emulateMedia({colorScheme:'light'})
+ await page.goto('/?integration=1')
+ const sidebar=page.getByRole('complementary',{name:'Titan 导航',exact:true})
+ await sidebar.getByRole('button',{name:'新建或打开',exact:true}).click()
+ const surfaces=[sidebar,sidebar.locator('.library-search'),sidebar.locator('.nav.active'),sidebar.locator('.library-popup')]
+ for(const colorScheme of ['light','dark','light'] as const){
+  await page.emulateMedia({colorScheme})
+  await expect(sidebar).toHaveCSS('color-scheme',colorScheme)
+  for(const surface of surfaces){
+   await readableDarkSurface(surface,colorScheme==='dark')
+   if(colorScheme==='light')await expect.poll(async()=>surface.evaluate(el=>
+    getComputedStyle(el).backgroundColor.match(/[\d.]+/g)!.slice(0,3).map(Number).every(value=>value>220)
+   ),{message:'Sidebar surfaces must become light when the system switches to light appearance'}).toBe(true)
+  }
+ }
+})
+
 test('IF follows system appearance live without recoloring scientific images',async({page},testInfo)=>{
  await page.emulateMedia({colorScheme:'light'})
  await page.goto('/?integration=1')
