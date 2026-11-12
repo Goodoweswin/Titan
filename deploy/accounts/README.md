@@ -27,15 +27,20 @@ Defaults: issuer `http://127.0.0.1:18081`, PostgreSQL `127.0.0.1:55433`. `init -
 `service.json` is private and should never be printed, committed or attached. To run a management command with this launcher configuration:
 
 ```sh
-python3 - /tmp/titan-accounts-demo dev_mail <<'PY'
+accounts_local() {
+  python3 -c '
 import json, os, subprocess, sys
 from pathlib import Path
 root=Path(sys.argv[1]).resolve()
-env=dict(os.environ, **json.loads((root/'service.json').read_text()))
-subprocess.run([str(root/'venv/bin/python'), 'manage.py', *sys.argv[2:]],
-               cwd='services/accounts', env=env, check=True)
-PY
+env=dict(os.environ, **json.loads((root/"service.json").read_text()))
+sys.exit(subprocess.call([str(root/"venv/bin/python"), "manage.py", *sys.argv[2:]],
+                         cwd="services/accounts", env=env))
+' "$@"
+}
+accounts_local /tmp/titan-accounts-demo dev_mail
 ```
+
+Define `accounts_local` in the same shell used for the examples below. Python receives its program through `-c`, leaving stdin available to the management command for hidden terminal input or an explicit private file/pipe. Command failures retain their exit status without a wrapper traceback that repeats argv. Do not supply the wrapper program through a heredoc: that replaces the child's password input with exhausted program text.
 
 `dev_mail` applies to local self-service registration/recovery and lists outbox IDs only. Pass `<id> --output /tmp/private-message.eml` to export one local message to an exclusive 0600 file; open it locally to verify registration/recovery and delete it afterward. No HTTP debug mailbox exists. Production refuses this command. A desktop test build must compile this exact issuer and use a distinct app identifier/project directory; see the native evidence checkpoint. An unconfigured release remains guest-capable and provides no working login until an issuer is configured.
 
@@ -95,9 +100,24 @@ accounts_compose run --rm api python manage.py provision_account --email user@ex
 accounts_compose run --rm api python manage.py set_account_password --email user@example.org
 ```
 
-The last two commands prompt with hidden input and confirmation in a controlled terminal. No password argv option exists. For automation, explicit `--password-stdin` accepts a private input stream (for example, redirect a 0600 temporary file outside git and delete it afterward); never place passwords in command history, `echo`, env examples, shared logs or issue attachments. Provisioning creates ordinary nonstaff, nonsuperuser accounts, refuses existing normalized emails, and leaves `verified_at` empty. Reset invalidates browser sessions, pending authorization codes and all desktop credentials; it does not assert email verification. `/api/v1/me` reports `administratorApproved=true` and the truthful `emailVerified=false` for those accounts.
+The last two commands prompt with hidden input and confirmation in a controlled terminal. No password argv option exists. For automation, explicit `--password-stdin` accepts a private non-TTY input stream (for example, redirect a 0600 temporary file outside git and delete it afterward); a TTY is rejected before reading, so omit the flag for terminal prompts. With Compose redirected input, use `run --rm -T` to keep stdin non-TTY. Never place passwords in command history, `echo`, env examples, shared logs or issue attachments. Provisioning creates ordinary nonstaff, nonsuperuser accounts, refuses existing normalized emails, and leaves `verified_at` empty. Reset invalidates browser sessions, pending authorization codes and all desktop credentials; it does not assert email verification. `/api/v1/me` reports `administratorApproved=true` and the truthful `emailVerified=false` for those accounts.
 
-For local managed development, use the Python wrapper above with the managed directory and `provision_account --email user@example.org --name Researcher` or `set_account_password --email user@example.org` in place of `dev_mail`; hidden terminal input is inherited. Managed browser login explains administrator opening/reset and has no unavailable register/recover links. Direct GET/POST access to register/resend/recover/verify/reset refuses without account/token/mail/password effects.
+For local managed development, define the `accounts_local` function above, then run these from the repository root in that same terminal. Both commands inherit hidden input and require confirmation:
+
+```sh
+accounts_local /tmp/titan-accounts-managed provision_account --email user@example.org --name Researcher
+accounts_local /tmp/titan-accounts-managed set_account_password --email user@example.org
+```
+
+Alternatively, supply one password through a private non-TTY file. Create each 0600 file outside git using a trusted secret source, with one password and an optional trailing newline; the following filenames contain no secret. Use a new email when provisioning and delete the files after use:
+
+```sh
+accounts_local /tmp/titan-accounts-managed provision_account --email another@example.org --name Researcher --password-stdin < /private/titan-provision-password
+accounts_local /tmp/titan-accounts-managed set_account_password --email another@example.org --password-stdin < /private/titan-reset-password
+rm /private/titan-provision-password /private/titan-reset-password
+```
+
+Managed browser login explains administrator opening/reset and has no unavailable register/recover links. Direct GET/POST access to register/resend/recover/verify/reset refuses without account/token/mail/password effects.
 
 Account mode is fixed deployment policy, not a start-time switch. Any mode transition requires a **new externally stored `ACCOUNTS_SESSION_EPOCH`**, service cold restart and user reauthentication. No existing users are approved by the additive migration. Review eligibility and running worker selection before transition. Ordinary same-mode cold restarts preserve the epoch; restores always rotate it as described below. Never use the old product's domain or database as an assumed Titan issuer or account database.
 

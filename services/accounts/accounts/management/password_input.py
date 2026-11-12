@@ -44,6 +44,11 @@ def normalized_email(value):
 def read_password(from_stdin):
     try:
         if from_stdin:
+            if sys.stdin.isatty():
+                raise CommandError(
+                    "Use default hidden input with confirmation in a terminal; "
+                    "omit --password-stdin."
+                )
             password = sys.stdin.read(1027)
             if password.endswith("\n"):
                 password = password[:-1]
