@@ -34,47 +34,47 @@ The API uses `Authorization: Bearer <opaque access token>` for desktop requests.
 `GET /api/v1/sessions` returns `{sessions:[{id,label,platform,createdAt,lastSeenAt,expiresAt,current}]}`.
 `DELETE /api/v1/sessions/{id}` returns 204, inaccessible IDs do not expose another user's data.
 `POST /api/v1/sessions/revoke-all` requires recent authentication <= 5 minutes and returns 204. `DELETE` current is logout.
-Errors: `{code,message,request_id}`. Standard OAuth endpoints retain protocol errors.
+Token responses additionally return `session_id` and `refresh_expires_in` (remaining absolute family lifetime, never reset by refresh). Errors: `{code,message,request_id}`. Standard OAuth endpoints retain protocol errors.
 OIDC public client id `titan-desktop`, scopes `openid profile email`, callback `http://127.0.0.1:<port>/oauth/callback`. Issuer configured, no hardcoded production domain. Discovery is authoritative.
-Rust sanitized snapshot: `{status: 'unconfigured'|'guest'|'logging_in'|'authenticated'|'offline'|'reauth_required'|'unavailable', profile: Profile|null, message: string|null, persistent: boolean}`.
+Rust sanitized snapshot: `{status: 'unconfigured'|'guest'|'logging_in'|'authenticated'|'offline'|'reauth_required'|'unavailable', profile: Profile|null, message: string|null, persistent: boolean, errorCode: string|null}`.
 Tauri commands: `auth_status()`, `auth_login(memoryOnly:boolean,switchAccount:boolean)`, `auth_cancel()`, `auth_logout()`, `auth_update_profile(name:string)` return snapshot; `auth_sessions()` returns session array; `auth_revoke_session(id:string)` and `auth_revoke_all()` return snapshot. No command accepts issuer/URL/token from JS.
 
 ### Task 1: Reproduce installed baseline
 
 Files: existing `src/`, `tests/`, package lock and Tauri source/config; design and this plan.
 Produces: committed 0.4.1 account/settings baseline without build caches.
-- [ ] Compare source snapshot to `2309e8b`, import only reviewed differences; save approved spec and plan.
-- [ ] Run `npm test` and `npm run build`; record exact results; commit baseline.
+- [x] Compare source snapshot to `2309e8b`, import only reviewed differences; save approved spec and plan.
+- [x] Run `npm test` and `npm run build`; record exact results; commit baseline (7c94478, 98 tests passed).
 
 ### Task 2: Independent identity service and lifecycle
 
 Files: create `services/accounts/pyproject.toml`, lock file, `manage.py`, `config/{settings,urls,wsgi}.py`, `accounts/{models,forms,views,api,oauth,security,mail,admin,urls}.py`, migrations, templates, tests and README. Split cohesive modules further only when needed.
 Consumes: Shared Contracts and approved spec. Produces: runnable OIDC issuer and profile/session API, migration/setup commands and account test fixtures.
-- [ ] Pin supported dependencies after reading official docs/installed source; write failing real endpoint tests for discovery, code/PKCE, verified-only authorization and identity data.
-- [ ] Implement User, DeviceSession, one-time verification/recovery and durable rate limits/outbox; use framework hashing and OAuth implementation, not hand-rolled cryptography.
-- [ ] Test email normalization/duplicate registration, password errors, verification/recovery replay/expiry, precise Origin/CSRF, disabled users and nickname validation; implement until passing.
-- [ ] Test refresh rotation/replay, absolute expiry, account/session ownership, password reset invalidation, recent-auth enforcement and restore epoch with actual PostgreSQL transactions. Fail closed on uncertain state.
-- [ ] Provide local-only bootstrap/dev mail retrieval (no public debug mailbox), bounded mail dispatcher, admin disabling and deterministic setup. Do not print credentials/tokens in logs.
-- [ ] Run entire account suite, Django deployment checks with production-like configuration, dependency checks; document component token storage and P0 results; commit.
+- [x] Pin supported dependencies after reading official docs/installed source; write failing real endpoint tests for discovery, code/PKCE, verified-only authorization and identity data.
+- [x] Implement User, DeviceSession, one-time verification/recovery and durable rate limits/outbox; use framework hashing and OAuth implementation, not hand-rolled cryptography.
+- [x] Test email normalization/duplicate registration, password errors, verification/recovery replay/expiry, precise Origin/CSRF, disabled users and nickname validation; implement until passing.
+- [x] Test refresh rotation/replay, absolute expiry, account/session ownership, password reset invalidation, recent-auth enforcement and restore epoch with actual PostgreSQL transactions. Fail closed on uncertain state.
+- [x] Provide local-only bootstrap/dev mail retrieval (no public debug mailbox), bounded mail dispatcher, admin disabling and deterministic setup. Do not print credentials/tokens in logs.
+- [x] Run entire account suite, Django deployment checks with production-like configuration, dependency checks; document component token storage and P0 results; commit.
 
 ### Task 3: Native authentication bridge
 
 Files: create `src-tauri/src/auth/{mod,config,types,oauth,callback,storage,client}.rs`, modify `Cargo.toml`, `Cargo.lock`, `lib.rs`; tests alongside auth modules.
 Consumes: exact API above and Task 2 discovery behavior. Produces: the Tauri command contract above.
-- [ ] Write failing tests for strict issuer/URL policy and callback state/path/method/query/size/timeout; verify failures.
-- [ ] Implement mature OIDC/PKCE client, constrained browser opener, temporary loopback listener and cancellation. Validate signature/issuer/audience/nonce/time; reject unexpected redirect/token endpoint origins.
-- [ ] Write failing tests for one refresh in flight, refresh ambiguity, logout/switch generation fences, expired credentials, server 401 vs connectivity failure and Keychain refusal.
-- [ ] Implement OS credential storage, session snapshot, refresh and profile/session commands; persistent refresh credentials include family absolute expiry, memory-only opt-in. Never serialize raw tokens to JS.
-- [ ] Run `cargo test --manifest-path src-tauri/Cargo.toml` and compile checks; integration-test against local service where possible; commit.
+- [x] Write failing tests for strict issuer/URL policy and callback state/path/method/query/size/timeout; verify failures.
+- [x] Implement mature OIDC/PKCE client, constrained browser opener, temporary loopback listener and cancellation. Validate signature/issuer/audience/nonce/time; reject unexpected redirect/token endpoint origins.
+- [x] Write failing tests for one refresh in flight, refresh ambiguity, logout/switch generation fences, expired credentials, server 401 vs connectivity failure and Keychain refusal.
+- [x] Implement OS credential storage, session snapshot, refresh and profile/session commands; persistent refresh credentials include family absolute expiry, memory-only opt-in. Never serialize raw tokens to JS.
+- [x] Run `cargo test --manifest-path src-tauri/Cargo.toml` and compile checks; integration-test against local service where possible; commit.
 
 ### Task 4: Account UI integration
 
 Files: create `src/account-bridge.ts`, `src/useAccount.ts`, `src/AccountSessionPanel.tsx`, their tests; modify `src/AccountPage.tsx`, `src/App.tsx`, `src/account.css`, relevant browser tests.
 Consumes: Tauri command/snapshot and API contracts. Produces: complete login/cancel/logout/profile/session UI with no raw secrets.
-- [ ] Write failing tests for configured/unconfigured states, login cancellation, explicit memory-only choice after storage failure, offline logout notice, switch account and stale response rejection.
-- [ ] Connect existing account page and sidebar to hook; show editable nickname and devices only from confirmed service data. Keep guest page and research statistics intact.
-- [ ] Add confirmation for destructive account-wide logout within product; require browser reauthentication if server asks. Handle 429 and retryable service failures without blocking local tools.
-- [ ] Verify account navigation preserves workbench drafts and keyboard isolation. Run `npm test`, `npm run build`, relevant Playwright tests; commit.
+- [x] Write failing tests for configured/unconfigured states, login cancellation, explicit memory-only choice after storage failure, offline logout notice, switch account and stale response rejection.
+- [x] Connect existing account page and sidebar to hook; show editable nickname and devices only from confirmed service data. Keep guest page and research statistics intact.
+- [x] Add confirmation for destructive account-wide logout within product; require browser reauthentication if server asks. Handle 429 and retryable service failures without blocking local tools.
+- [x] Verify account navigation preserves workbench drafts and keyboard isolation. Run `npm test`, `npm run build`, relevant Playwright tests; commit.
 
 ### Task 5: Deployment, CI and end-to-end evidence
 
@@ -91,3 +91,7 @@ Consumes: runnable service and desktop implementation. Produces: reviewable arti
 ## Execution decisions
 
 User approved implementation. Use the subagent-driven workflow for the service, native bridge, UI and deployment units, with sequential implementers and independent reviews; baseline preparation is controller setup. Do not ask the user to choose routine implementation methods again. No cloud changes or externally delivered email are authorized by local implementation alone.
+
+User steering: domain/email are not ready; ECS deployment is a later task. This run delivers local implementation and deployment materials. Release issuer uses compile-time `TITAN_ACCOUNTS_ISSUER`; debug may read it from environment. Credential entries are isolated by issuer/client. Native test builds must not replace the installed app or access its project library.
+
+Reviewed integration refinements: Task4 distinguishes native API 403/429 and uses a same-origin response referrer policy so strict CSRF works with actual browser forms while cross-origin credential-bearing referrers stay suppressed. Packaged native acceptance is tracked separately from unit/integration runs.
