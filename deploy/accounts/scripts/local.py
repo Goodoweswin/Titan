@@ -29,6 +29,11 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("command", choices=["init", "start", "stop", "status"])
     p.add_argument("--directory", type=Path, required=True)
+    p.add_argument(
+        "--account-mode",
+        choices=["self_service", "managed"],
+        help="init only; defaults to self_service and is saved in private configuration",
+    )
     p.add_argument("--port", type=int, default=18081)
     p.add_argument("--pg-port", type=int, default=55433)
     p.add_argument(
@@ -39,6 +44,10 @@ def main():
         ).parent,
     )
     a = p.parse_args()
+    if a.command != "init" and a.account_mode is not None:
+        p.error(
+            "--account-mode is only valid for init; other commands use saved configuration"
+        )
     root = a.directory.resolve()
     if a.command == "init":
         if (
@@ -65,6 +74,7 @@ def main():
         (root / "signing.pem").chmod(0o600)
         config = {
             "ACCOUNTS_DEBUG": "1",
+            "ACCOUNTS_ACCOUNT_MODE": a.account_mode or "self_service",
             "ACCOUNTS_ISSUER": f"http://127.0.0.1:{a.port}",
             "ACCOUNTS_ALLOWED_HOSTS": "127.0.0.1,localhost,testserver",
             "ACCOUNTS_SECRET_KEY": secrets.token_urlsafe(64),

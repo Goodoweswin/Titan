@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 config = yaml.safe_load((ROOT / "compose.yaml").read_text())
 assert config["name"] == "titan-accounts"
 assert set(config["services"]) == {"api", "worker", "db"}
+assert not config["services"]["worker"].get("profiles")
 assert all(not service.get("ports") for service in config["services"].values())
 assert (
     sum(int(service["mem_limit"][:-1]) for service in config["services"].values())
@@ -26,6 +27,28 @@ assert re.search(r"@sha256:[a-f0-9]{64}$", config["services"]["db"]["image"])
 assert config["networks"]["database"]["internal"]
 assert config["networks"]["gateway"]["external"]
 assert config["volumes"]["accounts_database"]["name"] == "titan_accounts_database"
+managed = yaml.safe_load((ROOT / "compose.managed.yaml").read_text())
+assert set(managed["services"]) == {"api", "worker"}
+assert managed["services"]["worker"]["profiles"] == ["mail-worker-disabled"]
+for name in ("api", "worker"):
+    assert managed["services"][name]["environment"] == {
+        "ACCOUNTS_ACCOUNT_MODE": "managed",
+        "ACCOUNTS_MAIL_DELIVERY": "disabled",
+    }
+assert (
+    sum(int(config["services"][name]["mem_limit"][:-1]) for name in ("api", "db"))
+    == 304
+)
+example = dict(
+    line.split("=", 1)
+    for line in (ROOT / "env.managed.example").read_text().splitlines()
+    if line and not line.startswith("#")
+)
+assert example["ACCOUNTS_ACCOUNT_MODE"] == "managed"
+assert example["ACCOUNTS_MAIL_DELIVERY"] == "disabled"
+assert not any("SMTP" in key or key == "ACCOUNTS_FROM_EMAIL" for key in example)
+for key in ("ACCOUNTS_IMAGE", "ACCOUNTS_ISSUER", "ACCOUNTS_SECRET_KEY", "PGPASSWORD"):
+    assert example[key] == ""
 preview = yaml.safe_load((ROOT / "compose.preview.yaml").read_text())
 assert preview["services"]["api"]["ports"] == ["127.0.0.1:18080:8000"]
 assert re.search(r"FROM .+@sha256:[a-f0-9]{64}", (ROOT / "Dockerfile").read_text())

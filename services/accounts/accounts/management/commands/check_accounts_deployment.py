@@ -22,6 +22,12 @@ class Command(BaseCommand):
             raise CommandError(
                 "Account runtime role must not have cluster administration or schema creation privileges"
             )
+        delivery = (
+            "managed mail delivery is disabled; no mail worker is required."
+            if settings.ACCOUNT_MODE == "managed"
+            and settings.MAIL_DELIVERY == "disabled"
+            else "SMTP delivery remains untested."
+        )
         self.stdout.write(
-            "Production settings and runtime database role accepted; SMTP delivery remains untested."
+            "Production settings and runtime database role accepted; " + delivery
         )

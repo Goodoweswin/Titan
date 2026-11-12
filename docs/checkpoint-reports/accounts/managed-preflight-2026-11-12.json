@@ -1,0 +1,51 @@
+{
+  "recordedAt": "2026-11-12T22:16:45.103577+08:00",
+  "purpose": "Read-only prerequisites for user-requested Titan ECS managed-login development",
+  "server": {
+    "address": "121.40.43.188",
+    "region": "cn-hangzhou",
+    "instanceId": "i-bp1et5fvulbw9eyj98ix",
+    "hostFingerprint": "SHA256:TWAcDShDeLRaJprE6G8q7JEpuK3Q4+InDSXuuy36n+A",
+    "sshHostIdentityMatched": true,
+    "sshUser": "taobao-ops",
+    "sshProbe": "id",
+    "sshExit": 255,
+    "sshResult": "existing default local key not authorized; publickey denied",
+    "internalInventoryPerformed": false
+  },
+  "oldProductHTTPS": {
+    "origin": "https://sop.pilotus.studio",
+    "checks": [
+      {
+        "path": "/app/",
+        "status": 200,
+        "sha256": "41d473d1e69ce1f8106453559a0cd2cbb4faf90ea2af7d1aa8e1b92fd8788e09"
+      },
+      {
+        "path": "/account",
+        "status": 200,
+        "sha256": "1c966b62064ab7f6033d2a2a03fe9a884c7c93ab2838c1dfe96fbacb48b0a37f"
+      },
+      {
+        "path": "/healthz",
+        "status": 200,
+        "sha256": "f162d5e1ca297bd17bfb7aa8f957e38f53871817df17c9cb487b71c80ed9da7f"
+      }
+    ],
+    "certificateValidation": true
+  },
+  "localManagement": {
+    "aliyunCli": false,
+    "workbenchCli": false,
+    "configuredAliyunProfile": false,
+    "loadedSSHAgentKeys": 0,
+    "existingAliyunBrowserTab": false
+  },
+  "userInputs": {
+    "newDomain": "not_selected",
+    "SMTP": "not_selected",
+    "publicDeployment": "deferred until domain/access",
+    "mailRequiredForManagedMode": false
+  },
+  "serverChangesPerformed": false
+}
