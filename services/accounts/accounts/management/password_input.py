@@ -13,7 +13,18 @@ from accounts.forms import EmailForm
 
 class PrivatePasswordCommand(BaseCommand):
     def create_parser(self, prog_name, subcommand, **kwargs):
-        return super().create_parser(prog_name, subcommand, allow_abbrev=False, **kwargs)
+        parser = super().create_parser(prog_name, subcommand, allow_abbrev=False, **kwargs)
+        original_error = parser.error
+
+        def private_error(_message):
+            # Argparse errors interpolate rejected values, including accidental
+            # argv passwords. Preserve CLI/CommandError behavior without the values.
+            original_error(
+                "Invalid arguments. Use --help; passwords require hidden input or --password-stdin."
+            )
+
+        parser.error = private_error
+        return parser
 
     def add_arguments(self, parser):
         parser.add_argument("--email", required=True)

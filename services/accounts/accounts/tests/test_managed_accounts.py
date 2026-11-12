@@ -1,6 +1,8 @@
 """Managed trust is explicit; mail verification and approval never conflate."""
 import io
 import re
+import subprocess
+import sys
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -230,13 +232,40 @@ def test_provision_is_managed_only(monkeypatch):
     assert not User.objects.exists()
 
 
-@pytest.mark.django_db
-@override_settings(ACCOUNT_MODE="managed")
 @pytest.mark.parametrize("command", ["provision_account", "set_account_password"])
-def test_password_argument_is_not_supported(command):
-    assert command in get_commands()
-    with pytest.raises(CommandError):
-        call_command(command, "--email", "new@example.org", "--password", PASSWORD)
+@pytest.mark.parametrize("equals_form", [False, True])
+def test_password_argument_is_rejected_without_programmatic_secret_echo(command, equals_form):
+    secret = "Synthetic-Argv-Canary-Not-A-Credential-42!"
+    arguments = ["--email", "new@example.org"]
+    if command == "provision_account":
+        arguments += ["--name", "New"]
+    invalid_arguments = ["--password=" + secret] if equals_form else ["--password", secret]
+    with pytest.raises(CommandError) as rejected:
+        call_command(command, *arguments, *invalid_arguments)
+    assert secret not in str(rejected.value)
+
+
+@pytest.mark.parametrize("command", ["provision_account", "set_account_password"])
+@pytest.mark.parametrize("argument_kind", ["password", "password_equals", "stdin_value", "verbosity"])
+def test_cli_argument_errors_never_echo_password_values(command, argument_kind):
+    secret = "Synthetic-Argv-Canary-Not-A-Credential-42!"
+    invalid_arguments = {
+        "password": ["--password", secret],
+        "password_equals": ["--password=" + secret],
+        "stdin_value": ["--password-stdin=" + secret],
+        "verbosity": ["--verbosity", secret],
+    }[argument_kind]
+    arguments = [
+        sys.executable, "manage.py", command, "--settings=config.test_settings",
+        "--email", "new@example.org",
+    ]
+    if command == "provision_account":
+        arguments += ["--name", "New"]
+    result = subprocess.run(
+        arguments + invalid_arguments, input="", capture_output=True, text=True,
+    )
+    assert result.returncode == 2
+    assert secret not in result.stdout + result.stderr
 
 
 @pytest.mark.django_db
