@@ -1,0 +1,18 @@
+# Merge into EXISTING admin-off Caddy config after offline validation.
+# Caddy MUST own exact peer IP configured in ACCOUNTS_TRUSTED_PROXY_IPS on the
+# dedicated titan_accounts_gateway network. This creates no second listener.
+{$ACCOUNTS_HOST} {
+    # No access log: URLs can contain authorization codes or verification links.
+    request_body {
+        max_size 16KB
+    }
+    @private path /admin* /health/*
+    respond @private 404
+    reverse_proxy titan-accounts-api-1:8000 {
+        header_up -Forwarded
+        header_up -X-Forwarded-For
+        header_up -X-Forwarded-Host
+        header_up X-Forwarded-Proto https
+        header_up X-Titan-Client-IP {http.request.remote.host}
+    }
+}

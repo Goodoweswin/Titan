@@ -1,5 +1,6 @@
 import hashlib
 import uuid
+from ipaddress import ip_address
 
 from django.conf import settings
 from django.contrib.auth import logout
@@ -42,7 +43,7 @@ def revoke(session):
 
 
 def rate_limit(request, action, identifier="", limit=10, seconds=900):
-    # Proxy address headers are intentionally ignored. Trust must be established at gateway.
+    # REMOTE_ADDR is replaced only by the exact-peer gateway middleware.
     now = timezone.now()
     keys = [digest(action + ":ip:" + request.META.get("REMOTE_ADDR", "unknown"))]
     if identifier:
@@ -93,3 +94,31 @@ class BrowserEpochMiddleware:
 def record_browser_auth(sender, request, user, **kwargs):
     request.session["epoch"] = settings.SESSION_EPOCH
     request.session["auth_time"] = int(timezone.now().timestamp())
+
+
+class TrustedGatewayMiddleware:
+    """Accept one client address only from a dedicated, explicitly configured peer."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        peer = request.META.get("REMOTE_ADDR", "")
+        client = request.META.pop("HTTP_X_TITAN_CLIENT_IP", "")
+        scheme = request.META.pop("HTTP_X_FORWARDED_PROTO", "")
+        for header in (
+            "HTTP_X_FORWARDED_FOR",
+            "HTTP_X_FORWARDED_HOST",
+            "HTTP_FORWARDED",
+        ):
+            request.META.pop(header, None)
+        if peer in settings.TRUSTED_PROXY_IPS:
+            try:
+                client = str(ip_address(client))
+            except ValueError:
+                return error("invalid_gateway", "Invalid gateway request.", 400)
+            if scheme != "https":
+                return error("invalid_gateway", "Invalid gateway request.", 400)
+            request.META["REMOTE_ADDR"] = client
+            request.META["wsgi.url_scheme"] = "https"
+        return self.get_response(request)

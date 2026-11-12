@@ -1,0 +1,22 @@
+# Allowlist: never send science environments, app bundles, projects or local secrets.
+**
+!services/
+!services/accounts/
+!services/accounts/manage.py
+!services/accounts/accounts/
+!services/accounts/accounts/**/
+!services/accounts/accounts/**/*.py
+!services/accounts/config/
+!services/accounts/config/*.py
+!services/accounts/templates/
+!services/accounts/templates/**/
+!services/accounts/templates/**/*.html
+services/accounts/accounts/tests/
+services/accounts/config/test_settings.py
+!deploy/
+!deploy/accounts/
+!deploy/accounts/Dockerfile
+!deploy/accounts/requirements.txt
+!deploy/accounts/scripts/
+!deploy/accounts/scripts/worker.py
+!deploy/accounts/scripts/entrypoint.sh

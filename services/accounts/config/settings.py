@@ -1,11 +1,57 @@
 import getpass
 import os
+from ipaddress import ip_address
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = os.environ.get("ACCOUNTS_DEBUG") == "1"
+if not DEBUG:
+    required = (
+        "ACCOUNTS_SECRET_KEY",
+        "ACCOUNTS_ISSUER",
+        "ACCOUNTS_SESSION_EPOCH",
+        "ACCOUNTS_RSA_KEY_FILE",
+        "ACCOUNTS_ALLOWED_HOSTS",
+        "ACCOUNTS_TRUSTED_PROXY_IPS",
+        "PGDATABASE",
+        "PGUSER",
+        "PGPASSWORD",
+        "PGHOST",
+        "PGPORT",
+        "ACCOUNTS_MAIL_DELIVERY",
+        "ACCOUNTS_FROM_EMAIL",
+        "ACCOUNTS_SMTP_HOST",
+        "ACCOUNTS_SMTP_PORT",
+        "ACCOUNTS_SMTP_USER",
+        "ACCOUNTS_SMTP_PASSWORD",
+    )
+    missing = [name for name in required if not os.environ.get(name, "").strip()]
+    if missing:
+        raise ImproperlyConfigured("Missing production settings: " + ", ".join(missing))
+    if os.environ["ACCOUNTS_MAIL_DELIVERY"] != "smtp":
+        raise ImproperlyConfigured("Production requires SMTP delivery")
+    if os.environ["PGUSER"] == "postgres":
+        raise ImproperlyConfigured(
+            "Production requires a dedicated non-superuser database role"
+        )
+    sender = os.environ["ACCOUNTS_FROM_EMAIL"]
+    if "@" not in sender or "." not in sender.rsplit("@", 1)[-1]:
+        raise ImproperlyConfigured("Production requires an explicit mail sender")
+TRUSTED_PROXY_IPS = []
+for peer in filter(None, os.environ.get("ACCOUNTS_TRUSTED_PROXY_IPS", "").split(",")):
+    try:
+        TRUSTED_PROXY_IPS.append(str(ip_address(peer.strip())))
+    except ValueError as exc:
+        raise ImproperlyConfigured(
+            "Trusted gateways must be exact IP addresses, not networks"
+        ) from exc
+if not DEBUG and not TRUSTED_PROXY_IPS:
+    raise ImproperlyConfigured(
+        "Production requires at least one exact trusted gateway IP"
+    )
 SECRET_KEY = os.environ["ACCOUNTS_SECRET_KEY"]
 ISSUER = os.environ["ACCOUNTS_ISSUER"].rstrip("/")
 SESSION_EPOCH = os.environ["ACCOUNTS_SESSION_EPOCH"]
@@ -14,6 +60,22 @@ if not DEBUG and (not ISSUER.startswith("https://") or len(SECRET_KEY) < 50):
 ALLOWED_HOSTS = os.environ.get(
     "ACCOUNTS_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver"
 ).split(",")
+if not DEBUG:
+    parsed = urlsplit(ISSUER)
+    if (
+        parsed.scheme != "https"
+        or not parsed.hostname
+        or parsed.username
+        or parsed.password
+        or parsed.path
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ImproperlyConfigured("Production issuer must be an HTTPS origin")
+    if ALLOWED_HOSTS != [parsed.hostname]:
+        raise ImproperlyConfigured(
+            "Allowed hosts must contain only the issuer hostname"
+        )
 INSTALLED_APPS = [
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -26,6 +88,7 @@ INSTALLED_APPS = [
     "accounts.apps.AccountsConfig",
 ]
 MIDDLEWARE = [
+    "accounts.security.TrustedGatewayMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -92,9 +155,9 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
-# Only enable when the deployment gateway strips incoming X-Forwarded-Proto.
-if os.environ.get("ACCOUNTS_TRUST_PROXY") == "1":
-    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+# The first middleware strips all forwarded headers and sets the scheme only for
+# an exact configured gateway peer. Never enable Django's blanket header trust.
+SECURE_REDIRECT_EXEMPT = [r"^health/live$", r"^health/ready$"]
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 DEFAULT_FROM_EMAIL = os.environ.get("ACCOUNTS_FROM_EMAIL", "accounts@localhost")
 OAUTH2_PROVIDER = {

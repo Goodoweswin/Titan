@@ -1,0 +1,86 @@
+name: titan-accounts
+x-app: &app
+  image: ${ACCOUNTS_IMAGE:?Set an immutable accounts image digest}
+  env_file: ${ACCOUNTS_ENV_FILE:?Set absolute private service env file}
+  read_only: true
+  user: "10001:10001"
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  tmpfs: [/tmp:size=16m,mode=1777]
+  volumes:
+    - ${ACCOUNTS_KEY_FILE:?Set absolute private RSA key path}:/run/secrets/accounts-rsa.pem:ro
+  restart: unless-stopped
+  logging:
+    driver: local
+    options: {max-size: 5m, max-file: "2"}
+services:
+  api:
+    <<: *app
+    mem_limit: 144m
+    memswap_limit: 144m
+    pids_limit: 64
+    cpus: 0.75
+    networks: [gateway, database]
+    depends_on:
+      db: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python, -c, "import os,urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8000/health/ready', headers={'Host': os.environ['ACCOUNTS_ALLOWED_HOSTS']}), timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+  worker:
+    <<: *app
+    command: [python, worker.py]
+    mem_limit: 80m
+    memswap_limit: 80m
+    pids_limit: 32
+    cpus: 0.25
+    networks: [mail, database]
+    depends_on:
+      db: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python, -c, "import os,time; assert time.time()-os.stat('/tmp/worker-alive').st_mtime < 180"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 120s
+  db:
+    image: postgres:17-bookworm@sha256:665dc7b37ac52a17e298511414c21d23ffa4e6a6ef6225b3e5d59c7afb35e994
+    mem_limit: 160m
+    memswap_limit: 160m
+    pids_limit: 64
+    cpus: 0.5
+    environment:
+      POSTGRES_DB: titan_accounts
+      POSTGRES_USER: titan_accounts_admin
+      POSTGRES_PASSWORD: ${ACCOUNTS_DB_ADMIN_PASSWORD:?Set separate DB bootstrap password}
+      ACCOUNTS_DB_MIGRATOR_PASSWORD: ${ACCOUNTS_DB_MIGRATOR_PASSWORD:?Set separate migration role password}
+      ACCOUNTS_DB_PASSWORD: ${ACCOUNTS_DB_PASSWORD:?Set app DB password matching service env}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    command: [postgres, -c, shared_buffers=32MB, -c, max_connections=20, -c, work_mem=2MB, -c, maintenance_work_mem=16MB, -c, log_statement=none, -c, log_min_error_statement=panic, -c, log_error_verbosity=terse]
+    volumes:
+      - accounts_database:/var/lib/postgresql/data
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/10-accounts.sh:ro
+    networks: [database]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U titan_accounts_admin -d titan_accounts]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    logging:
+      driver: local
+      options: {max-size: 5m, max-file: "2"}
+networks:
+  gateway:
+    external: true
+    name: titan_accounts_gateway
+  database:
+    name: titan_accounts_database
+    internal: true
+  mail:
+    name: titan_accounts_mail
+volumes:
+  accounts_database:
+    name: titan_accounts_database

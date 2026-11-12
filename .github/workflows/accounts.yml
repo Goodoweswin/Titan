@@ -1,0 +1,94 @@
+name: Accounts integration
+on:
+  pull_request:
+    paths: ['services/accounts/**', 'deploy/accounts/**', 'src-tauri/**', 'src/**', '.github/workflows/accounts.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  service:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-bookworm@sha256:665dc7b37ac52a17e298511414c21d23ffa4e6a6ef6225b3e5d59c7afb35e994
+        env:
+          POSTGRES_USER: accounts_ci
+          POSTGRES_PASSWORD: ci-only-disposable
+          POSTGRES_DB: titan_accounts_ci
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U accounts_ci -d titan_accounts_ci"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: accounts_ci
+      PGPASSWORD: ci-only-disposable
+      PGDATABASE: titan_accounts_ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install uv==0.11.9
+      - run: uv sync --project services/accounts --frozen
+      - name: PostgreSQL protocol, lifecycle, concurrency and production boundary tests
+        working-directory: services/accounts
+        run: uv run --frozen pytest -q
+      - name: Deployment structure and lock export
+        run: |
+          uv run --no-project --with PyYAML==6.0.3 python deploy/accounts/scripts/check.py
+          uv export --project services/accounts --frozen --no-dev --no-emit-project --format requirements-txt --no-header --output-file /tmp/accounts-requirements.txt
+          diff deploy/accounts/requirements.txt /tmp/accounts-requirements.txt
+      - name: Build immutable account image locally (no registry push)
+        run: docker build -f deploy/accounts/Dockerfile -t titan-accounts:ci .
+      - name: Dependency audit
+        working-directory: services/accounts
+        run: uv run --frozen pip-audit --progress-spinner off
+  native-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    env:
+      # Library/executable compile only. This job does not fabricate an engine bundle.
+      TAURI_CONFIG: '{"bundle":{"resources":[]}}'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22', cache: npm}
+      - name: Linux native dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libdbus-1-dev
+      - run: rustup toolchain install stable --profile minimal
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Native library tests and executable compile (not packaged acceptance)
+        run: |
+          cargo test --manifest-path src-tauri/Cargo.toml --locked --lib
+          cargo build --manifest-path src-tauri/Cargo.toml --locked --release
+  windows-package:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    env:
+      PYTHONUTF8: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22', cache: npm}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11', architecture: x64}
+      - name: Build isolated CI installer and scientific engine
+        shell: pwsh
+        run: |
+          rustup default stable-x86_64-pc-windows-msvc
+          ./packaging/build_windows.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: accounts-windows-review-installer
+          path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*-setup.exe
+          retention-days: 7
+          if-no-files-found: error
