@@ -24,7 +24,7 @@ test('sidebar and project menu follow light and dark appearance live',async({pag
  await page.goto('/?integration=1')
  const sidebar=page.getByRole('complementary',{name:'Titan 导航',exact:true})
  await sidebar.getByRole('button',{name:'新建或打开',exact:true}).click()
- const surfaces=[sidebar,sidebar.locator('.library-search'),sidebar.locator('.nav.active'),sidebar.locator('.library-popup')]
+ const surfaces=[sidebar,sidebar.locator('.library-search'),sidebar.locator('.nav.active'),page.getByRole('menu')]
  for(const colorScheme of ['light','dark','light'] as const){
   await page.emulateMedia({colorScheme})
   await expect(sidebar).toHaveCSS('color-scheme',colorScheme)
@@ -109,7 +109,7 @@ test('new-project dialogs keep readable controls outside the main shell',async({
  await page.goto('/?integration=1')
  const library=page.getByRole('navigation',{name:'实验项目库'})
  await library.getByRole('button',{name:'新建或打开',exact:true}).click()
- await library.getByRole('button',{name:'新建项目',exact:true}).click()
+ await page.getByRole('menu').getByRole('menuitem',{name:'新建项目',exact:true}).click()
  const dialog=page.getByRole('dialog')
  await readableDarkSurface(dialog)
  await readableDarkSurface(dialog.getByLabel('名称',{exact:true}))

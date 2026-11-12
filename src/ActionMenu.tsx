@@ -10,7 +10,7 @@ interface MenuRequest {
  position:{x:number;y:number}
  label:string
 }
-interface MenuState extends MenuRequest {generation:number}
+interface MenuState extends MenuRequest {generation:number;scrollPositions:Map<Element,[number,number]>}
 interface MenuApi {openMenu:(request:MenuRequest)=>void;closeMenu:()=>void;activeId:string|null}
 const MenuContext=createContext<MenuApi|null>(null)
 
@@ -32,7 +32,12 @@ export function ActionMenuProvider({children}:{children:ReactNode}){
  const closeMenu=useCallback(()=>dismiss(true),[dismiss])
  const openMenu=useCallback((request:MenuRequest)=>{
   if(!request.items.length||!request.origin.isConnected||request.origin.closest('[inert]'))return
-  const next={...request,generation:++generation.current}
+  const box=request.origin.getBoundingClientRect()
+  const position={x:Number.isFinite(request.position.x)?request.position.x:box.left,
+   y:Number.isFinite(request.position.y)?request.position.y:box.bottom}
+  const scrollPositions=new Map<Element,[number,number]>()
+  for(let node:Element|null=request.origin;node;node=node.parentElement)scrollPositions.set(node,[node.scrollLeft,node.scrollTop])
+  const next={...request,position,scrollPositions,generation:++generation.current}
   current.current=next;setPosition({x:0,y:0,ready:false});setMenu(next)
  },[])
  useLayoutEffect(()=>{
@@ -40,11 +45,22 @@ export function ActionMenuProvider({children}:{children:ReactNode}){
   const box=node.getBoundingClientRect()
   setPosition({x:Math.max(8,Math.min(menu.position.x,window.innerWidth-box.width-8)),
    y:Math.max(8,Math.min(menu.position.y,window.innerHeight-box.height-8)),ready:true})
-  ;(node.querySelector<HTMLButtonElement>('button:not(:disabled)')??node).focus({preventScroll:true})
  },[menu])
+ useLayoutEffect(()=>{
+  const node=element.current
+  if(menu&&position.ready&&node)(node.querySelector<HTMLButtonElement>('button:not(:disabled)')??node).focus({preventScroll:true})
+ },[menu?.generation,position.ready])
  useEffect(()=>{
   if(!menu)return
-  const outside=(event:Event)=>{if(!element.current?.contains(event.target as Node))dismiss(false)}
+  const outside=(event:Event)=>{
+   if(element.current?.contains(event.target as Node))return
+   if(event.type==='scroll'){
+    const target=event.target===document?document.scrollingElement:event.target instanceof Element?event.target:null
+    const before=target&&current.current?.scrollPositions.get(target)
+    if(target&&before&&target.scrollLeft===before[0]&&target.scrollTop===before[1])return
+   }
+   dismiss(false)
+  }
   const windowChanged=()=>dismiss(false)
   const invalidated=new MutationObserver(()=>{
    const origin=current.current?.origin

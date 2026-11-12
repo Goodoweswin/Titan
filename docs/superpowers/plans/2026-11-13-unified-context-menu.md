@@ -78,11 +78,11 @@
 - 复用 `ProjectLibrary` 当前的 `onProject`、`onOpen`、`onArtifact`、`onDialog`、`onPin`、`onReveal` 回调及现有可用性条件。
 - 各对象只维护一份操作列表，同时供右键、键盘入口和「⋯」使用。
 
-- [ ] **Step 1 — 编写失败流程。** 在 `context-menu.spec.ts` 创建合成项目、分析和图表记录，检查右键与「⋯」的菜单项一致；非当前行只弹菜单；右键另一行替换目标；旧 WB 图表、统计快照及导出记录均可管理。
-- [ ] **Step 2 — 运行并确认失败。** `npx playwright test tests/browser/context-menu.spec.ts --grep sidebar`。
-- [ ] **Step 3 — 接入左栏。** 事件限定在对象行；共用操作列表复用既有对话框与打开流程。缺失文件禁用对应操作；打开菜单后列表目标失效时关闭菜单。
-- [ ] **Step 4 — 覆盖边界。** 四角和滚动裁切、明暗切换、13px 字号、键盘打开／关闭；取消移动和移出确认后归属不变；选择打开后复用现有离开确认和浏览历史。
-- [ ] **Step 5 — 验证并提交。** 运行 `context-menu.spec.ts` 的左栏用例及 `independent-project.spec.ts`、`library-figures.spec.ts`、`workspace-chrome.spec.ts`、`workspace-navigation.spec.ts` 的相关回归。
+- [x] **Step 1 — 编写失败流程。** 在 `context-menu.spec.ts` 创建合成项目、分析和图表记录，检查右键与「⋯」的菜单项一致；非当前行只弹菜单；右键另一行替换目标；旧 WB 图表、统计快照及导出记录均可管理。
+- [x] **Step 2 — 运行并确认失败。** `npx playwright test tests/browser/context-menu.spec.ts --grep sidebar`。
+- [x] **Step 3 — 接入左栏。** 事件限定在对象行；共用操作列表复用既有对话框与打开流程。缺失文件禁用对应操作；打开菜单后列表目标失效时关闭菜单。
+- [x] **Step 4 — 覆盖边界。** 四角和滚动裁切、明暗切换、13px 字号、键盘打开／关闭；取消移动和移出确认后归属不变；选择打开后复用现有离开确认和浏览历史。
+- [x] **Step 5 — 验证并提交。** 运行 `context-menu.spec.ts` 的左栏用例及 `independent-project.spec.ts`、`library-figures.spec.ts`、`workspace-chrome.spec.ts`、`workspace-navigation.spec.ts` 的相关回归。
 
 ## Task 3: 统计单元格明确选择排除／恢复
 

@@ -50,8 +50,16 @@ it('removing the trigger invalidates its open menu',async()=>{
 })
 
 it('outside scrolling window resizing and window blur dismiss without edits',async()=>{
- for(const [target,type] of [[document,'scroll'],[window,'resize'],[window,'blur']] as const){
-  await open();await act(async()=>target.dispatchEvent(new Event(type)))
+ for(const [target,type] of [[host,'scroll'],[window,'resize'],[window,'blur']] as const){
+  await open();if(type==='scroll')host.scrollTop+=10
+  await act(async()=>target.dispatchEvent(new Event(type)))
   expect(menu()).toBeNull();expect(output()).toBe('none')
  }
+})
+
+it('ignores a queued scroll from before opening but closes after new scrolling',async()=>{
+ await open();await act(async()=>host.dispatchEvent(new Event('scroll')))
+ expect(menu()).not.toBeNull()
+ host.scrollTop+=20;await act(async()=>host.dispatchEvent(new Event('scroll')))
+ expect(menu()).toBeNull();expect(output()).toBe('none')
 })

@@ -23,9 +23,9 @@
  --sidebar:#faf3f5; --accent:#a44969; --accent-soft:#faedf2;
  --ui-active:#f3dfe7; --ui-hover:#f7e7ed; --ui-primary:#a44969; --ui-primary-hover:#893b57; --ui-selected-ink:#893b57;
 }
-.app-shell .nav.active,.app-shell .library-children>button.selected { background:var(--ui-active); color:var(--ui-selected-ink); }
-.app-shell .library-children>button.selected svg { color:inherit; }
-.app-shell .nav:hover:not(:disabled),.app-shell .library-root:hover,.app-shell .library-children>button:hover { background:var(--ui-hover); }
+.app-shell .nav.active,.app-shell .library-children>button.selected,.app-shell .sidebar .library-artifact-row>button.selected { background:var(--ui-active); color:var(--ui-selected-ink); }
+.app-shell .library-children>button.selected svg,.app-shell .library-artifact-row>button.selected svg { color:inherit; }
+.app-shell .nav:hover:not(:disabled),.app-shell .library-root:hover,.app-shell .library-children>button:hover,.app-shell .sidebar .library-artifact-row>button:hover { background:var(--ui-hover); }
 .app-shell .steps button.selected { color:var(--ui-selected-ink); border-bottom-color:var(--ui-selected-ink); }
 .app-shell .primary { background:var(--ui-primary); border-color:var(--ui-primary); }
 .app-shell .primary:hover:not(:disabled) { background:var(--ui-primary-hover); border-color:var(--ui-primary-hover); }

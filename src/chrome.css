@@ -100,9 +100,6 @@
 .library-heading { padding:0 4px 5px 9px; color:var(--text-secondary); font-size:var(--text-sm); }
 .library-menu-button { padding:4px; color:var(--text-secondary); }
 .library-popup-anchor { position:relative; flex:none; }
-.library-popup { position:absolute; right:0; top:100%; z-index:10; min-width:145px; padding:4px; border:1px solid var(--border); border-radius:8px; background:var(--surface); box-shadow:0 6px 18px #0002; }
-.library-popup button { display:block; width:100%; padding:6px 8px; text-align:left; white-space:nowrap; border-radius:4px; }
-.library-popup button:hover,.library-popup button:focus-visible { background:var(--accent-soft); }
 .library-collection + .library-collection { margin-top:5px; }
 .library-collection-body { padding-left:7px; }
 .library-section-label { margin:6px 0 2px 10px; color:var(--text-secondary); font-size:var(--text-xs); }

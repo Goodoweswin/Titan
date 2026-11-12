@@ -3,7 +3,6 @@
  --muted:#636663;
  --sidebar-hover:#ececea;
  --sidebar-selected:#e6e6e3;
- --sidebar-popup:var(--surface);
  --sidebar-error:#895921;
  --text-xs:11px;
  --text-sm:12px;
@@ -81,8 +80,6 @@
  color:var(--ink);
 }
 .app-shell .sidebar .library-root.active .library-title { font-weight:550; }
-.sidebar .library-popup { background:var(--sidebar-popup); }
-.sidebar .library-popup button:is(:hover,:focus-visible) { background:var(--sidebar-selected); }
 .sidebar .library-error { color:var(--sidebar-error); }
 .sidebar .library-empty { color:var(--muted); }
 .sidebar .sidebar-tools {
@@ -107,7 +104,6 @@
   --border-strong:#595d62;
   --sidebar-hover:#2b2e30;
   --sidebar-selected:#36393c;
-  --sidebar-popup:#2b2e30;
   --sidebar-error:#ffcc8f;
   --accent:#a8c2ff;
  }
