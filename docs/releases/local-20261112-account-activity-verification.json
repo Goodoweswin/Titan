@@ -1,0 +1,71 @@
+{
+  "backup": "/Users/janus/Desktop/Titan/release/local-backups/activity-update-20261112-215421",
+  "sourceCommit": "e4538ee5da4b1080adf74ea597dd412f56355dd6",
+  "oldBinarySha256": "f7c093ef1df7c7766c61e5bf84aa996af605c02497f4b96cd5b4a323ac0dbd57",
+  "oldEngineSha256": "25c5f7ba4e2b4d48de8ad025ced2632e0027a883318ba248a3f3f66240d245e7",
+  "appDataBackupVerified": true,
+  "appDataFiles": 96,
+  "issuerConfigured": false,
+  "newBinarySha256": "6d326a37c23667fccce37c81d2dc23dc74ee791d96c585a94291cbdd0fcd6aa8",
+  "newEngineSha256": "25c5f7ba4e2b4d48de8ad025ced2632e0027a883318ba248a3f3f66240d245e7",
+  "installedPath": "/Applications/Titan.app",
+  "installedSha256Verified": true,
+  "installedSignatureVerified": true,
+  "installedAt": "2026-11-12T21:58:00.444477+08:00",
+  "localBuildName": "local-20261112-account-activity",
+  "version": "0.4.1",
+  "libraryUnchangedOnLaunch": true,
+  "libraryFileCount": 96,
+  "bundledReleaseVerification": {
+    "version": "0.4.1",
+    "worker_starts": 1,
+    "engine_protocol": 1,
+    "clean_path": true,
+    "source_independent_copy": true,
+    "measurements": 24,
+    "targets": 12,
+    "blocked": 1,
+    "biological_units": 6,
+    "save_reopen": true,
+    "export_files": 14,
+    "signature_verify_exit": 0,
+    "signature_verify_message": "",
+    "profile_matches_measurement": true,
+    "preview_matches_export": true,
+    "native_window_verified": false,
+    "real_wb_verified": false,
+    "excel_workbook_verified": true,
+    "excel_embedded_plot_matches": true
+  },
+  "bundledStatisticsVerification": {
+    "passed": true,
+    "formats": [
+      "PNG",
+      "SVG",
+      "PDF",
+      "Excel",
+      "JSON",
+      "methods"
+    ],
+    "saveReopen": true
+  },
+  "nativeWindowVerification": {
+    "passed": true,
+    "engineReady": true,
+    "accountCenterPane": true,
+    "squareDailyCalendar": true,
+    "dailyWeeklyCumulativeSwitch": true,
+    "existingActivityAndThemePreserved": true,
+    "leftRunningOn": "account daily view"
+  },
+  "accountService": {
+    "issuerConfigured": false,
+    "liveAuthenticationRetested": false,
+    "deploymentDeferred": true
+  },
+  "signing": "ad-hoc; deep strict verification passed; not notarized",
+  "limits": [
+    "Engineering verification uses synthetic engine fixtures; not experimental accuracy acceptance.",
+    "Live account service and current Keychain persistence are not reaccepted by this unconfigured local build."
+  ]
+}
