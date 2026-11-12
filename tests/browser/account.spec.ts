@@ -142,7 +142,7 @@ test('account center preserves a WB figure draft through return and browsing his
  await account(page).getByRole('button',{name:'登录 / 注册',exact:true}).click()
  await expect(account(page).getByText('登录服务尚未开放',{exact:true})).toBeVisible()
  await expect(account(page).getByRole('heading',{name:'研究足迹',exact:true})).toBeVisible()
- await expect(account(page).getByLabel('最近二十周的分析活动')).toBeVisible()
+ await expect(account(page).getByLabel('最近五十二周的每日分析活动')).toBeVisible()
  await page.keyboard.press('ControlOrMeta+z')
  await page.keyboard.press('Delete')
  await page.keyboard.press('Escape')
@@ -209,4 +209,74 @@ test('credential storage failure waits for explicit memory-only login',async({pa
  await account(page).getByRole('button',{name:'仅本次登录',exact:true}).click()
  expect(await page.evaluate(()=>(window as any).accountCalls.filter((call:any)=>call.command==='auth_login').at(-1).args)).toEqual({memoryOnly:true,switchAccount:false})
  await account(page).getByRole('button',{name:'取消登录',exact:true}).click()
+})
+
+// Illustrative ledgers are seeded only in isolated browser storage. They are not
+// inferred from projects and never written into the installed application's data.
+test('activity periods show square calendars and selected lifetime totals at desktop and minimum width',async({page})=>{
+ await page.clock.setFixedTime(new Date('2027-01-01T12:00:00+08:00'))
+ await page.addInitScript(()=>{
+  const images:Record<string,string>={old:'2024-01-01'},bands:Record<string,string>={}
+  for(let index=0;index<350;index++){
+   const date=new Date(2026,0,5+index,12)
+   const day=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`
+   if(index%5<3){images[`image-${index}`]=day;for(let band=0;band<index%4+1;band++)bands[`band-${index}-${band}`]=day}
+  }
+  images.current='2027-01-01';bands.current='2027-01-01'
+  localStorage.setItem('titan-research-activity-v1',JSON.stringify({version:1,startedAt:'2024-01-01T00:00:00Z',images,bands}))
+ })
+ await page.goto('/?integration=1');await openAccount(page)
+ const section=account(page).getByRole('region',{name:'分析活动',exact:true})
+ const modes=section.getByRole('group',{name:'活动显示方式',exact:true})
+ const daily=section.getByRole('list',{name:'最近五十二周的每日分析活动',exact:true})
+ await expect(daily.getByRole('listitem',{includeHidden:true})).toHaveCount(364)
+ await expect(daily.getByRole('listitem',{includeHidden:true}).last()).toBeHidden()
+ // Width/height are actual rendered geometry, not assertions about CSS source.
+ for(const width of [1440,1080]){
+  await page.setViewportSize({width,height:1000})
+  for(const cell of [daily.getByRole('listitem',{includeHidden:true}).first(),daily.getByRole('listitem',{includeHidden:true}).nth(150)]){
+   const box=await cell.boundingBox();expect(box).not.toBeNull();expect(Math.abs(box!.width-box!.height)).toBeLessThan(.1);expect(box!.width).toBeGreaterThanOrEqual(10)
+  }
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
+ }
+ await page.setViewportSize({width:1440,height:1000})
+ await section.screenshot({path:'artifacts/accounts/activity-daily.png'})
+ await section.getByRole('button',{name:'条带数',exact:true}).click()
+ await modes.getByRole('button',{name:'每周',exact:true}).click()
+ const weekly=section.getByRole('list',{name:'最近五十二周的每周分析活动',exact:true})
+ await expect(weekly.getByRole('listitem')).toHaveCount(52)
+ await expect(weekly.getByRole('listitem').last()).toHaveAttribute('title',/2026-12-28.*2027-01-03.*1 条新增条带.*截至 2027-01-01/)
+ const box=await weekly.getByRole('listitem').last().boundingBox();expect(box!.width).toBe(box!.height)
+ await expect(section).toContainText('每格一周')
+ await section.screenshot({path:'artifacts/accounts/activity-weekly.png'})
+ await modes.getByRole('button',{name:'累计总量',exact:true}).click()
+ const expected=await page.evaluate(()=>Object.keys(JSON.parse(localStorage.getItem('titan-research-activity-v1')!).bands).length)
+ await expect(section.locator('.account-activity-total')).toHaveText(`${expected}条累计新增条带`)
+ await expect(section).toContainText('全部已记录活动，包含最近 52 周之前的记录')
+ await section.getByRole('button',{name:'图像数',exact:true}).click()
+ await expect(section.locator('.account-activity-total')).toHaveText('212张累计新增图像')
+ await section.screenshot({path:'artifacts/accounts/activity-cumulative.png'})
+ await modes.getByRole('button',{name:'每日',exact:true}).click();await expect(daily).toBeVisible()
+ await page.getByRole('complementary',{name:'Titan 导航',exact:true}).getByRole('button',{name:'首页',exact:true}).click()
+ await expect(account(page)).toBeHidden()
+ await page.getByRole('navigation',{name:'浏览导航',exact:true}).getByRole('button',{name:'后退',exact:true}).click()
+ await expect(daily).toBeVisible()
+})
+
+test('activity periods distinguish fresh tracking from unavailable storage',async({page})=>{
+ await page.goto('/?integration=1');await openAccount(page)
+ const section=account(page).getByRole('region',{name:'分析活动',exact:true})
+ await expect(section).toContainText('完成首次真实数据分析后')
+ await expect(section.locator('.is-untracked')).not.toHaveCount(0)
+ await section.getByRole('button',{name:'每周',exact:true}).click()
+ await expect(section).toContainText('仅部分日期已记录')
+ await section.getByRole('button',{name:'累计总量',exact:true}).click()
+ await expect(section.locator('.account-activity-total')).toHaveText('0张累计新增图像')
+ await page.evaluate(()=>localStorage.setItem('titan-research-activity-v1','{broken'))
+ await page.reload();await openAccount(page)
+ await expect(section).toContainText('读取研究足迹后显示活动')
+ await section.getByRole('button',{name:'累计总量',exact:true}).click()
+ await expect(section.locator('.account-activity-total')).toHaveCount(0)
+ await expect(account(page)).toContainText('研究足迹暂不可用')
+ expect(await page.evaluate(()=>localStorage.getItem('titan-research-activity-v1'))).toBe('{broken')
 })

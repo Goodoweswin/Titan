@@ -38,18 +38,35 @@
 .account-metric-toggle { display:flex; flex-shrink:0; border:1px solid var(--border); padding:3px; border-radius:8px; gap:3px; }
 .account-metric-toggle button { border-radius:5px; padding:4px 10px; font-size:var(--text-xs); }
 .account-metric-toggle [aria-pressed=true] { background:var(--ui-primary); color:#fff; }
-.account-calendar-scroll { overflow-x:auto; padding-bottom:4px; }
-.account-calendar { display:grid; grid-template-rows:repeat(7,14px); grid-auto-flow:column; grid-template-columns:repeat(20,minmax(12px,1fr)); gap:5px; min-width:340px; }
-.account-day { display:block; border-radius:3px; background:#eceeed; }
-.account-day.level-1 { background:color-mix(in srgb,var(--accent) 20%,white); }
-.account-day.level-2 { background:color-mix(in srgb,var(--accent) 45%,white); }
-.account-day.level-3 { background:color-mix(in srgb,var(--accent) 70%,white); }
+.account-activity-heading { flex-wrap:wrap; }
+.account-activity-controls { display:flex; align-items:center; flex-wrap:wrap; gap:16px; }
+.account-period-toggle { display:flex; align-items:center; gap:12px; }
+.account-period-toggle button { padding:6px 0; font-size:var(--text-xs); color:var(--muted); }
+.account-period-toggle [aria-pressed=true] { color:var(--ink); font-weight:600; }
+.account-calendar-scroll { overflow-x:auto; padding-bottom:4px; max-width:100%; }
+.account-calendar-frame { --activity-cell:11px; --activity-gap:3px; width:max-content; }
+.account-calendar { display:grid; grid-template-rows:repeat(7,var(--activity-cell)); grid-auto-flow:column; grid-template-columns:repeat(52,var(--activity-cell)); gap:var(--activity-gap); }
+.account-calendar-weekly { grid-template-rows:var(--activity-cell); }
+.account-day { display:block; width:11px; height:11px; box-sizing:border-box; border-radius:2px; background:color-mix(in srgb,var(--muted) 16%,var(--surface)); }
+.account-day.level-1 { background:color-mix(in srgb,var(--accent) 20%,var(--surface)); }
+.account-day.level-2 { background:color-mix(in srgb,var(--accent) 45%,var(--surface)); }
+.account-day.level-3 { background:color-mix(in srgb,var(--accent) 70%,var(--surface)); }
 .account-day.level-4 { background:var(--accent); }
-.account-day.is-untracked { background:#f6f6f5; border:1px solid var(--border); }
+.account-day.is-untracked { background:var(--surface); border:1px solid var(--border); }
+.account-day.is-partial { border:1px dashed var(--muted); }
 .account-day.is-future { visibility:hidden; }
-.account-calendar-dates { display:flex; justify-content:space-between; margin-top:9px; font-size:var(--text-xs); color:var(--muted); min-width:340px; }
+.account-calendar-months { display:grid; grid-template-columns:repeat(52,var(--activity-cell)); gap:var(--activity-gap); margin-top:8px; font-size:var(--text-xs); color:var(--muted); }
+.account-calendar-months span { white-space:nowrap; width:max-content; }
+.account-calendar-dates { display:flex; justify-content:space-between; margin-top:7px; font-size:var(--text-xs); color:var(--muted); }
 .account-calendar-footer { display:flex; align-items:center; justify-content:flex-end; gap:5px; margin-top:8px; color:var(--muted); font-size:var(--text-xs); }
-.account-calendar-footer i { width:12px; height:12px; }
+.account-calendar-footer i { flex-shrink:0; }
+.account-calendar-state { display:flex; align-items:center; gap:5px; margin-right:auto; }
+.account-cumulative { padding:18px 0 8px; }
+.account-activity-total { display:flex; align-items:baseline; gap:5px; }
+.account-activity-total strong { font-size:2rem; font-weight:600; font-variant-numeric:tabular-nums; }
+.account-activity-total span { color:var(--muted); font-size:var(--text-sm); }
+.account-activity-total span:last-child { margin-left:10px; }
+.account-cumulative>p+p { color:var(--muted); font-size:var(--text-xs); margin-top:8px; }
 .account-counting-note { color:var(--muted); font-size:var(--text-xs); line-height:1.8; margin-top:12px; }
 .account-footer { display:flex; align-items:center; gap:8px; border-top:1px solid var(--border); padding-top:18px; margin-top:30px; color:var(--muted); font-size:var(--text-xs); }
 .account-footer svg { flex-shrink:0; }

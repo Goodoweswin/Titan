@@ -46,16 +46,37 @@ export function activitySummary(activity:ResearchActivity,now=new Date()) {
  while(days.has(localDay(cursor))){streak++;cursor.setDate(cursor.getDate()-1)}
  return {images:images.length,bands:bands.length,days:days.size,streak,monthImages:images.filter(day=>day.startsWith(month)).length,monthBands:bands.filter(day=>day.startsWith(month)).length}
 }
-export function activityCalendar(activity:ResearchActivity,metric:'images'|'bands',now=new Date()) {
+export type ActivityMetric='images'|'bands'
+
+/** 52 Monday–Sunday weeks, including the current (possibly unfinished) week. */
+export function activityCalendar(activity:ResearchActivity,metric:ActivityMetric,now=new Date()) {
  const counts=new Map<string,number>()
  Object.values(activity[metric]).forEach(day=>counts.set(day,(counts.get(day)??0)+1))
  const end=new Date(now.getFullYear(),now.getMonth(),now.getDate(),12)
  end.setDate(end.getDate()+6-(end.getDay()+6)%7)
- const start=new Date(end);start.setDate(start.getDate()-139)
+ const start=new Date(end);start.setDate(start.getDate()-363)
  const today=localDay(now),started=localDay(new Date(activity.startedAt))
- return Array.from({length:140},(_,index)=>{
+ return Array.from({length:364},(_,index)=>{
   const date=new Date(start);date.setDate(start.getDate()+index)
   const day=localDay(date)
-  return {day,count:counts.get(day)??0,untracked:day<started,future:day>today}
+  const untracked=day<started,future=day>today
+  return {day,count:untracked||future?null:counts.get(day)??0,untracked,future}
  })
+}
+
+/** Aggregate measured dates only; an untracked week is unknown, not zero. */
+export function activityWeeks(activity:ResearchActivity,metric:ActivityMetric,now=new Date()) {
+ const calendar=activityCalendar(activity,metric,now)
+ return Array.from({length:52},(_,index)=>{
+  const days=calendar.slice(index*7,index*7+7),tracked=days.filter(day=>day.count!==null)
+  return {start:days[0].day,end:days[6].day,through:tracked.at(-1)?.day??null,
+   count:tracked.length?tracked.reduce((sum,day)=>sum+(day.count??0),0):null,
+   trackedDays:tracked.length,untracked:tracked.length===0,partial:tracked.length>0&&tracked.length<7}
+ })
+}
+
+/** Lifetime ledger totals deliberately include records before the visible window. */
+export function activityTotals(activity:ResearchActivity,metric:ActivityMetric,now=new Date()) {
+ const days=Object.values(activity[metric])
+ return {count:days.length,activeDays:new Set(days).size,start:localDay(new Date(activity.startedAt)),through:localDay(now)}
 }

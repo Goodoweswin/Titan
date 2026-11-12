@@ -12,7 +12,7 @@ beforeEach(()=>{
  Object.assign(globalThis,{IS_REACT_ACT_ENVIRONMENT:true})
  localStorage.clear();container=document.createElement('div');document.body.append(container);root=createRoot(container)
 })
-afterEach(()=>{act(()=>root.unmount());container.remove();vi.restoreAllMocks()})
+afterEach(()=>{act(()=>root.unmount());container.remove();vi.restoreAllMocks();vi.useRealTimers()})
 const props=()=>({entries:[] as LibraryEntry[],libraryError:'',activity:newActivity(),activityError:'',opening:false,onBack:vi.fn(),onOpen:vi.fn(),onRetry:vi.fn()})
 
 it('shows an honest guest state and login preparation without collecting credentials',()=>{
@@ -26,7 +26,7 @@ it('shows an honest guest state and login preparation without collecting credent
  act(()=>button.click())
  expect(container.querySelector<HTMLElement>('#account-login-info')!.hidden).toBe(false)
  expect(container.querySelector('#account-login-info')!.textContent).toContain('登录服务尚未开放')
- expect(container.querySelectorAll('.account-calendar [role=listitem]')).toHaveLength(140)
+ expect(container.querySelectorAll('.account-calendar [role=listitem]')).toHaveLength(364)
  expect(container.querySelectorAll('.account-metrics dd')).toHaveLength(5)
 })
 
@@ -50,4 +50,24 @@ it('preserves corrupt activity storage and exposes an error',()=>{
  act(()=>root.render(createElement(Probe)))
  expect(container.textContent).toContain('暂不可用')
  expect(localStorage.getItem(activityStorageKey)).toBe('{broken')
+})
+
+it('switches daily, weekly and lifetime views while preserving selected metric',()=>{
+ vi.useFakeTimers();vi.setSystemTime(new Date(2027,0,1,12))
+ const input=props();input.activity={...newActivity(new Date(2024,0,1,12)),images:{old:'2024-01-01',current:'2027-01-01'},bands:{a:'2027-01-01',b:'2027-01-01',c:'2027-01-01'}}
+ act(()=>root.render(createElement(AccountPage,input)))
+ const click=(label:string)=>act(()=>Array.from(container.querySelectorAll('button')).find(button=>button.textContent===label)!.click())
+ expect(container.querySelectorAll('.account-calendar [role=listitem]')).toHaveLength(364)
+ click('条带数');click('每周')
+ expect(container.querySelectorAll('.account-calendar [role=listitem]')).toHaveLength(52)
+ expect(container.querySelector('.account-calendar [role=listitem]:last-child')?.getAttribute('aria-label')).toContain('3 条新增条带')
+ expect(container.textContent).toContain('每格一周')
+ click('累计总量')
+ expect(container.querySelector('.account-activity-total')?.textContent).toContain('3条')
+ expect(container.textContent).toContain('1 天有新增条带')
+ click('图像数')
+ expect(container.querySelector('.account-activity-total')?.textContent).toContain('2张')
+ click('每日')
+ expect(container.querySelector('.account-calendar [role=listitem]:last-child')?.getAttribute('aria-label')).toContain('尚未到来')
+ vi.useRealTimers()
 })
