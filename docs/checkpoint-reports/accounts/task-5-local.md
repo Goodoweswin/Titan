@@ -43,5 +43,5 @@ Persistent login **did not pass current acceptance**. Actual app Keychain write 
 - **Container/server:** actual pinned Docker build, Compose runtime validation, installed Caddy version validation, dedicated peer network and firewall inspection, measured combined cgroup memory/peak/OOM under 384 MiB, host/gateway headroom, load/failure/restore timing.
 - **Platform:** current usable macOS Keychain persistent login/restart; production-signed macOS ACL; actual Windows default browser/loopback/Credential Manager/offline/logout/restart. Linux compile jobs are not Linux packaging support.
 - **CI:** workflow added, no GitHub run triggered or claimed. Installer build success will still require native user-session acceptance.
-- **Review:** independent Task5 and final whole-branch reviews owned by controller; schema compatibility and account image digest must be recorded before a later rollout.
+- **Review:** Task5 scoped review approved; final whole-branch review remains owned by controller; schema compatibility and account image digest must be recorded before a later rollout.
 - **Local cleanup:** controller reported the Mac locked; isolated GUI/test-tab cleanup awaits user unlock. Existing installed Titan remains untouched.

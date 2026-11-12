@@ -80,13 +80,18 @@ Consumes: Tauri command/snapshot and API contracts. Produces: complete login/can
 
 Files: create `deploy/accounts/{compose.yaml,Caddyfile.fragment,env.example,README.md}`, scripts for checks/backup/restore and local test launch; `.github/workflows/accounts.yml`; `docs/checkpoint-reports/accounts/`.
 Consumes: runnable service and desktop implementation. Produces: reviewable artifacts, local E2E evidence and honest remaining deployment/platform checklist.
-- [ ] Test production settings fail closed without explicit issuer/secret/DB/SMTP/trusted proxy config; validate Compose/network exposure/resources and rollback script scope.
-- [ ] Add pinned image build, dedicated app/database networks and volumes, loopback-only optional preview, bounded outbox worker, health/log controls and no second public 80/443 binding.
-- [ ] Document gateway config validation and reversible swap with existing admin-off Caddy; no arbitrary execution against ECS. Include old-product read-only health checks and per-release manifest.
-- [ ] Test encrypted backup and restore to a separate local database with forced new session epoch. Never restore over live data by default.
-- [ ] Run full local PostgreSQL account flow + real system-browser/macOS callback/keychain when available; ensure guest WB flow and save/reopen/export still pass. Capture limitations without treating mocks as platform evidence.
-- [ ] Add Windows/Linux CI tests and build jobs; native Windows acceptance remains explicitly pending without actual evidence.
-- [ ] Review full branch against spec and resolve findings; record exact results, commits, startup instructions, unconfigured-production behavior and inputs needed for deployment.
+- [x] Test production settings fail closed without explicit issuer/secret/DB/SMTP/trusted gateway config; inspect Compose/network exposure/resources offline and verify image-only rollback script scope. Actual container validation remains pending below.
+- [x] Add pinned image build materials, dedicated app/database networks and volumes, loopback-only optional preview, bounded outbox worker, health/log controls and no second public 80/443 binding. Image build/runtime and memory viability are not claimed.
+- [x] Document gateway config validation and reversible swap with existing admin-off Caddy; no arbitrary execution against ECS. Include old-product read-only health checks and per-release manifest procedure.
+- [x] Test encrypted backup and restore to a separate local database with forced new session epoch; reject existing/live targets. Real age/PostgreSQL disposable drill passed.
+- [x] Run full local PostgreSQL account tests and actual default-browser/macOS callback plus explicit memory-only login; confirm guest WB quantification/save/reopen/export. Preserve separate current Keychain failure evidence without substituting mocks or historical success.
+- [x] Add Windows/Linux CI test/build jobs; record that remote CI and actual Windows native acceptance have not run.
+- [x] Complete Task5 scoped independent review and durable handoff with exact results, commits, startup instructions, unconfigured behavior, execution rulings and remaining inputs. See [implementation verification](../../checkpoint-reports/accounts/implementation-verification.md).
+- [ ] Controller final whole-branch review against spec and resolution of any new findings — pending after the documentation handoff.
+- [ ] Current actual macOS persistent login/restart acceptance — NOT PASSED (OS write -25293); production-signed/notarized ACL acceptance also pending. Historical Task3 Keychain success does not satisfy this gate.
+- [ ] Actual Windows native browser/callback/Credential Manager/restart acceptance and remote CI execution — pending. Linux platform/package acceptance is not claimed.
+- [ ] Actual Docker build/Compose/runtime/Caddy validation and combined 384 MiB memory/load/failure measurement — pending tool/server environment; offline checks are not these gates.
+- [ ] Production domain/DNS/SMTP delivery/ECS deployment and old-product gateway health/swap verification — explicitly deferred by user; requires concrete inputs and later deployment authorization.
 
 ## Execution decisions
 

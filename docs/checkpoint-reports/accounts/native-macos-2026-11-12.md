@@ -23,7 +23,7 @@ Temporary diagnostics, file switch and direct dependency were removed by the Tas
 
 ## Other verification
 `.venv/bin/python -m pytest -q` after integration and environment isolation:346 passed +5 subtests,29.03s.
-Native debug builds succeed; existing decode_response warning and lack of notarization credentials reported.
+Native debug builds succeed; pre-existing Cargo warning `function decode_response is never used` at `src-tauri/src/lib.rs:11:4` and lack of notarization credentials reported.
 
 ## Cleanup state
 CUA later reported Mac locked and automatic unlock failed, so test app/window cleanup awaits user handoff. Async unlock request sent. No further UI action while locked. Local Chrome test tab IDs:1251376197,1251376200,1251376203,1251376206.
