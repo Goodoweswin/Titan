@@ -28,7 +28,7 @@
 - [x] Exercise cross-module navigation, collapse persistence, contextual availability, cancelled leave prompts and source identity through browser tests. Run production build and the frontend test suite.
 - [x] Build the Mac app, back up and install, exercise actual navigation and panel controls, and update the version registry.
 
-The navigation build was exercised in the native app. The compact-font build was installed and its sidebar was visible. After the user completed macOS account verification, the old library loaded and the saved WB analysis reopened. Restoration of the unconfirmed TIFF chooser is tracked in the successor sidebar-appearance verification report. The full final-source GitHub suite passed (83 browser, 88 frontend unit, 346 Python tests and 5 subtests).
+The navigation build was exercised in the native app. The compact-font build was installed and its sidebar was visible. After the user completed macOS account verification, the old library loaded and the saved WB analysis reopened. The original TIFF chooser was restored with both pages unchecked in the successor sidebar-appearance build; its report records the completed native follow-up. The full final-source GitHub suite passed (83 browser, 88 frontend unit, 346 Python tests and 5 subtests).
 
 ## Review focus
 

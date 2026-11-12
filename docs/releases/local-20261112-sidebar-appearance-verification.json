@@ -41,10 +41,13 @@
   },
   "native_checks": [
     "The installed app has a light sidebar alongside the light workspace in the current daytime macOS appearance.",
-    "The compact sidebar typography and saved 232px width are retained."
+    "The compact sidebar typography and saved 232px width are retained.",
+    "After the user completed the macOS system confirmation, the Desktop access switch was on and the saved project list loaded successfully.",
+    "The original saved WB analysis reopened with zero imported images and no unsaved data edits.",
+    "The original two-page TIFF chooser was restored with both pages unchecked and the import button disabled; no image pages were imported.",
+    "The redundant System Settings authentication dialog was cancelled after the working access was confirmed."
   ],
-  "native_pending": [
-    "Refresh existing Desktop access after the binary replacement and restore the unconfirmed TIFF page chooser."
-  ],
-  "validation_scope": "CSS-only visual fix. Dark/light live transitions and contrast verified by browser regression; actual daytime sidebar verified in the macOS app. No scientific-pixel, analysis-engine or Windows-native changes or new claims."
+  "native_pending": [],
+  "validation_scope": "CSS-only visual fix. Dark/light live transitions and contrast verified by browser regression; actual daytime sidebar verified in the macOS app. No scientific-pixel, analysis-engine or Windows-native changes or new claims.",
+  "native_follow_up_verified_at": "2026-11-12T12:58:19.660483+08:00"
 }

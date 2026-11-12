@@ -34,7 +34,7 @@
 
 | 构建编号 | 源码与基础版本 | 主要范围 | 验收及分发状态 |
 | --- | --- | --- | --- |
-| `local-20261112-sidebar-appearance` | `codex/sidebar-system-appearance` · `b274098` · 基础 `v0.4.1-beta.3` | 左栏、搜索框、选中行及项目菜单跟随系统明暗外观 | 已安装至 `/Applications/Titan.app`。GitHub 完整 84 项浏览器、88 项前端、346 项 Python 检查及 Mac 构建通过；原生窗口已核对日间浅色左栏。桌面旧项目恢复仍待本机账户验证。[本机验证报告](local-20261112-sidebar-appearance-verification.json) |
+| `local-20261112-sidebar-appearance` | `codex/sidebar-system-appearance` · `b274098` · 基础 `v0.4.1-beta.3` | 左栏、搜索框、选中行及项目菜单跟随系统明暗外观 | 已安装至 `/Applications/Titan.app`。GitHub 完整 84 项浏览器、88 项前端、346 项 Python 检查及 Mac 构建通过；原生窗口已核对日间浅色左栏。用户确认系统访问后，旧项目及未确认的 TIFF 选页窗口已恢复。[本机验证报告](local-20261112-sidebar-appearance-verification.json) |
 | `local-20261112-navigation-panels` | `codex/independent-project-workspace` · `bb39acc` · 基础 `v0.4.1-beta.3` | 固定前进／后退导航、独立折叠左右栏、紧凑项目字体 | 曾安装至 `/Applications/Titan.app`。GitHub 完整 83 项浏览器、88 项单元及 346 项 Python 检查通过；原生窗口已显示紧凑左栏。用户完成系统验证后，已打开既有 WB 分析。[本机验证报告](local-20261112-navigation-panels-verification.json) |
 | `local-20261112-navigation-panels-preview` | `codex/independent-project-workspace` · `924c700` · 基础 `v0.4.1-beta.3` | 前进／后退、分析位置恢复和左右面板折叠 | 曾安装至 `/Applications/Titan.app`。GitHub 完整 82 项浏览器、88 项单元及 346 项 Python 检查通过；原生窗口已核对前进／后退和左右面板。[本机验证报告](local-20261112-navigation-panels-preview-verification.json) |
 | `local-20261112-page-cards` | `codex/independent-project-workspace` · `b635b56` · 基础 `v0.4.1-beta.3` | TIFF 页面改为整卡选择，加大卡片和状态方框，区分选中与预览 | 曾安装至 `/Applications/Titan.app`。82 项单元检查及 6 项页面选择、项目回归检查通过；原生窗口已恢复原 TIFF 页面选择。[本机验证报告](local-20261112-page-cards-verification.json) |
@@ -67,7 +67,7 @@
 
 | 日期（北京时间） | 位置与应用标识 | 安装状态 |
 | --- | --- | --- |
-| 2026-11-12 12:38 | `/Applications/Titan.app` · `com.titan.wb` | **当前安装** `local-20261112-sidebar-appearance`，显示版本 `0.4.1`。旧应用和项目库已备份；已核对实际浅色左栏。[校验值和备份位置](local-20261112-sidebar-appearance-verification.json) |
+| 2026-11-12 12:38 | `/Applications/Titan.app` · `com.titan.wb` | **当前安装** `local-20261112-sidebar-appearance`，显示版本 `0.4.1`。旧应用和项目库已备份；已核对实际浅色左栏，已恢复原 WB 分析及未选择页面的 TIFF 窗口。[校验值和备份位置](local-20261112-sidebar-appearance-verification.json) |
 | 2026-11-12 03:54 | `/Applications/Titan.app` · `com.titan.wb` | 此前安装 `local-20261112-navigation-panels`，显示版本 `0.4.1`。旧应用及项目库已备份，主程序和内置引擎校验通过。[校验值和备份位置](local-20261112-navigation-panels-verification.json) |
 | 2026-11-12 03:45 | `/Applications/Titan.app` · `com.titan.wb` | 此前安装 `local-20261112-navigation-panels-preview`，原生验证前进、后退及左右面板折叠通过。[校验值和备份位置](local-20261112-navigation-panels-preview-verification.json) |
 | 2026-11-12 03:01 | `/Applications/Titan.app` · `com.titan.wb` | 此前安装 `local-20261112-page-cards`，显示版本 `0.4.1`。旧应用和项目库已备份；已恢复原 WB 分析和 TIFF 页面选择窗口。[校验值和备份位置](local-20261112-page-cards-verification.json) |

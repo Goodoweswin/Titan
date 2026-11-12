@@ -56,8 +56,7 @@
     "Compact sidebar is visible in the running dark-mode native window.",
     "After the user completed macOS account verification, the saved project list loaded and an existing WB analysis reopened as saved with zero imported images."
   ],
-  "native_pending": [
-    "The unconfirmed TIFF page chooser will be restored while verifying the successor sidebar-appearance build."
-  ],
-  "validation_scope": "Navigation and layout verification only. No real-WB/IF scientific accuracy claim; no Windows native GUI acceptance in this local update."
+  "native_pending": [],
+  "validation_scope": "Navigation and layout verification only. No real-WB/IF scientific accuracy claim; no Windows native GUI acceptance in this local update.",
+  "state_restoration_verified_in_successor_build": "local-20261112-sidebar-appearance"
 }
