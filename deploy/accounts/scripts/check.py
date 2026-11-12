@@ -23,6 +23,13 @@ for name, service in config["services"].items():
     if name != "db":
         assert service["read_only"] and service["cap_drop"] == ["ALL"]
         assert service["user"] == "10001:10001"
+        # A comma in an unquoted YAML flow item silently creates a second mount.
+        # Check the parsed mount contract before Docker tries to start the API.
+        assert len(service["tmpfs"]) == 1, "Expected one bounded /tmp mount"
+        mount, options = service["tmpfs"][0].split(":", 1)
+        assert mount == "/tmp" and set(options.split(",")) == {
+            "size=16m", "mode=1777"
+        }, "Expected a 16 MiB writable temporary directory with sticky permissions"
 assert re.search(r"@sha256:[a-f0-9]{64}$", config["services"]["db"]["image"])
 assert config["networks"]["database"]["internal"]
 assert config["networks"]["gateway"]["external"]
