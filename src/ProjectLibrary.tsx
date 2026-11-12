@@ -69,7 +69,7 @@ export default function ProjectLibrary({entries,projects,selectedProjectId,onPro
  }
  function popup(id:string,label:string,items:ActionMenuItem[]){
   return <div className="library-popup-anchor">
-   <button type="button" className="icon-btn library-menu-button" aria-label={label}
+   <button type="button" className="icon-btn library-menu-button" aria-label={label} data-action-menu-trigger={id}
     aria-haspopup="menu" aria-expanded={activeId===id} disabled={busy}
     onKeyDown={event=>keyboardMenu(event,id,label,items)}
     onClick={event=>{if(activeId===id)closeMenu();else{const box=event.currentTarget.getBoundingClientRect();showMenu(id,label,items,event.currentTarget,{x:box.left,y:box.bottom+4})}}}><Ellipsis size={16}/></button>
@@ -158,7 +158,7 @@ export default function ProjectLibrary({entries,projects,selectedProjectId,onPro
  return <nav className="project-library" aria-label="实验项目库">
   <label className="library-search"><Search size={14}/><input aria-label="搜索项目或图表" placeholder="搜索项目或图表" value={query} onChange={event=>setQuery(event.target.value)}/></label>
   <div className="library-heading"><span>项目</span><div className="library-popup-anchor">
-   <button type="button" className="icon-btn library-menu-button" aria-label="新建或打开" title="新建或打开" aria-haspopup="menu" aria-expanded={activeId==='create'} disabled={busy}
+   <button type="button" className="icon-btn library-menu-button" aria-label="新建或打开" title="新建或打开" data-action-menu-trigger="create" aria-haspopup="menu" aria-expanded={activeId==='create'} disabled={busy}
     onKeyDown={event=>keyboardMenu(event,'create','新建或打开',createItems)}
     onClick={event=>{if(activeId==='create')closeMenu();else{const box=event.currentTarget.getBoundingClientRect();showMenu('create','新建或打开',createItems,event.currentTarget,{x:box.left,y:box.bottom+4})}}}><Plus size={18}/></button>
   </div></div>

@@ -54,14 +54,17 @@ export function ActionMenuProvider({children}:{children:ReactNode}){
   if(!menu)return
   const outside=(event:Event)=>{
    if(element.current?.contains(event.target as Node))return
+   const live=current.current
+   if(event.type==='pointerdown'&&live&&event.target instanceof Element&&
+    (live.origin.contains(event.target)||live.id&&event.target.closest('[data-action-menu-trigger]')?.getAttribute('data-action-menu-trigger')===live.id))return
    if(event.type==='scroll'){
     const target=event.target===document?document.scrollingElement:event.target instanceof Element?event.target:null
     const before=target&&current.current?.scrollPositions.get(target)
     if(target&&before&&target.scrollLeft===before[0]&&target.scrollTop===before[1])return
    }
-   dismiss(false)
+   dismiss(true)
   }
-  const windowChanged=()=>dismiss(false)
+  const windowChanged=()=>dismiss(true)
   const invalidated=new MutationObserver(()=>{
    const origin=current.current?.origin
    if(origin&&(!origin.isConnected||origin.closest('[inert]')||origin.matches(':disabled')))dismiss(false)

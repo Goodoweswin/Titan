@@ -54,6 +54,7 @@ it('outside scrolling window resizing and window blur dismiss without edits',asy
   await open();if(type==='scroll')host.scrollTop+=10
   await act(async()=>target.dispatchEvent(new Event(type)))
   expect(menu()).toBeNull();expect(output()).toBe('none')
+  expect(document.activeElement?.id).toBe('one')
  }
 })
 

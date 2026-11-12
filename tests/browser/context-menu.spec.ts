@@ -74,6 +74,23 @@ test('sidebar project and analysis menus share actions without navigating on rig
  await expect(page.getByLabel('实验名称',{exact:true})).toHaveValue(analysis.project.name)
 })
 
+test('sidebar ellipsis and plus close on the second pointer click',async({page})=>{
+ const {a}=await sidebarFixture(page)
+ for(const button of [page.getByRole('button',{name:'新建或打开',exact:true}),page.getByRole('button',{name:'项目菜单 '+a.name,exact:true})]){
+  await button.click();await expect(menu(page)).toBeVisible();await expect(button).toHaveAttribute('aria-expanded','true')
+  await button.click();await expect(menu(page)).toBeHidden();await expect(button).toHaveAttribute('aria-expanded','false')
+ }
+})
+
+test('sidebar scrolling and resizing restore the original keyboard focus',async({page})=>{
+ const {a}=await sidebarFixture(page),origin=page.getByRole('button',{name:'打开项目 '+a.name,exact:true})
+ await page.evaluate(()=>{document.body.style.paddingBottom='1500px'})
+ await origin.click({button:'right'});await expect(menu(page)).toBeVisible()
+ await page.evaluate(()=>window.scrollTo(0,200));await expect(menu(page)).toBeHidden();await expect(origin).toBeFocused()
+ await origin.click({button:'right'});await expect(menu(page)).toBeVisible()
+ await page.setViewportSize({width:1100,height:850});await expect(menu(page)).toBeHidden();await expect(origin).toBeFocused()
+})
+
 test('sidebar menu supports keyboard dismissal viewport edges and live appearance',async({page})=>{
  const {a}=await sidebarFixture(page)
  const project=page.getByRole('button',{name:'打开项目 '+a.name,exact:true})
