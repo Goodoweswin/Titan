@@ -36,10 +36,12 @@ def test_admin_disable_then_reenable_does_not_resurrect_tokens(
     tokens, _ = mint(client, user, application)
     model_admin = AccountAdmin(User, admin.site)
     request = RequestFactory().post("/admin/")
-    user.is_active = False
-    model_admin.save_model(request, user, None, True)
-    user.is_active = True
-    model_admin.save_model(request, user, None, True)
+    from .test_admin_concurrency import edit_form
+
+    disable = edit_form(user, is_active=False)
+    model_admin.save_model(request, user, disable, True)
+    enable = edit_form(user, is_active=True)
+    model_admin.save_model(request, user, enable, True)
     assert client.get("/api/v1/me", **headers(tokens)).status_code == 401
     assert refresh(client, tokens["refresh_token"]).status_code == 400
 
@@ -204,10 +206,12 @@ def test_disable_reenable_cannot_revive_browser_or_unredeemed_code(
     code = parse_qs(urlparse(response["Location"]).query)["code"][0]
     model_admin = AccountAdmin(User, admin.site)
     request = RequestFactory().post("/admin/")
-    user.is_active = False
-    model_admin.save_model(request, user, None, True)
-    user.is_active = True
-    model_admin.save_model(request, user, None, True)
+    from .test_admin_concurrency import edit_form
+
+    disable = edit_form(user, is_active=False)
+    model_admin.save_model(request, user, disable, True)
+    enable = edit_form(user, is_active=True)
+    model_admin.save_model(request, user, enable, True)
     response = client.post(
         "/o/token/",
         {

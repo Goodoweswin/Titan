@@ -81,3 +81,32 @@ No actual browser GUI or native desktop login/credential-store acceptance occurr
 No container hard-limit measurement, backup/restore drill or combined 384 MiB viability claim is made. Session labels currently use the honest generic `Titan Desktop` / `desktop` because no device metadata protocol was agreed. Behind a proxy source limits conservatively use its REMOTE_ADDR until a trusted source-address mechanism is configured; do not trust arbitrary forwarded-for headers. Admin is off by default and must be restricted to a private management gateway when enabled. Production signing-key rotation with overlapping JWKS keys is not implemented in this first issuer; changing keys requires coordinating a session epoch/key rollover and reauthentication.
 
 Sources inspected: official DOT stable settings/OIDC/changelog, installed DOT 3.4.1 validator/model/view source, official Django password management, official DRF release notes. URLs are recorded in the service README.
+
+## Review fix round 1 — stale admin edits (2026-11-12)
+
+Confirmed the review finding against real PostgreSQL with real bound Django ModelForms. A form loaded/validated before another administrator disables the account could rewrite is_active/auth_version; a nickname form loaded before password recovery could also restore the old password. The earlier single-object disable/re-enable tests did not cover this stale-object interleaving.
+
+Repair: `AccountAdmin.save_model` now retains the newly locked User as the authoritative state and saves only the allowed scalar fields named by the validated form's `changed_data`. Ordinary editing cannot write password/auth_version/verification/login metadata. Unchanged old is_active cannot undo another administrator's disablement. The admin/form instance is refreshed after the merge. Calls to the change hook without form change metadata now fail closed with ValueError; the actual Django admin always supplies a form. Existing direct-hook tests were updated to real ModelForms instead of `form=None`, and the original review's ad hoc None-form reproducer should likewise use a real form to exercise the supported admin flow.
+
+Reviewing the other full-object write paths found that Django's dedicated admin password view bypasses `save_model` and calls its password form directly. `CurrentUserPasswordChangeForm` therefore acquires the same user-row lock, reloads current state, invokes Django's password setter and writes only the password field. It cannot restore a stale auth_version/active flag. Unchanged groups/permissions were also previously written by ModelForm.save_m2m; `save_related` now omits unchanged relationships, retaining newer assignments while allowing explicit edits. The normal Django admin change transaction keeps the user lock through related-object saving.
+
+Focused new tests in `accounts/tests/test_admin_concurrency.py`:
+
+1. Stale nickname form after disable preserves disabled state and new credential version; after an intentional fresh re-enable, old authorization code, browser session and recovery link remain invalid.
+2. Stale nickname form after an actual recovery endpoint reset preserves the new password/version and keeps old desktop tokens invalid.
+3. Missing admin change-form metadata is rejected instead of guessing edit intent.
+4. Stale admin password form after disable preserves disabled state/new version while applying the intended new password.
+5. Unchanged submitted group values do not erase a newer group assignment.
+
+RED: the initial three cases each failed as expected (active state resurrected, old password restored, missing-metadata call not rejected). The expanded five-case run failed all five, additionally reproducing admin-password-form active-state resurrection and stale group erasure. These are deterministic PostgreSQL transaction interleavings, not claims of simultaneous worker execution; the existing separate-connection refresh/code/recovery races were retained and rerun.
+
+GREEN / final validation:
+
+- `/tmp/titan-accounts-venv/bin/pytest accounts/tests/test_admin_concurrency.py -q`: **5 passed in 1.88s**.
+- `/tmp/titan-accounts-venv/bin/pytest accounts/tests/test_admin_concurrency.py accounts/tests/test_operations.py accounts/tests/test_lifecycle.py accounts/tests/test_concurrency.py -q`: **31 passed in 6.81s**. This covers every affected admin, lifecycle, invalidation and concurrency test; unchanged endpoint-only tests were not rerun in this fix round.
+- `uvx ruff check accounts/admin.py accounts/tests/test_admin_concurrency.py accounts/tests/test_operations.py --select E4,E7,E9,F,I --ignore F403`: all checks passed after formatting/import cleanup.
+- `python services/accounts/manage.py check` with the private local environment loaded: no issues.
+- `git diff --check`: clean; no dependency or schema changes.
+- Sent Gunicorn HUP using `/tmp/titan-accounts-local/gunicorn.pid` to replace its worker with the updated service; readiness and discovery HTTP smoke both returned 200. PostgreSQL and Gunicorn remain available for the parent's integration work.
+
+No remote actions, actual mail, new secrets, schema changes or unrelated workspace edits. The previous dependency audit, deployment check and scope limitations remain the earlier recorded evidence and were not represented as newly repeated checks.
