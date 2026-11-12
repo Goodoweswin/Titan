@@ -1,0 +1,50 @@
+{
+  "installed_at": "2026-11-12T12:38:41.992984+08:00",
+  "source_commit": "b274098432fd5d389a9685c02f5ee7493746c42a",
+  "display_version": "0.4.1",
+  "bundle_id": "com.titan.wb",
+  "application": "/Applications/Titan.app",
+  "codesign": "passed",
+  "installed_sha256": {
+    "Contents/MacOS/titan-wb": "2fcd1b3af90a2aa2415f0ce21b174b590f7e3933e8c1cc946ce76a890fa9b77f",
+    "Contents/Resources/engine/wb-engine/wb-engine": "25c5f7ba4e2b4d48de8ad025ced2632e0027a883318ba248a3f3f66240d245e7"
+  },
+  "previous_sha256": {
+    "Contents/MacOS/titan-wb": "fbac34fc2cc348a94967c26a93ed692c894ea759317255afc18c811dd46292b4",
+    "Contents/Resources/engine/wb-engine/wb-engine": "25c5f7ba4e2b4d48de8ad025ced2632e0027a883318ba248a3f3f66240d245e7"
+  },
+  "backup": "~/Library/Application Support/Titan Backups/before-Titan-20261112-123841-nfeajyb3",
+  "library_index_sha256_before": "64c792b9cd7a6aebed9945d94b1aa9d336f6f464d471441ec4c86de627fc1504",
+  "build_id": "local-20261112-sidebar-appearance",
+  "base_tag": "v0.4.1-beta.3",
+  "platform": "macos-arm64",
+  "engine_unchanged": true,
+  "checks": {
+    "frontend_unit_tests": 88,
+    "targeted_browser_tests": 24,
+    "production_build": "passed",
+    "macos_app_build": "passed",
+    "regression": "New appearance test first failed because the light system appearance still produced color-scheme dark. After the fix, light/dark/light sidebar, search, selected row and menu appearance and contrast pass.",
+    "read_only_code_review": "No critical or important findings; optional selected project/artifact test coverage noted. Native and scientific validation were outside the review scope.",
+    "github_ci": {
+      "run_id": 43156102521,
+      "url": "https://github.com/Goodoweswin/Titan/actions/runs/43156102521",
+      "status": "passed",
+      "source_commit": "b274098432fd5d389a9685c02f5ee7493746c42a",
+      "tested_ref": "pull/4/merge",
+      "browser_tests": 84,
+      "frontend_unit_tests": 88,
+      "python_tests": 346,
+      "python_subtests": 5,
+      "production_build": "passed"
+    }
+  },
+  "native_checks": [
+    "The installed app has a light sidebar alongside the light workspace in the current daytime macOS appearance.",
+    "The compact sidebar typography and saved 232px width are retained."
+  ],
+  "native_pending": [
+    "Refresh existing Desktop access after the binary replacement and restore the unconfirmed TIFF page chooser."
+  ],
+  "validation_scope": "CSS-only visual fix. Dark/light live transitions and contrast verified by browser regression; actual daytime sidebar verified in the macOS app. No scientific-pixel, analysis-engine or Windows-native changes or new claims."
+}

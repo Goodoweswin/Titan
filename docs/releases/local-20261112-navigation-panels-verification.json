@@ -53,10 +53,11 @@
   },
   "native_checks": [
     "Installed main executable and engine match the recorded candidate hashes.",
-    "Compact sidebar is visible in the running dark-mode native window."
+    "Compact sidebar is visible in the running dark-mode native window.",
+    "After the user completed macOS account verification, the saved project list loaded and an existing WB analysis reopened as saved with zero imported images."
   ],
   "native_pending": [
-    "Final font build requires macOS account verification to refresh the already-authorized Desktop folder access. Old-project reopen and restoration of the unconfirmed TIFF chooser remain pending this user action."
+    "The unconfirmed TIFF page chooser will be restored while verifying the successor sidebar-appearance build."
   ],
   "validation_scope": "Navigation and layout verification only. No real-WB/IF scientific accuracy claim; no Windows native GUI acceptance in this local update."
 }
