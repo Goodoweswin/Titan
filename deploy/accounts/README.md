@@ -60,6 +60,8 @@ Choose `env.managed.example` for administrator-opened accounts or `env.example` 
 
 Production `ACCOUNTS_DEBUG=0` requires explicit issuer, secret, key, epoch, single exact allowed host, every PG connection field and at least one exact gateway IP. Issuer must be an HTTPS origin. Default `ACCOUNTS_ACCOUNT_MODE=self_service` additionally requires SMTP sender/host/port/user/password and STARTTLS. `ACCOUNTS_ACCOUNT_MODE=managed` with `ACCOUNTS_MAIL_DELIVERY=disabled` requires no sender or SMTP variables and starts no mail worker. `ACCOUNTS_TRUST_PROXY` is obsolete. `ACCOUNTS_TRUSTED_PROXY_IPS` must contain exact comma-separated IPs, never a subnet/wildcard. No production domain or mail credentials are supplied in this repository.
 
+Before the first database start, ensure the **static, credential-free** bind-mounted `scripts/init-db.sh` is readable by the PostgreSQL container user. A source archive unpacked as root with `umask 077` can leave this file at 0700; `chmod a+r deploy/accounts/scripts/init-db.sh` fixes that file while private runtime directories and secret files retain their restrictive permissions. PostgreSQL can become ready after a failed first initialization and restart without having created the intended roles, so readiness alone does not prove role setup. Inspect the initial startup result and run the deployment privilege checks before starting the API; never reset a database volume to repair an initialization error.
+
 The initial database bootstrap creates separate roles:
 
 - `titan_accounts_admin`: PostgreSQL initialization/backup-restore administration; never passed to API or worker.
@@ -70,10 +72,10 @@ The initial database bootstrap creates separate roles:
 The following base-only commands apply to self-service; managed operations use the merged function in the next section. Bootstrap runs only on a **new** `titan_accounts_database` volume. Changing env values does not rotate existing PostgreSQL passwords. Never delete/reinitialize a volume to repair credentials. Run migrations using the separate migrator secret, then bootstrap the public client using runtime credentials. For example, after loading private Compose variables and exporting the migrator's `PGPASSWORD` in a private operator shell:
 
 ```sh
-docker compose -f deploy/accounts/compose.yaml run --rm -e PGUSER=titan_accounts_migrator -e PGPASSWORD api python manage.py migrate --noinput
-docker compose -f deploy/accounts/compose.yaml run --rm api python manage.py bootstrap_accounts
-docker compose -f deploy/accounts/compose.yaml run --rm api python manage.py check --deploy --fail-level WARNING
-docker compose -f deploy/accounts/compose.yaml run --rm api python manage.py check_accounts_deployment
+docker compose -f deploy/accounts/compose.yaml run --rm -e PGUSER=titan_accounts_migrator -e PGPASSWORD accounts-api python manage.py migrate --noinput
+docker compose -f deploy/accounts/compose.yaml run --rm accounts-api python manage.py bootstrap_accounts
+docker compose -f deploy/accounts/compose.yaml run --rm accounts-api python manage.py check --deploy --fail-level WARNING
+docker compose -f deploy/accounts/compose.yaml run --rm accounts-api python manage.py check_accounts_deployment
 ```
 
 Run these only in the authorized deployment environment. API/worker entrypoints also run both checks before serving or dispatching. The last command reads actual PostgreSQL role/schema permissions and rejects administrator/migrator credentials. A successful check does not test SMTP delivery when SMTP is selected; managed/disabled success instead reports that no mail worker is required. Plan daily `cleanup_accounts` under the runtime role and supervise failures; cleanup is separate from the 5-message mail batch worker.
@@ -91,13 +93,13 @@ accounts_compose() {
 }
 accounts_compose config --quiet
 # With the separate migrator PGPASSWORD loaded privately into the operator shell:
-accounts_compose run --rm -e PGUSER=titan_accounts_migrator -e PGPASSWORD api python manage.py migrate --noinput
-accounts_compose run --rm api python manage.py bootstrap_accounts
-accounts_compose run --rm api python manage.py check --deploy --fail-level WARNING
-accounts_compose run --rm api python manage.py check_accounts_deployment
+accounts_compose run --rm -e PGUSER=titan_accounts_migrator -e PGPASSWORD accounts-api python manage.py migrate --noinput
+accounts_compose run --rm accounts-api python manage.py bootstrap_accounts
+accounts_compose run --rm accounts-api python manage.py check --deploy --fail-level WARNING
+accounts_compose run --rm accounts-api python manage.py check_accounts_deployment
 accounts_compose up -d
-accounts_compose run --rm api python manage.py provision_account --email user@example.org --name 'Researcher'
-accounts_compose run --rm api python manage.py set_account_password --email user@example.org
+accounts_compose run --rm accounts-api python manage.py provision_account --email user@example.org --name 'Researcher'
+accounts_compose run --rm accounts-api python manage.py set_account_password --email user@example.org
 ```
 
 The last two commands prompt with hidden input and confirmation in a controlled terminal. No password argv option exists. For automation, explicit `--password-stdin` accepts a private non-TTY input stream (for example, redirect a 0600 temporary file outside git and delete it afterward); a TTY is rejected before reading, so omit the flag for terminal prompts. With Compose redirected input, use `run --rm -T` to keep stdin non-TTY. Never place passwords in command history, `echo`, env examples, shared logs or issue attachments. Provisioning creates ordinary nonstaff, nonsuperuser accounts, refuses existing normalized emails, and leaves `verified_at` empty. Reset invalidates browser sessions, pending authorization codes and all desktop credentials; it does not assert email verification. `/api/v1/me` reports `administratorApproved=true` and the truthful `emailVerified=false` for those accounts.
@@ -126,6 +128,8 @@ Offline structure checks inspect both templates. The recorded official Compose v
 ## Networks, gateway and budget
 
 Compose declares an internal accounts-only database network, a separate SMTP egress network and an external **dedicated** `titan_accounts_gateway` network. No app/database ports are published by default. `compose.preview.yaml` optionally exposes only `127.0.0.1:18080`; it is for health inspection and does not bypass production HTTPS authentication. Do not add another public 80/443 binding or public PostgreSQL port.
+
+The account API service is named `accounts-api`, giving it a product-specific DNS alias. Keep that name in every Compose overlay and use the full `titan-accounts-accounts-api-1` upstream in Caddy. A shared gateway can see aliases on all its connected networks; the generic name `api` can collide with an existing product even when the account network itself is dedicated.
 
 The supplied gateway fragment targets an existing containerized Caddy joined to that dedicated network with a reserved, exact IP. Before use, inventory the actual gateway packaging/version/config path, address space, all existing sites, certificate storage, service manager and health endpoints. If the existing Caddy runs on the host or another topology, adapt and independently review the topology before use; do not blindly attach or replace it. Do not enable Caddy's admin API to simplify deployment.
 
@@ -168,7 +172,7 @@ PATH="/path/to/age:/path/to/postgresql/bin:$PATH" PGHOST=127.0.0.1 PGPORT=55432 
 
 Create a per-release record using `release_manifest.py --image …@sha256:… --previous-image …@sha256:… --candidate-gateway <file> --previous-gateway <file> --output <new-file>`. Omit previous image for initial deployment. It records commit, image(s), gateway hashes, application migration names and a digest of migrations plus the dependency lock and gates; it deploys nothing. It contains no env/secret values. A final operator record must additionally attach container measurement, schema plan, health and SMTP evidence when SMTP is enabled. Managed/disabled needs no SMTP evidence.
 
-`rollback.py --current <manifest> --target <prior-manifest> --output <new-override.json>` only prepares an override containing **api/worker image digests**. It refuses differing migration digests and never edits DB/volumes/epoch/gateway or invokes Docker. After separate compatibility review, a self-service operator may use that override with `compose up -d --no-deps api worker`. A managed operator keeps the managed override in the merge and selects only `api`, preserving the disabled worker. A schema-changing rollback requires a reviewed forward recovery/data restore procedure; this script deliberately cannot perform it. Gateway rollback is the distinct config restoration above.
+`rollback.py --current <manifest> --target <prior-manifest> --output <new-override.json>` only prepares an override containing **accounts-api/worker image digests**. It refuses differing migration digests and never edits DB/volumes/epoch/gateway or invokes Docker. After separate compatibility review, a self-service operator may use that override with `compose up -d --no-deps accounts-api worker`. A managed operator keeps the managed override in the merge and selects only `accounts-api`, preserving the disabled worker. A schema-changing rollback requires a reviewed forward recovery/data restore procedure; this script deliberately cannot perform it. Gateway rollback is the distinct config restoration above.
 
 ## CI and remaining acceptance
 

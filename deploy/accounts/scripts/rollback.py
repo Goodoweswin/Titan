@@ -24,7 +24,7 @@ if not re.fullmatch(r"[^\s]+@sha256:[a-f0-9]{64}", image):
     p.error("Target must be a recorded immutable image digest")
 with a.output.open("x") as handle:
     json.dump(
-        {"services": {"api": {"image": image}, "worker": {"image": image}}},
+        {"services": {"accounts-api": {"image": image}, "worker": {"image": image}}},
         handle,
         indent=2,
     )

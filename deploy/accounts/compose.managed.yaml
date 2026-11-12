@@ -1,7 +1,7 @@
-# Merge after compose.yaml. Ordinary up starts api + db only.
+# Merge after compose.yaml. Ordinary up starts accounts-api + db only.
 # Explicit environment values win over a stale self-service env_file.
 services:
-  api:
+  accounts-api:
     environment:
       ACCOUNTS_ACCOUNT_MODE: managed
       ACCOUNTS_MAIL_DELIVERY: disabled

@@ -14,7 +14,7 @@ x-app: &app
     driver: local
     options: {max-size: 5m, max-file: "2"}
 services:
-  api:
+  accounts-api:
     <<: *app
     mem_limit: 144m
     memswap_limit: 144m

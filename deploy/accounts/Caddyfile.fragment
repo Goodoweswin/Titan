@@ -8,7 +8,7 @@
     }
     @private path /admin* /health/*
     respond @private 404
-    reverse_proxy titan-accounts-api-1:8000 {
+    reverse_proxy titan-accounts-accounts-api-1:8000 {
         header_up -Forwarded
         header_up -X-Forwarded-For
         header_up -X-Forwarded-Host
