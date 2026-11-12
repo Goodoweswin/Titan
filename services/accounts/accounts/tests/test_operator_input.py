@@ -97,6 +97,10 @@ class TerminalChild:
             attributes[3] &= ~self.termios.ECHO
             self.termios.tcsetattr(self.slave, self.termios.TCSANOW, attributes)
             os.write(self.master, queued_input)
+            # Linux delivers a PTY write to its line discipline asynchronously.
+            # Wait for the canonical line to arrive while echo is still off;
+            # otherwise enabling echo can print input before the CLI even starts.
+            assert select.select([self.slave], [], [], 1)[0], "Terminal input was not queued"
             # The canary is queued before starting a child, while echo is off.
             # Its rejection must leave it unread on this now echo-enabled TTY.
             attributes[3] |= self.termios.ECHO
