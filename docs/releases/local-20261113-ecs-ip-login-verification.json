@@ -16,8 +16,8 @@
     "sha256": "4fd9e21aed73eaa6202d61ce0c087a462c3f8a3cabc444ef6bfbb5a3b2843133",
     "matchesPreviousInstall": true
   },
-  "realNativeLoginVerified": false,
-  "keychainPersistenceVerified": false,
+  "realNativeLoginVerified": true,
+  "keychainPersistenceVerified": true,
   "nativeAppLaunched": true,
   "libraryProjectsVisible": true,
   "accountIsCenterPane": true,
@@ -25,6 +25,59 @@
   "correctedDeploymentArchive": {
     "sourceCommit": "319e79b",
     "sha256": "17284225e33357422e50c86b5c4ca0f31728c85491efc3d461efba29ca04abb7",
-    "desktopPath": "/Users/janus/Desktop/Titan-ECS-\u8d26\u6237\u670d\u52a1\u90e8\u7f72\u5305.tar.gz"
-  }
+    "desktopPath": "/Users/janus/Desktop/Titan-ECS-账户服务部署包.tar.gz"
+  },
+  "nativeValidation": {
+    "firstManagedAccountCreated": true,
+    "passwordEntryAndConfirmationPerformedByUser": true,
+    "nativeOAuthReusedExistingBrowserSession": true,
+    "administratorApproved": true,
+    "emailVerified": false,
+    "isStaff": false,
+    "isSuperuser": false,
+    "signedInColdRestartVerified": true,
+    "processExitConfirmedBeforeRestart": true,
+    "globalKeychainOrSecuritySettingsChanged": false,
+    "localLogoutGuestStateVerified": true,
+    "serverLogoutRevocation": {
+      "previousActiveCount": 1,
+      "revokedCount": 1,
+      "remainingActiveCount": 0
+    },
+    "signedOutColdRestartVerified": true,
+    "reloginVerified": true,
+    "reloginActiveCount": 1,
+    "reloginNewSessionCount": 1,
+    "previousSessionRemainsRevoked": true,
+    "finalAppState": "signed_in",
+    "platform": "macOS",
+    "scope": "installed app on this Mac; no Windows/Linux native acceptance inferred"
+  },
+  "finalContainerHealth": {
+    "allFiveRelevantContainersHealthy": true,
+    "accountsAPIRestartCount": 0,
+    "accountsDatabaseRestartCount": 1,
+    "restartCountsUnchangedDuringNativeValidation": true,
+    "anyContainerOOMKilled": false
+  },
+  "finalPublicHealth": {
+    "checkedAt": "2026-11-12T19:06:29.806203+00:00",
+    "tlsValidation": true,
+    "endpointStatus": {
+      "https://121.40.43.188/login": 200,
+      "https://121.40.43.188/api/v1/me": 401,
+      "https://sop.pilotus.studio/app/": 200,
+      "https://sop.pilotus.studio/account": 200,
+      "https://sop.pilotus.studio/healthz": 200
+    },
+    "originalAppAndAccountContentHashesUnchanged": true
+  },
+  "remainingScope": [
+    "email verification and recovery delivery",
+    "self-service registration",
+    "Pilotus account linking or merge",
+    "cross-device research-data sync",
+    "actual cross-cycle certificate renewal exercise"
+  ],
+  "finalVerifiedAt": "2026-11-13T03:08:23.247974+08:00"
 }
