@@ -8,6 +8,10 @@ from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 DEBUG = os.environ.get("ACCOUNTS_DEBUG") == "1"
+ACCOUNT_MODE = os.environ.get("ACCOUNTS_ACCOUNT_MODE", "self_service")
+if ACCOUNT_MODE not in {"self_service", "managed"}:
+    raise ImproperlyConfigured("Account mode must be self_service or managed")
+MAIL_DELIVERY = os.environ.get("ACCOUNTS_MAIL_DELIVERY", "")
 if not DEBUG:
     required = (
         "ACCOUNTS_SECRET_KEY",
@@ -22,24 +26,29 @@ if not DEBUG:
         "PGHOST",
         "PGPORT",
         "ACCOUNTS_MAIL_DELIVERY",
+    )
+    smtp_required = (
         "ACCOUNTS_FROM_EMAIL",
         "ACCOUNTS_SMTP_HOST",
         "ACCOUNTS_SMTP_PORT",
         "ACCOUNTS_SMTP_USER",
         "ACCOUNTS_SMTP_PASSWORD",
     )
+    if MAIL_DELIVERY == "smtp":
+        required += smtp_required
+    elif not (ACCOUNT_MODE == "managed" and MAIL_DELIVERY == "disabled"):
+        raise ImproperlyConfigured("Production requires SMTP or managed disabled delivery")
     missing = [name for name in required if not os.environ.get(name, "").strip()]
     if missing:
         raise ImproperlyConfigured("Missing production settings: " + ", ".join(missing))
-    if os.environ["ACCOUNTS_MAIL_DELIVERY"] != "smtp":
-        raise ImproperlyConfigured("Production requires SMTP delivery")
     if os.environ["PGUSER"] == "postgres":
         raise ImproperlyConfigured(
             "Production requires a dedicated non-superuser database role"
         )
-    sender = os.environ["ACCOUNTS_FROM_EMAIL"]
-    if "@" not in sender or "." not in sender.rsplit("@", 1)[-1]:
-        raise ImproperlyConfigured("Production requires an explicit mail sender")
+    if MAIL_DELIVERY == "smtp":
+        sender = os.environ["ACCOUNTS_FROM_EMAIL"]
+        if "@" not in sender or "." not in sender.rsplit("@", 1)[-1]:
+            raise ImproperlyConfigured("Production requires an explicit mail sender")
 TRUSTED_PROXY_IPS = []
 for peer in filter(None, os.environ.get("ACCOUNTS_TRUSTED_PROXY_IPS", "").split(",")):
     try:
@@ -212,7 +221,7 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 30
 
 ADMIN_ENABLED = os.environ.get("ACCOUNTS_ADMIN_ENABLED") == "1"
 EMAIL_TIMEOUT = 10
-MAIL_DELIVERY_ENABLED = os.environ.get("ACCOUNTS_MAIL_DELIVERY") == "smtp"
+MAIL_DELIVERY_ENABLED = MAIL_DELIVERY == "smtp"
 if MAIL_DELIVERY_ENABLED:
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
     EMAIL_HOST = os.environ["ACCOUNTS_SMTP_HOST"]

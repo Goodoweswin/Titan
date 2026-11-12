@@ -14,6 +14,7 @@ from oauth2_provider.oauth2_validators import OAuth2Validator
 from oauth2_provider.views import AuthorizationView, ConnectDiscoveryInfoView, TokenView
 
 from .models import DeviceSession, GrantContext, TokenBinding, User
+from .policy import account_eligible
 from .security import digest, live, rate_limit, revoke
 
 
@@ -69,7 +70,7 @@ class Validator(OAuth2Validator):
         context = (
             GrantContext.objects.select_related("user").filter(pk=digest(code)).first()
         )
-        if not context or not context.user.is_active or not context.user.verified_at:
+        if not context or not account_eligible(context.user):
             return False
         if (
             context.epoch != settings.SESSION_EPOCH
@@ -201,9 +202,13 @@ class NativeAuthorizationView(AuthorizationView):
                     "/o/authorize/?" + continuation.urlencode(), "/login"
                 )
         if request.user.is_authenticated:
-            if not request.user.verified_at:
+            if not account_eligible(request.user):
                 from .views import page
 
+                if settings.ACCOUNT_MODE == "managed":
+                    return page(
+                        request, "账号未开通", message="请联系管理员开通账号。", status=403
+                    )
                 request.session["pending_next"] = request.get_full_path()
                 return page(
                     request,

@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 
 from .models import DeviceSession, RateLimit
+from .policy import account_eligible
 
 
 def digest(value):
@@ -27,8 +28,7 @@ def error(code, message, status):
 def live(session):
     user = session.user
     return (
-        user.is_active
-        and user.verified_at is not None
+        account_eligible(user)
         and session.revoked_at is None
         and session.expires_at > timezone.now()
         and session.epoch == settings.SESSION_EPOCH

@@ -1,6 +1,7 @@
 import json
 from functools import wraps
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.http import HttpResponse, JsonResponse
@@ -10,6 +11,7 @@ from oauth2_provider.models import AccessToken
 
 from .forms import clean_name
 from .models import DeviceSession, TokenBinding, User
+from .policy import account_eligible
 from .security import digest, error, live, revoke
 
 
@@ -61,6 +63,7 @@ def profile(request):
         "email": user.email,
         "createdAt": user.date_joined.isoformat(),
         "emailVerified": user.verified_at is not None,
+        "administratorApproved": settings.ACCOUNT_MODE == "managed" and account_eligible(user),
         "sessionId": str(request.account_session.pk),
     }
 

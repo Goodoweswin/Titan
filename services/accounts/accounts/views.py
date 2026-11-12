@@ -12,6 +12,7 @@ from django.views.decorators.http import require_http_methods
 from .forms import EmailForm, LoginForm, RegistrationForm, ResetForm
 from .mail import enqueue_link
 from .models import DeviceSession, OneTimeToken, User
+from .policy import account_eligible
 from .security import digest, error, rate_limit
 
 
@@ -34,7 +35,10 @@ def page(request, title, form=None, message="", status=200):
     return render(
         request,
         "accounts/form.html",
-        {"title": title, "form": form, "message": message, "next": safe_next(request)},
+        {
+            "title": title, "form": form, "message": message, "next": safe_next(request),
+            "managed": settings.ACCOUNT_MODE == "managed",
+        },
         status=status,
     )
 
@@ -45,6 +49,8 @@ def limited(request, action):
 
 @require_http_methods(["GET", "POST"])
 def register(request):
+    if settings.ACCOUNT_MODE == "managed":
+        return managed_unavailable(request)
     form = RegistrationForm(request.POST or None)
     if request.method == "POST":
         if limited(request, "register"):
@@ -91,7 +97,9 @@ def sign_in(request):
                 username=user.username if user else "missing-user",
                 password=form.cleaned_data["password"],
             )
-            if authenticated:
+            if authenticated and (
+                settings.ACCOUNT_MODE != "managed" or account_eligible(authenticated)
+            ):
                 destination = safe_next(request)
                 login(request, authenticated)
                 request.session["auth_time"] = int(timezone.now().timestamp())
@@ -117,7 +125,15 @@ def resend(request):
     return request_email(request, "verify")
 
 
+def managed_unavailable(request):
+    return page(
+        request, "请联系管理员", message="账号由管理员开通；密码问题请联系管理员。", status=403
+    )
+
+
 def request_email(request, purpose):
+    if settings.ACCOUNT_MODE == "managed":
+        return managed_unavailable(request)
     request.session["pending_next"] = safe_next(request)
     form = EmailForm(request.POST or None)
     if request.method == "POST":
@@ -148,6 +164,8 @@ def request_email(request, purpose):
 
 
 def consume(request, raw, purpose):
+    if settings.ACCOUNT_MODE == "managed":
+        return managed_unavailable(request)
     form = ResetForm(request.POST or None) if purpose == "reset" else None
     if request.method == "GET":
         return page(

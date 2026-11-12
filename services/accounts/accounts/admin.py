@@ -21,10 +21,10 @@ class CurrentUserPasswordChangeForm(AdminPasswordChangeForm):
 
 @admin.register(User)
 class AccountAdmin(UserAdmin):
-    list_display = ("email", "name", "is_active", "verified_at", "date_joined")
+    list_display = ("email", "name", "is_active", "verified_at", "admin_provisioned", "date_joined")
     search_fields = ("email", "name")
-    fieldsets = UserAdmin.fieldsets + (("Titan", {"fields": ("name", "verified_at")}),)
-    readonly_fields = ("verified_at", "last_login", "date_joined")
+    fieldsets = UserAdmin.fieldsets + (("Titan", {"fields": ("name", "verified_at", "admin_provisioned")}),)
+    readonly_fields = ("verified_at", "admin_provisioned", "last_login", "date_joined")
     change_password_form = CurrentUserPasswordChangeForm
     actions = None
 

@@ -1,7 +1,7 @@
 import uuid
 
 from django.contrib.auth.models import AbstractUser
-from django.db import models
+from django.db import models, transaction
 from django.utils.crypto import salted_hmac
 
 
@@ -10,24 +10,39 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=60)
     verified_at = models.DateTimeField(null=True, blank=True)
+    admin_provisioned = models.BooleanField(default=False)
     auth_version = models.UUIDField(default=uuid.uuid4, editable=False)
 
     def save(self, *args, **kwargs):
         self.email = self.email.strip().lower()
         fields = kwargs.get("update_fields")
-        if (
-            not self._state.adding
-            and not self.is_active
-            and (fields is None or "is_active" in fields)
-        ):
-            if type(self).objects.filter(pk=self.pk, is_active=True).exists():
-                self.auth_version = uuid.uuid4()
-                if fields is not None:
-                    kwargs["update_fields"] = set(fields) | {"auth_version"}
-        super().save(*args, **kwargs)
+        if self._state.adding:
+            return super().save(*args, **kwargs)
+        # Serialize trust changes with issuance/reset. A stale full save must not
+        # restore the credential version from before revocation and reapproval.
+        with transaction.atomic():
+            current = (
+                type(self).objects.select_for_update().filter(pk=self.pk)
+                .values("is_active", "admin_provisioned", "auth_version").first()
+            )
+            if current:
+                disabled = (
+                    current["is_active"] and not self.is_active
+                    and (fields is None or "is_active" in fields)
+                )
+                approval_changed = (
+                    current["admin_provisioned"] != self.admin_provisioned
+                    and (fields is None or "admin_provisioned" in fields)
+                )
+                self.auth_version = current["auth_version"]
+                if disabled or approval_changed:
+                    self.auth_version = uuid.uuid4()
+                    if fields is not None:
+                        kwargs["update_fields"] = set(fields) | {"auth_version"}
+            return super().save(*args, **kwargs)
 
     def _get_session_auth_hash(self, secret=None):
-        # Extend Django's own session-HMAC hook: disabling permanently changes both
+        # Disabling or changing approval permanently changes both
         # browser and desktop credential fingerprints, even after re-enabling.
         return salted_hmac(
             "accounts.User.session_auth_hash",
