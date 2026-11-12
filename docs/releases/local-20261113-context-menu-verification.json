@@ -19,7 +19,6 @@
   "baseline_commit": "5ce46debc7d63d58547ad0745d889d97a1f5b3d0",
   "integration_commit": "7d748b9c653b762bcbfacb393b9373018962602e",
   "accounts_issuer_preserved": "https://121.40.43.188",
-  "library_index_unchanged_after_launch": true,
   "local_checks": {
     "frontend_tests": 140,
     "related_browser_regressions_before_final_review": 39,
@@ -177,5 +176,6 @@
     "Contents/MacOS/titan-wb": "898787eaa575d8ff25e75f7a0c7bb0e6b5dbb65015c573a0a47fa1ca983fdc24",
     "Contents/Resources/engine/wb-engine/wb-engine": "25c5f7ba4e2b4d48de8ad025ced2632e0027a883318ba248a3f3f66240d245e7"
   },
-  "delivery_status": "installed; final native launch and legacy access verification pending Mac unlock"
+  "delivery_status": "installed; final native launch and legacy access verification pending Mac unlock",
+  "library_index_unchanged_after_initial_candidate_launch": true
 }
