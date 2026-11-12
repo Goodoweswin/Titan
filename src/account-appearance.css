@@ -1,0 +1,69 @@
+/* Interface-only colors. Scientific images, plot SVGs and export settings are independent. */
+:root {
+ --plot-primary:#4167c4;
+ --ui-active:#eaeae8;
+ --ui-hover:#ececea;
+ --ui-primary:#202123;
+ --ui-primary-hover:#393b3d;
+ --ui-selected-ink:var(--ink);
+}
+:root[data-interface-color=blue] {
+ --sidebar:#f2f5fa; --accent:#4167c4; --accent-soft:#edf2fc;
+ --ui-active:#e0e8f8; --ui-hover:#e8eef9; --ui-primary:#4167c4; --ui-primary-hover:#3454a3; --ui-selected-ink:#3454a3;
+}
+:root[data-interface-color=green] {
+ --sidebar:#f1f6f3; --accent:#28735b; --accent-soft:#eaf4ef;
+ --ui-active:#dcece3; --ui-hover:#e5f0e9; --ui-primary:#28735b; --ui-primary-hover:#205d49; --ui-selected-ink:#205d49;
+}
+:root[data-interface-color=violet] {
+ --sidebar:#f5f3f9; --accent:#7354ad; --accent-soft:#f1ecf9;
+ --ui-active:#e8dff4; --ui-hover:#eee7f7; --ui-primary:#7354ad; --ui-primary-hover:#5e438f; --ui-selected-ink:#5e438f;
+}
+:root[data-interface-color=rose] {
+ --sidebar:#faf3f5; --accent:#a44969; --accent-soft:#faedf2;
+ --ui-active:#f3dfe7; --ui-hover:#f7e7ed; --ui-primary:#a44969; --ui-primary-hover:#893b57; --ui-selected-ink:#893b57;
+}
+.app-shell .nav.active,.app-shell .library-children>button.selected { background:var(--ui-active); color:var(--ui-selected-ink); }
+.app-shell .library-children>button.selected svg { color:inherit; }
+.app-shell .nav:hover:not(:disabled),.app-shell .library-root:hover,.app-shell .library-children>button:hover { background:var(--ui-hover); }
+.app-shell .steps button.selected { color:var(--ui-selected-ink); border-bottom-color:var(--ui-selected-ink); }
+.app-shell .primary { background:var(--ui-primary); border-color:var(--ui-primary); }
+.app-shell .primary:hover:not(:disabled) { background:var(--ui-primary-hover); border-color:var(--ui-primary-hover); }
+.app-shell .sidebar-settings { margin-top:auto; padding-top:8px; border-top:1px solid var(--border); flex-shrink:0; width:100%; }
+.app-shell .sidebar-settings .nav { width:100%; margin-bottom:0; }
+.settings-dialog { width:min(560px,calc(100vw - 32px)); max-height:calc(100dvh - 32px); overflow:auto; padding:0; border:1px solid var(--border); border-radius:14px; background:var(--surface); color:var(--ink); box-shadow:0 18px 70px #00000024; }
+.settings-dialog::backdrop { background:#12171d55; }
+.settings-header { display:flex; align-items:center; justify-content:space-between; padding:20px 24px; border-bottom:1px solid var(--border); }
+.settings-header h2 { font-size:1.2rem; }
+.settings-body { padding:24px; }
+.settings-section-title { display:flex; align-items:flex-start; gap:12px; margin-bottom:26px; }
+.settings-section-title>svg { margin-top:3px; color:var(--accent); }
+.settings-section-title h3 { font-size:1rem; }
+.settings-dialog p { color:var(--muted); font-size:var(--text-sm); margin-top:4px; }
+.settings-colors { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; border:0; margin:0; padding:0; }
+.settings-colors legend { padding:0; margin-bottom:12px; font-size:var(--text-base); font-weight:500; }
+.settings-color { position:relative; display:flex; flex-direction:column; align-items:center; gap:9px; padding:12px 3px; border:1px solid var(--border); border-radius:9px; font-size:var(--text-sm); cursor:pointer; }
+.settings-color:has(:checked) { background:var(--accent-soft); border-color:var(--accent); }
+.settings-color:has(:focus-visible) { outline:2px solid var(--accent); outline-offset:3px; }
+.settings-color input { position:absolute; width:1px; height:1px; opacity:0; }
+.settings-swatch { display:grid; place-items:center; width:30px; height:30px; background:var(--swatch); border-radius:50%; color:#fff; }
+.settings-dialog .settings-note { margin-top:12px; line-height:1.7; }
+.settings-row { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-top:24px; padding-top:22px; border-top:1px solid var(--border); }
+.settings-row label { font-size:var(--text-base); font-weight:500; }
+.settings-row select { font-size:var(--text-sm); }
+.settings-footer { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 24px; border-top:1px solid var(--border); }
+.settings-footer [role=status] { font-size:var(--text-xs); color:var(--muted); }
+@media(max-width:520px) {
+ .settings-header,.settings-body,.settings-footer { padding:18px; }
+ .settings-colors { grid-template-columns:repeat(3,minmax(0,1fr)); }
+ .settings-footer { align-items:flex-start; }
+}
+
+@media(prefers-color-scheme:dark){
+ :root {--ui-primary:#dce4f0;--ui-primary-hover:#ffffff;--ui-active:#353b42;--ui-hover:#30353b;}
+ :root[data-interface-color=blue]{--accent:#a8c2ff;--accent-soft:#29364b;--sidebar:#202731;--ui-selected-ink:#a8c2ff;--ui-active:#29364b;--ui-hover:#29313e;}
+ :root[data-interface-color=green]{--accent:#8ed3b4;--accent-soft:#20372f;--sidebar:#202b27;--ui-selected-ink:#8ed3b4;--ui-active:#20372f;--ui-hover:#293a32;}
+ :root[data-interface-color=violet]{--accent:#c4adf0;--accent-soft:#352c48;--sidebar:#282332;--ui-selected-ink:#c4adf0;--ui-active:#352c48;--ui-hover:#30283e;}
+ :root[data-interface-color=rose]{--accent:#f0abc2;--accent-soft:#452b36;--sidebar:#30232a;--ui-selected-ink:#f0abc2;--ui-active:#452b36;--ui-hover:#3b2932;}
+ .app-shell .primary {color:#202123}.account-metric-toggle [aria-pressed=true]{color:#202123}
+}

@@ -1,3 +1,8 @@
+import AccountPage from './AccountPage'
+import SettingsDialog from './SettingsDialog'
+import useResearchActivity from './useResearchActivity'
+import {readInterfaceColor,saveInterfaceColor,type InterfaceColor} from './appearance'
+import {Settings,UserRound} from 'lucide-react'
 import {invoke} from '@tauri-apps/api/core'
 import {useCallback,useEffect,useRef,useState} from 'react'
 import StatsWorkspace,{type StatsLibraryActions} from './stats/StatsWorkspace'
@@ -142,6 +147,12 @@ export default function App(){
 
 
  const [project,setProject]=useState<Project|null>(null),[result,setResult]=useState<AnalysisResult|null>(null)
+ const [showAccount,setShowAccount]=useState(false),[showSettings,setShowSettings]=useState(false)
+ const research=useResearchActivity(project,result)
+ const accountDialog=useRef<HTMLDialogElement>(null)
+ useEffect(()=>{if(showAccount&&!accountDialog.current?.open)accountDialog.current?.showModal()},[showAccount])
+ const [interfaceColor,setInterfaceColor]=useState(readInterfaceColor),[colorPersisted,setColorPersisted]=useState(true)
+ function changeInterfaceColor(color:InterfaceColor){setInterfaceColor(color);setColorPersisted(saveInterfaceColor(color))}
  const library=useProjectLibrary()
  const [frozen,setFrozen]=useState<FrozenFigure|null>(null),frozenRef=useRef<FrozenFigure|null>(null);frozenRef.current=frozen
  const figurePreview=useRef<LiveFigurePreview|null>(null)
@@ -617,11 +628,11 @@ export default function App(){
  useEffect(()=>{
   const listener=(e:KeyboardEvent)=>{
    if(!(e.metaKey||e.ctrlKey)||e.key.toLowerCase()!=='z'||(e.target instanceof HTMLElement&&(e.target.closest('input,textarea,select,[contenteditable="true"]'))))return
-   if(moduleRef.current!=='wb'||!project||project.read_only||busy||showWbGuide||homeVisible)return
+   if(moduleRef.current!=='wb'||!project||project.read_only||busy||showWbGuide||showAccount||showSettings||homeVisible)return
    e.preventDefault();historyUndo(e.shiftKey)
   }
   window.addEventListener('keydown',listener);return()=>window.removeEventListener('keydown',listener)
- },[project,past,future,busy,canvasHistory,guided,tab,showWbGuide,homeVisible])
+ },[project,past,future,busy,canvasHistory,guided,tab,showWbGuide,showAccount,showSettings,homeVisible])
  function onFigurePreview(value:LiveFigurePreview|null){figurePreview.current=value}
  function stillViewingFigure(history:FrozenFigure,token:number,view:number){return projectNavigation.current===token&&navigation.current===view&&frozenRef.current===history&&current.current?.project_path===history.project.project_path}
  function openExport(){
@@ -804,6 +815,7 @@ export default function App(){
       aria-current={selected?'page':undefined} onClick={()=>enterModule(key)}><Icon size={16}/><span>{label}</span></button>
     })}</nav>
    </div>
+   <div className="sidebar-settings"><button type="button" className="nav account-trigger" onClick={()=>setShowAccount(true)}><UserRound size={18}/><span>账户<small>未登录 · 本地使用</small></span></button><button type="button" className="nav" onClick={()=>setShowSettings(true)}><Settings size={18}/><span>设置</span></button></div>
   </aside>
   {screen.kind==='home'&&<main className="main-shell project-workspace" inert={libraryBusy}>
    <header className="project-intro"><Home size={24}/><div><h1>Titan 工作区</h1><p>从一份独立分析开始，或创建项目来管理资料、分析和图表。</p></div></header>
@@ -872,6 +884,8 @@ export default function App(){
     return openAnalysis({...resolved,entry_id:resolved.entry_id??undefined,module:sourceModule,figures:[]},'results')
    }).catch(error=>setLibraryNotice(String(error)))}
    registerLibrary={actions=>{statsLibrary.current=actions}} registerClose={close=>{statsClose.current=close}} onExported={reportLibraryExport}/>
+  {showSettings&&<SettingsDialog color={interfaceColor} onColor={changeInterfaceColor} textSize={textSize} onTextSize={setTextSize} persisted={colorPersisted} onClose={()=>setShowSettings(false)}/>}
+  {showAccount&&<dialog ref={accountDialog} className="account-dialog" aria-label="账户" onClose={()=>setShowAccount(false)}><AccountPage entries={entries} libraryError={library.error} activity={research.activity} activityError={research.error} opening={libraryBusy} onBack={()=>accountDialog.current?.close()} onOpen={entry=>{accountDialog.current?.close();openLibraryEntry(entry)}} onRetry={()=>void library.refresh()}/></dialog>}
   {showWbGuide&&<WbImageGuide onClose={()=>setShowWbGuide(false)}/>}
   {pageChoice&&<ImagePagePicker path={pageChoice.path} info={pageChoice.info} onChoose={choosePages}/>}
   {firstImport?.tool==='if'&&<div className="if-shell"><ImportDialog initialPaths={firstImport.paths} onClose={()=>setFirstImport(null)} onImport={firstIF}/></div>}
