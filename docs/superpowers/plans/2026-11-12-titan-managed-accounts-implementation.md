@@ -59,11 +59,11 @@
 - Consumes: Task1 real `/api/v1/me.administratorApproved` and admin-provisioned unverified user.
 - Produces: Rust Profile `administrator_approved: bool` serde camelCase/defaultfalse; TypeScript optional boolean for older fixtures; neutral “登录账户” entry. Existing8Tauri commands and sanitized snapshots unchanged apart from additive profile flag.
 
-- [ ] Write failures for unverified/unapproved refusal, unverified/admin-approved acceptance, wrong-type flag rejection and subject/session mismatch. Check login commit, refresh/restore/status/profile-update paths; preserve all generation/process-owner/credential guards.
-- [ ] Implement eligibility from authenticated issuer-bound profile only; no JS supplied profile. Keep all ID signature/nonce/issuer/aud/azp/time validation and HTTPS policy. Do not fabricate emailVerified or grant from compile-time client setting.
-- [ ] Update neutral login entry/copy and tests without moving account pane or disturbing activity/guest drafts. Email-verification badge depends only on actual emailVerified.
-- [ ] Run full regular Rust tests, full frontend tests/build, affected account browser tests; Expected all pass with existing opt-in real OS test still honestly unaccepted.
-- [ ] Run a new explicit real local managed-service OAuth/password/session/refresh/logout loop using synthetic account and in-memory test store. Fixture/private service config never printed. It must prove authenticated profile has emailVerified=false and administratorApproved=true; do not replace or relabel existing failed OS Keychain integration. Commit/report exact proof.
+- [x] Write failures for unverified/unapproved refusal, unverified/admin-approved acceptance, wrong-type flag rejection and subject/session mismatch. Check login commit, refresh/restore/status/profile-update paths; preserve all generation/process-owner/credential guards.
+- [x] Implement eligibility from authenticated issuer-bound profile only; no JS supplied profile. Keep all ID signature/nonce/issuer/aud/azp/time validation and HTTPS policy. Do not fabricate emailVerified or grant from compile-time client setting.
+- [x] Update neutral login entry/copy and tests without moving account pane or disturbing activity/guest drafts. Email-verification badge depends only on actual emailVerified.
+- [x] Run full regular Rust tests, full frontend tests/build, affected account browser tests; Expected all pass with existing opt-in real OS test still honestly unaccepted.
+- [x] Run a new explicit real local managed-service OAuth/password/session/refresh/logout loop using synthetic account and in-memory test store. Fixture/private service config never printed. It must prove authenticated profile has emailVerified=false and administratorApproved=true; do not replace or relabel existing failed OS Keychain integration. Commit/report exact proof.
 
 ### Task 3: Managed ECS configuration, launcher and handoff
 
