@@ -1,0 +1,11 @@
+[project]
+name = "titan-accounts"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = ["Django==5.2.19", "django-oauth-toolkit==3.4.1", "djangorestframework==3.18.3", "psycopg[binary]==3.2.13", "gunicorn==27.0.0"]
+[dependency-groups]
+dev = ["pytest>=9,<10", "pytest-django>=4.12,<5", "pip-audit>=2.10,<3"]
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.test_settings"
+pythonpath = ["."]
+testpaths = ["accounts/tests"]
