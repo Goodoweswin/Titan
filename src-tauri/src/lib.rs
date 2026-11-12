@@ -22,20 +22,33 @@ async fn engine(mut request:Value,session:tauri::State<'_,Session>,worker:tauri:
     worker.request(request).await
 }
 
+// Shared startup boundary: account availability must not gate construction of
+// the scientific session/worker. Only a proven duplicate owner returns Err.
+struct StartupState { auth:auth::Auth, session:Session, worker:EngineWorker }
+fn prepare_startup(account:Result<auth::Auth,&'static str>, library_root:std::path::PathBuf,
+    program:std::path::PathBuf,args:Vec<std::ffi::OsString>)->Result<StartupState,&'static str>{
+    Ok(StartupState { auth:account?, session:Session{token:uuid::Uuid::new_v4().to_string(),library_root},
+        worker:EngineWorker::new(program,args) })
+}
+
 pub fn run(){
     tauri::Builder::default()
       .setup(|app| {
-        // Acquire the lifetime account owner before initializing either account or
-        // scientific state. A duplicate process cannot restore/rotate/delete credentials.
-        let auth = match auth::Auth::new(app.path().app_local_data_dir()?.join("accounts"), &app.config().identifier) {
-          Ok(auth) => auth,
-          Err(code) => {
+        let (program,args)=if cfg!(debug_assertions){
+          let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
+          (root.join(if cfg!(windows){".venv/Scripts/python.exe"}else{".venv/bin/python"}),vec![root.join("backend/entry.py").into_os_string()])
+        }else{
+          (app.path().resource_dir()?.join("engine/wb-engine").join(if cfg!(windows){"wb-engine.exe"}else{"wb-engine"}),vec![])
+        };
+        // A duplicate owner is refused before initialization. Account I/O failures
+        // instead return an inert Auth so guest scientific initialization continues.
+        let startup = match prepare_startup(
+          auth::Auth::new(app.path().app_local_data_dir()?.join("accounts"), &app.config().identifier),
+          app.path().app_local_data_dir()?.join("library"), program, args) {
+          Ok(startup) => startup,
+          Err(_) => {
             for window in app.webview_windows().values() { let _ = window.hide(); }
-            let message = if code == "account_owner_busy" {
-              "此账户环境的 Titan 已在运行。请使用已打开的窗口，或退出该实例后再启动。"
-            } else {
-              "无法取得 Titan 账户存储的独占访问权限，启动已停止。请检查应用数据目录是否可访问后重试。"
-            };
+            let message = "此账户环境的 Titan 已在运行。请使用已打开的窗口，或退出该实例后再启动。";
             let handle = app.handle().clone();
             // Dialog callbacks keep the main event loop responsive. No account or
             // scientific state exists in this refused process.
@@ -44,15 +57,9 @@ pub fn run(){
             return Ok(());
           }
         };
-        app.manage(auth);
-        app.manage(Session{token:uuid::Uuid::new_v4().to_string(),library_root:app.path().app_local_data_dir()?.join("library")});
-        let (program,args)=if cfg!(debug_assertions){
-          let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
-          (root.join(if cfg!(windows){".venv/Scripts/python.exe"}else{".venv/bin/python"}),vec![root.join("backend/entry.py").into_os_string()])
-        }else{
-          (app.path().resource_dir()?.join("engine/wb-engine").join(if cfg!(windows){"wb-engine.exe"}else{"wb-engine"}),vec![])
-        };
-        app.manage(EngineWorker::new(program,args));Ok(())
+        app.manage(startup.auth);
+        app.manage(startup.session);
+        app.manage(startup.worker);Ok(())
       })
       .plugin(tauri_plugin_dialog::init()).invoke_handler(tauri::generate_handler![auth::auth_status, auth::auth_login, auth::auth_cancel, auth::auth_logout, auth::auth_update_profile, auth::auth_sessions, auth::auth_revoke_session, auth::auth_revoke_all, engine, if_volume::if_volume_read, library_files::library_open_file])
       .build(tauri::generate_context!()).expect("Titan WB启动失败")

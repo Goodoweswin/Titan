@@ -50,3 +50,13 @@ it('edits nickname through the native command and waits for confirmed profile',a
 it.each([['rate_limited','操作过于频繁'],['forbidden','当前操作未获授权'],['service_unavailable','账户服务暂时不可用']])('makes %s retryable while retaining account controls',async(code,text)=>{
  vi.mocked(invoke).mockImplementation(async command=>{if(command==='auth_sessions')throw code;return alice as any});await mount();expect(host.textContent).toContain(text);expect(button('重试设备列表')).toBeTruthy();expect(button('退出本机')).toBeTruthy()
 })
+
+it('keeps local tools available without login or memory-only controls when account ownership is unavailable',async()=>{
+ vi.mocked(invoke).mockResolvedValue({...guest,status:'unavailable',errorCode:'account_owner_unavailable',message:null})
+ await mount();expect(button('登录 / 注册').disabled).toBe(true)
+ expect(host.textContent).toContain('本地功能可正常使用')
+ expect(host.textContent).toContain('重启 Titan')
+ expect(button('仅本次登录')).toBeUndefined()
+ await click('登录 / 注册')
+ expect(invoke).not.toHaveBeenCalledWith('auth_login',expect.anything())
+})

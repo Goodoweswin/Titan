@@ -2,7 +2,7 @@ use super::{
     callback,
     config::Config,
     oauth::Network,
-    storage::{CredentialStore, OsStore},
+    storage::{CredentialStore, DisabledStore, OsStore},
     types::*,
 };
 use std::{
@@ -26,28 +26,45 @@ pub struct Auth {
     storage_gate: Arc<AsyncMutex<()>>,
     refresh_gate: Arc<AsyncMutex<()>>,
     network: Option<Network>,
+    accounts_disabled: bool,
 }
 impl Auth {
     pub fn new(root: PathBuf, application: &str) -> Result<Self, &'static str> {
-        Ok(match Config::environment() {
+        Self::from_config(root, application, Config::environment())
+    }
+    fn from_config(
+        root: PathBuf,
+        application: &str,
+        config: Result<Option<Config>, &'static str>,
+    ) -> Result<Self, &'static str> {
+        Ok(match config {
             Ok(Some(config)) => {
-                let store = Arc::new(OsStore::new(root, application, &config.issuer_string())?);
+                let store = match OsStore::new(root, application, &config.issuer_string()) {
+                    Ok(store) => Arc::new(store),
+                    Err("account_owner_busy") => return Err("account_owner_busy"),
+                    Err(_) => {
+                        return Ok(Self::disabled(
+                            "unavailable",
+                            Some("account_owner_unavailable"),
+                        ))
+                    }
+                };
                 match Network::new(config) {
                     Ok(network) => Self::create(store, Some(network), "guest"),
                     Err(_) => Self::create(store, None, "unavailable"),
                 }
             }
-            Ok(None) => Self::create(
-                Arc::new(OsStore::new(root, application, "unconfigured")?),
-                None,
-                "unconfigured",
-            ),
-            Err(_) => Self::create(
-                Arc::new(OsStore::new(root, application, "invalid")?),
-                None,
-                "unavailable",
-            ),
+            Ok(None) => Self::disabled("unconfigured", None),
+            Err(_) => Self::disabled("unavailable", Some("invalid_configuration")),
         })
+    }
+    fn disabled(status: &'static str, code: Option<&'static str>) -> Self {
+        let mut auth = Self::create(Arc::new(DisabledStore), None, status);
+        auth.accounts_disabled = true;
+        if let Some(code) = code {
+            auth.inner.lock().unwrap().snapshot = Snapshot::new(status).error(code);
+        }
+        auth
     }
     fn create(
         store: Arc<dyn CredentialStore>,
@@ -64,6 +81,7 @@ impl Auth {
             })),
             store,
             network,
+            accounts_disabled: false,
             storage_gate: Arc::new(AsyncMutex::new(())),
             refresh_gate: Arc::new(AsyncMutex::new(())),
         }
@@ -236,7 +254,7 @@ impl Auth {
         self.logout_generation(None).await
     }
     async fn logout_generation(&self, expected: Option<u64>) -> Snapshot {
-        if self.snapshot().status == "unconfigured" {
+        if self.accounts_disabled || self.snapshot().status == "unconfigured" {
             return self.snapshot();
         }
         let (generation, credentials, blocked) = {
@@ -532,6 +550,9 @@ impl Auth {
         }
     }
     pub async fn update_profile(&self, name: String) -> Snapshot {
+        if self.accounts_disabled {
+            return self.snapshot();
+        }
         let name = name.trim();
         if name.is_empty() || name.chars().count() > 60 || name.chars().any(char::is_control) {
             let mut snapshot = self.snapshot();
@@ -1306,5 +1327,137 @@ mod transport_tests {
         assert_eq!(discoveries.load(Ordering::SeqCst), 2);
         assert_eq!(posts.load(Ordering::SeqCst), 0);
         server.abort();
+    }
+}
+
+#[cfg(test)]
+mod startup_tests {
+    use super::*;
+    fn config() -> Result<Option<Config>, &'static str> {
+        Ok(Some(Config::parse("http://127.0.0.1:9", true).unwrap()))
+    }
+    #[tokio::test]
+    async fn owner_io_failure_allows_guest_science_and_disables_all_account_access() {
+        for lock_failure in [false, true] {
+            let root =
+                std::env::temp_dir().join(format!("titan-guest-start-{}", uuid::Uuid::new_v4()));
+            let accounts = root.join("accounts");
+            std::fs::create_dir_all(&root).unwrap();
+            if lock_failure {
+                let owner = OsStore::new(
+                    accounts.clone(),
+                    "com.titan.startup-test",
+                    "http://127.0.0.1:9",
+                )
+                .unwrap();
+                let lock = owner.marker.with_extension("owner");
+                drop(owner);
+                std::fs::remove_file(&lock).unwrap();
+                std::fs::create_dir(lock).unwrap();
+            } else {
+                std::fs::write(&accounts, b"account-path-is-not-a-directory").unwrap();
+            }
+            let project = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .parent()
+                .unwrap();
+            // This is the same bundle-construction path consumed by run().setup:
+            // Ok contains all three states, which setup immediately manages.
+            let result = crate::prepare_startup(
+                Auth::from_config(accounts.clone(), "com.titan.startup-test", config()),
+                root.join("library"),
+                project.join(if cfg!(windows) {
+                    ".venv/Scripts/python.exe"
+                } else {
+                    ".venv/bin/python"
+                }),
+                vec![project.join("backend/entry.py").into_os_string()],
+            );
+            assert!(
+                result.is_ok(),
+                "account-only I/O failure blocked scientific startup"
+            );
+            let startup = result.unwrap();
+            assert_eq!(startup.session.library_root, root.join("library"));
+            assert!(!startup.session.token.is_empty());
+            let health = startup
+                .worker
+                .request(serde_json::json!({"command":"health"}))
+                .await;
+            startup.worker.shutdown().await;
+            assert!(
+                health.is_ok(),
+                "guest scientific engine did not start: {health:?}"
+            );
+            let auth = startup.auth;
+            assert!(auth.network.is_none());
+            for snapshot in [
+                auth.status().await,
+                auth.login(false, false).await,
+                auth.login(true, false).await,
+                auth.logout().await,
+                auth.cancel(),
+                auth.update_profile("Ignored".into()).await,
+                auth.revoke_all().await,
+                auth.revoke_session("00000000-0000-0000-0000-000000000000".into())
+                    .await,
+            ] {
+                assert_eq!(snapshot.status, "unavailable");
+                assert_eq!(snapshot.error_code, Some("account_owner_unavailable"));
+                assert!(!snapshot.persistent);
+                assert!(snapshot.profile.is_none());
+            }
+            assert!(auth.inner.lock().unwrap().credentials.is_none());
+            assert!(auth.sessions().await.is_err());
+            assert!(auth.store.load().is_err());
+            assert!(auth.store.activate().is_err());
+            assert!(auth
+                .store
+                .write(&StoredCredentials {
+                    refresh: "synthetic-not-stored".into(),
+                    family_expires: now() + 1000,
+                    subject: "synthetic".into(),
+                    nonce: "synthetic".into(),
+                    session_id: "synthetic".into(),
+                })
+                .is_err());
+            assert!(auth.store.block().is_err());
+            assert!(auth.store.delete().is_err());
+            if !lock_failure {
+                assert_eq!(
+                    std::fs::read(&accounts).unwrap(),
+                    b"account-path-is-not-a-directory"
+                );
+            }
+            std::fs::remove_dir_all(root).unwrap();
+        }
+    }
+    #[test]
+    fn unconfigured_or_invalid_accounts_never_require_a_storage_owner() {
+        let root =
+            std::env::temp_dir().join(format!("titan-unconfigured-start-{}", uuid::Uuid::new_v4()));
+        for (configuration, expected) in [
+            (Ok(None), "unconfigured"),
+            (Err("invalid_configuration"), "unavailable"),
+        ] {
+            let auth =
+                Auth::from_config(root.clone(), "com.titan.startup-test", configuration).unwrap();
+            assert_eq!(auth.snapshot().status, expected);
+            assert!(
+                !root.exists(),
+                "inactive accounts touched their storage directory"
+            );
+            assert!(auth.network.is_none());
+        }
+    }
+    #[test]
+    fn busy_account_owner_still_refuses_duplicate_startup() {
+        let root = std::env::temp_dir().join(format!("titan-busy-start-{}", uuid::Uuid::new_v4()));
+        let first = Auth::from_config(root.clone(), "com.titan.startup-test", config()).unwrap();
+        assert!(matches!(
+            Auth::from_config(root.clone(), "com.titan.startup-test", config()),
+            Err("account_owner_busy")
+        ));
+        drop(first);
+        std::fs::remove_dir_all(root).unwrap();
     }
 }

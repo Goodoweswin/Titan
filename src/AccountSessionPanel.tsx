@@ -9,7 +9,8 @@ export default function AccountSessionPanel({account}:{account:AccountState}){
  const [info,setInfo]=useState(false),[name,setName]=useState(profile?.name||''),[confirm,setConfirm]=useState(false)
  const confirmButton=useRef<HTMLButtonElement>(null),revokeButton=useRef<HTMLButtonElement>(null),switching=useRef(false)
  const logging=busy==='login'||snapshot.status==='logging_in'
- const disabled=!!busy
+ const ownerUnavailable=code==='account_owner_unavailable'
+ const disabled=!!busy||ownerUnavailable
  const signedIn=!!profile&&(snapshot.status==='authenticated'||snapshot.status==='offline')
  useEffect(()=>{setName(profile?.name||'');setConfirm(false)},[profile?.id,profile?.name])
  useEffect(()=>{if(profile?.sessionId)void loadSessions()},[profile?.sessionId,loadSessions])
@@ -20,7 +21,7 @@ export default function AccountSessionPanel({account}:{account:AccountState}){
   {logging?<div className="account-login-info" role="status"><strong>等待浏览器完成登录</strong><p>请在系统浏览器中登录或注册，完成后返回 Titan。取消后仍可使用本地功能。</p><button className="text-btn" type="button" onClick={()=>void account.cancel()} disabled={busy==='cancel'}>取消登录</button></div>:!signedIn?<div className="account-login-actions">
    <button className="btn primary" type="button" disabled={disabled} aria-expanded={snapshot.status==='unconfigured'?info:undefined} aria-controls={snapshot.status==='unconfigured'?'account-login-info':undefined} onClick={()=>snapshot.status==='unconfigured'?setInfo(v=>!v):login()}><LogIn size={16}/>登录 / 注册</button>
    <small>未登录 · 本地功能可正常使用</small>
-   {snapshot.status==='unconfigured'?<div id="account-login-info" className="account-login-info" hidden={!info} role="status"><strong>登录服务尚未开放</strong><p>此版本尚未配置账户服务。当前可继续使用本地项目，账户资料暂不保存。</p><button className="text-btn" type="button" onClick={()=>setInfo(false)}>知道了</button></div>:<p>在系统浏览器中完成登录 / 注册，Titan 不收集密码。</p>}
+   {snapshot.status==='unconfigured'?<div id="account-login-info" className="account-login-info" hidden={!info} role="status"><strong>登录服务尚未开放</strong><p>此版本尚未配置账户服务。当前可继续使用本地项目，账户资料暂不保存。</p><button className="text-btn" type="button" onClick={()=>setInfo(false)}>知道了</button></div>:!ownerUnavailable&&<p>在系统浏览器中完成登录 / 注册，Titan 不收集密码。</p>}
   </div>:<>
    <form className="account-name-form" onSubmit={event=>{event.preventDefault();void account.updateProfile(name)}}><label htmlFor="account-nickname">昵称</label><div><input id="account-nickname" autoComplete="nickname" maxLength={60} value={name} onChange={event=>setName(event.target.value)} disabled={disabled}/><button className="btn" type="submit" disabled={disabled||!name.trim()||name.trim()===profile!.name}>保存昵称</button></div></form>
    <div className="account-session-actions"><span>{snapshot.status==='offline'?'离线 · 资料为上次确认结果':snapshot.persistent?'已登录 · 此设备安全保存登录':'已登录 · 仅本次使用，退出应用后需重新登录'}</span><button className="text-btn" type="button" disabled={disabled} onClick={()=>login(false,true)}>切换账户</button><button className="text-btn" type="button" disabled={disabled} onClick={()=>void account.logout()}>退出本机</button></div>
@@ -29,7 +30,7 @@ export default function AccountSessionPanel({account}:{account:AccountState}){
    {code==='credential_storage_failed'&&<div className="account-session-actions"><button className="btn" type="button" disabled={disabled} onClick={()=>login(false,switching.current)}>重试安全存储登录</button><button className="btn" type="button" disabled={disabled} onClick={()=>login(true,switching.current)}>仅本次登录</button><small>仅在当前运行期间保持登录，不保存凭据。</small></div>}
    {(code==='credential_cleanup_failed'||code==='credential_invalidation_failed')&&<button className="text-btn" type="button" disabled={disabled} onClick={()=>void account.logout()}>重试退出</button>}
    {code==='recent_auth_required'&&<button className="btn" type="button" disabled={disabled} onClick={()=>login(false,true)}>在浏览器中重新验证</button>}
-   {!['credential_storage_failed','credential_cleanup_failed','credential_invalidation_failed','recent_auth_required','login_cancelled'].includes(code)&&<button className="text-btn" type="button" disabled={disabled} onClick={()=>void account.refresh()}>重试连接</button>}
+   {!['account_owner_unavailable','credential_storage_failed','credential_cleanup_failed','credential_invalidation_failed','recent_auth_required','login_cancelled'].includes(code)&&<button className="text-btn" type="button" disabled={disabled} onClick={()=>void account.refresh()}>重试连接</button>}
   </div>}
   {notice&&<p className="account-session-note" role="status">{notice}</p>}
   {signedIn&&!logging&&<section className="account-device-section" aria-labelledby="account-devices-title">

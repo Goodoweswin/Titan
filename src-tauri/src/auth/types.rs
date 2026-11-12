@@ -43,6 +43,7 @@ impl Snapshot {
     pub fn error(mut self, code: &'static str) -> Self {
         self.error_code = Some(code);
         self.message = Some(match code {
+            "account_owner_unavailable" => "账户存储暂不可用，请检查应用数据目录后重启 Titan。本地功能可正常使用。",
             "credential_storage_failed" => "系统凭据存储不可用，请重试或选择仅本次登录。",
             "credential_cleanup_failed" => "已退出本机账户，凭据清理未全部完成；已阻止自动恢复。",
             "credential_invalidation_failed" => "已退出当前运行的账户，但无法清除登录凭据或禁用自动恢复；重启后可能再次登录，请重试退出。",

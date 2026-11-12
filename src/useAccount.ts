@@ -1,10 +1,11 @@
 import {useCallback,useEffect,useRef,useState} from 'react'
 import {accountBridge,guestSnapshot,type AccountSession,type AccountSnapshot} from './account-bridge'
 
-const codes=new Set(['forbidden','not_found','unconfigured','guest','login_in_progress','stale_generation','network_unavailable','unauthorized','refresh_ambiguous','invalid_response','service_unavailable','rate_limited','credential_storage_failed','credential_cleanup_failed','credential_invalidation_failed','recent_auth_required','invalid_profile','invalid_request','invalid_discovery','invalid_id_token','invalid_token_response','browser_unavailable','callback_unavailable','login_failed','login_denied','login_cancelled','login_timeout'])
+const codes=new Set(['account_owner_unavailable','forbidden','not_found','unconfigured','guest','login_in_progress','stale_generation','network_unavailable','unauthorized','refresh_ambiguous','invalid_response','service_unavailable','rate_limited','credential_storage_failed','credential_cleanup_failed','credential_invalidation_failed','recent_auth_required','invalid_profile','invalid_request','invalid_discovery','invalid_id_token','invalid_token_response','browser_unavailable','callback_unavailable','login_failed','login_denied','login_cancelled','login_timeout'])
 const errorCode=(error:unknown)=>typeof error==='string'&&codes.has(error)?error:'service_unavailable'
 export function accountErrorText(code:string){
  switch(code){
+  case 'account_owner_unavailable':return '账户存储暂不可用，请检查应用数据目录后重启 Titan。本地功能可正常使用。'
   case 'service_unavailable':return '账户服务暂时不可用，请稍后重试。本地功能仍可使用。'
   case 'forbidden':return '当前操作未获授权，请重新验证身份或稍后重试。本地功能仍可使用。'
   case 'not_found':return '设备记录已不存在，请刷新设备列表。'

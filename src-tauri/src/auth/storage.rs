@@ -9,6 +9,26 @@ pub trait CredentialStore: Send + Sync {
     fn block(&self) -> Result<(), &'static str>;
     fn delete(&self) -> Result<(), &'static str>;
 }
+// Account-disabled startup has no OS store, marker path, or network capability.
+// This is deliberately not a memory-only credential store.
+pub struct DisabledStore;
+impl CredentialStore for DisabledStore {
+    fn load(&self) -> Result<Option<StoredCredentials>, &'static str> {
+        Err("account_owner_unavailable")
+    }
+    fn write(&self, _: &StoredCredentials) -> Result<(), &'static str> {
+        Err("account_owner_unavailable")
+    }
+    fn activate(&self) -> Result<(), &'static str> {
+        Err("account_owner_unavailable")
+    }
+    fn block(&self) -> Result<(), &'static str> {
+        Err("account_owner_unavailable")
+    }
+    fn delete(&self) -> Result<(), &'static str> {
+        Err("account_owner_unavailable")
+    }
+}
 // The marker contains no identity or secret. Missing, damaged, or inaccessible markers
 // deny restore. It is removed BEFORE token consumption/logout, and activated only
 // after the OS write and the final generation fence both succeed.
