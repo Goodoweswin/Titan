@@ -1,11 +1,12 @@
 import {test,expect,type Page} from '@playwright/test'
 
 const guest={status:'guest',profile:null,message:null,persistent:false,errorCode:null}
-const profile={id:'account-a',name:'研究者甲',email:'researcher@example.org',createdAt:'2026-11-01T10:00:00Z',emailVerified:true,sessionId:'device-a'}
-async function nativeFixture(page:Page,mode:'authenticated'|'guest'|'storage'='authenticated'){
+const profile={id:'account-a',name:'研究者甲',email:'researcher@example.org',createdAt:'2026-11-01T10:00:00Z',emailVerified:true,administratorApproved:false,sessionId:'device-a'}
+async function nativeFixture(page:Page,mode:'authenticated'|'managed'|'guest'|'storage'='authenticated'){
  await page.addInitScript(({guest,profile,mode})=>{
+  if(mode==='managed')profile={...profile,emailVerified:false,administratorApproved:true}
   const w=window as any
-  let snapshot=mode==='authenticated'?{...guest,status:'authenticated',persistent:true,profile}:{...guest}
+  let snapshot=(mode==='authenticated'||mode==='managed')?{...guest,status:'authenticated',persistent:true,profile}:{...guest}
   let finish:((value:unknown)=>void)|null=null
   w.accountCalls=[]
   w.completeAccountLogin=()=>{finish?.({...guest,status:'authenticated',persistent:true,profile})}
@@ -139,7 +140,7 @@ test('account center preserves a WB figure draft through return and browsing his
  await page.getByRole('button',{name:'新建组图',exact:true}).click()
  await page.getByLabel('蛋白名称',{exact:true}).fill('未保存的账户导航草稿')
  await openAccount(page)
- await account(page).getByRole('button',{name:'登录 / 注册',exact:true}).click()
+ await account(page).getByRole('button',{name:'登录账户',exact:true}).click()
  await expect(account(page).getByText('登录服务尚未开放',{exact:true})).toBeVisible()
  await expect(account(page).getByRole('heading',{name:'研究足迹',exact:true})).toBeVisible()
  await expect(account(page).getByLabel('最近五十二周的每日分析活动')).toBeVisible()
@@ -159,7 +160,7 @@ test('account center preserves a WB figure draft through return and browsing his
 
 test('mocked native login stays cancellable across account navigation and ignores its late result',async({page})=>{
  await nativeFixture(page,'guest');await page.goto('/?integration=1');await openAccount(page)
- await account(page).getByRole('button',{name:'登录 / 注册',exact:true}).click()
+ await account(page).getByRole('button',{name:'登录账户',exact:true}).click()
  await expect(account(page).getByText('等待浏览器完成登录',{exact:true})).toBeVisible()
  await account(page).getByRole('button',{name:'返回工作区',exact:true}).click();await openAccount(page)
  await account(page).getByRole('button',{name:'取消登录',exact:true}).click()
@@ -203,7 +204,7 @@ test('mocked native profile, device list and guarded all-device logout remain us
 
 test('credential storage failure waits for explicit memory-only login',async({page})=>{
  await nativeFixture(page,'storage');await page.goto('/?integration=1');await openAccount(page)
- await account(page).getByRole('button',{name:'登录 / 注册',exact:true}).click()
+ await account(page).getByRole('button',{name:'登录账户',exact:true}).click()
  await expect(account(page).getByRole('button',{name:'仅本次登录',exact:true})).toBeVisible()
  expect(await page.evaluate(()=>(window as any).accountCalls.filter((call:any)=>call.command==='auth_login').length)).toBe(1)
  await account(page).getByRole('button',{name:'仅本次登录',exact:true}).click()
@@ -283,4 +284,19 @@ test('activity periods distinguish fresh tracking from unavailable storage',asyn
  await expect(section.locator('.account-activity-total')).toHaveCount(0)
  await expect(account(page)).toContainText('研究足迹暂不可用')
  expect(await page.evaluate(()=>localStorage.getItem('titan-research-activity-v1'))).toBe('{broken')
+})
+
+
+test('managed native profile stays usable without a false email verification badge',async({page})=>{
+ await nativeFixture(page,'managed');await page.goto('/?integration=1');await openAccount(page)
+ await expect(account(page).getByRole('heading',{name:'研究者甲',exact:true})).toBeVisible()
+ await expect(account(page).getByLabel('邮箱已验证',{exact:true})).toHaveCount(0)
+ await expect(account(page).getByText('researcher@example.org',{exact:true})).toBeVisible()
+ await account(page).getByLabel('昵称',{exact:true}).fill('管理员开通账户')
+ await account(page).getByRole('button',{name:'保存昵称',exact:true}).click()
+ await expect(account(page).getByRole('heading',{name:'管理员开通账户',exact:true})).toBeVisible()
+ await expect(account(page).getByLabel('邮箱已验证',{exact:true})).toHaveCount(0)
+ await expect(account(page).getByText('测试 Mac',{exact:true})).toBeVisible()
+ await account(page).getByRole('button',{name:'退出本机',exact:true}).click()
+ await expect(account(page).getByRole('button',{name:'登录账户',exact:true})).toBeVisible()
 })

@@ -609,10 +609,7 @@ impl Network {
             .await?,
         )
         .map_err(|_| "invalid_response")?;
-        if profile.id != credentials.subject
-            || profile.session_id != credentials.session_id
-            || !profile.email_verified
-        {
+        if !profile.matches_credentials(credentials) {
             return Err("invalid_id_token");
         }
         Ok(profile)

@@ -8,7 +8,18 @@ pub struct Profile {
     pub email: String,
     pub created_at: String,
     pub email_verified: bool,
+    #[serde(default)]
+    pub administrator_approved: bool,
     pub session_id: String,
+}
+impl Profile {
+    /// Eligibility is accepted only from the issuer's authenticated profile and
+    /// remains bound to the subject/session verified by the native token flow.
+    pub fn matches_credentials(&self, credentials: &Credentials) -> bool {
+        self.id == credentials.subject
+            && self.session_id == credentials.session_id
+            && (self.email_verified || self.administrator_approved)
+    }
 }
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]

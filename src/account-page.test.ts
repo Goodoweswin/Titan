@@ -21,7 +21,7 @@ it('shows an honest guest state and login preparation without collecting credent
  expect(container.textContent).toContain('本地研究者')
  expect(container.textContent).toContain('登录后显示邮箱')
  expect(container.querySelectorAll('input')).toHaveLength(0)
- const button=Array.from(container.querySelectorAll('button')).find(button=>button.textContent==='登录 / 注册')!
+ const button=Array.from(container.querySelectorAll('button')).find(button=>button.textContent==='登录账户')!
  expect(container.querySelector<HTMLElement>('#account-login-info')!.hidden).toBe(true)
  act(()=>button.click())
  expect(container.querySelector<HTMLElement>('#account-login-info')!.hidden).toBe(false)
@@ -70,4 +70,12 @@ it('switches daily, weekly and lifetime views while preserving selected metric',
  click('每日')
  expect(container.querySelector('.account-calendar [role=listitem]:last-child')?.getAttribute('aria-label')).toContain('尚未到来')
  vi.useRealTimers()
+})
+
+// Administrator approval never means that an email has been verified.
+it.each([false,true])('shows email verification badge only for actual verified=%s',emailVerified=>{
+ const input=props()
+ act(()=>root.render(createElement(AccountPage,{...input,profile:{name:'Managed User',email:'managed@example.org',createdAt:'2026-11-12',emailVerified,administratorApproved:true} as any})))
+ expect(container.textContent).toContain('Managed User')
+ expect(container.querySelector('[aria-label="邮箱已验证"]')!==null).toBe(emailVerified)
 })

@@ -176,9 +176,7 @@ impl Auth {
     ) -> Snapshot {
         if credentials.family_expires <= now()
             || credentials.access_expires <= now()
-            || profile.id != credentials.subject
-            || profile.session_id != credentials.session_id
-            || !profile.email_verified
+            || !profile.matches_credentials(&credentials)
         {
             return self.fail(generation, "unauthorized", "reauth_required");
         }
@@ -492,7 +490,10 @@ impl Auth {
                 inner.snapshot.clone()
             }
             Err(code) => {
-                let terminal = code == "unauthorized" || code == "invalid_id_token";
+                let terminal = matches!(
+                    code,
+                    "unauthorized" | "invalid_id_token" | "invalid_response"
+                );
                 let result = self.fail(
                     generation,
                     code,
@@ -574,11 +575,13 @@ impl Auth {
         };
         let mut inner = self.inner.lock().unwrap();
         if inner.generation == generation {
-            if let Some(credentials) = &inner.credentials {
-                if profile.id != credentials.subject || profile.session_id != credentials.session_id
-                {
-                    return inner.snapshot.clone().error("invalid_id_token");
-                }
+            if !inner
+                .credentials
+                .as_ref()
+                .is_some_and(|credentials| profile.matches_credentials(credentials))
+            {
+                drop(inner);
+                return self.fail(generation, "invalid_id_token", "reauth_required");
             }
             inner.snapshot.profile = Some(profile);
             inner.snapshot.status = "authenticated";
@@ -705,7 +708,44 @@ mod tests {
             email: "a@example.org".into(),
             created_at: "2026-11-12T00:00:00Z".into(),
             email_verified: true,
+            administrator_approved: false,
             session_id: "s1".into(),
+        }
+    }
+    #[tokio::test]
+    async fn managed_profile_commit_preserves_eligibility_and_identity_guards() {
+        for (verified, approved, subject, session, accepted) in [
+            (false, false, "u1", "s1", false),
+            (false, true, "u1", "s1", true),
+            (true, false, "u1", "s1", true),
+            (false, true, "other", "s1", false),
+            (false, true, "u1", "other", false),
+        ] {
+            let store = Arc::new(Store::default());
+            let auth = Auth::with_store(store.clone());
+            let generation = auth.begin();
+            let mut value = serde_json::to_value(profile()).unwrap();
+            value["emailVerified"] = serde_json::json!(verified);
+            value["administratorApproved"] = serde_json::json!(approved);
+            value["id"] = serde_json::json!(subject);
+            value["sessionId"] = serde_json::json!(session);
+            let snapshot = auth
+                .commit(
+                    generation,
+                    credentials(),
+                    serde_json::from_value(value).unwrap(),
+                    true,
+                )
+                .await;
+            assert_eq!(
+                snapshot.status == "authenticated",
+                accepted,
+                "verified={verified}, approved={approved}, subject={subject}, session={session}"
+            );
+            assert_eq!(store.load().unwrap().is_some(), accepted);
+            if accepted {
+                assert_eq!(snapshot.profile.unwrap().email_verified, verified);
+            }
         }
     }
     #[tokio::test]
@@ -1005,6 +1045,122 @@ mod live_tests {
         );
         snapshot
     }
+    // Real service, passwords, PKCE, signatures, callback and rotating sessions;
+    // injected HTTP browser and in-memory credential store deliberately exclude OS/UI proof.
+    #[tokio::test]
+    #[ignore = "requires isolated managed service and private TITAN_MANAGED_NATIVE_FIXTURE; memory store only"]
+    async fn local_managed_service_memory_store_roundtrip() {
+        let fixture: serde_json::Value = serde_json::from_slice(
+            &std::fs::read(
+                std::env::var("TITAN_MANAGED_NATIVE_FIXTURE").expect("managed fixture path"),
+            )
+            .expect("managed fixture read"),
+        )
+        .expect("managed fixture JSON");
+        let network = Network::new(
+            Config::parse(
+                fixture["issuer"].as_str().expect("managed fixture issuer"),
+                true,
+            )
+            .expect("managed issuer policy"),
+        )
+        .expect("managed network");
+        let store = Arc::new(super::tests::Store::default());
+        let auth = Auth::create(store.clone(), Some(network.clone()), "guest");
+        let snapshot = login(&auth, &fixture, true, false).await;
+        let profile = snapshot.profile.as_ref().expect("authenticated profile");
+        assert!(profile.id == fixture["id"].as_str().expect("managed fixture subject"));
+        assert!(!profile.email_verified);
+        assert!(profile.administrator_approved);
+        assert!(snapshot.persistent);
+        assert!(store.load().unwrap().is_some());
+        let updated = auth
+            .update_profile("Managed Native Protocol Test".into())
+            .await;
+        assert_eq!(updated.status, "authenticated");
+        let profile = updated.profile.as_ref().unwrap();
+        assert_eq!(profile.name, "Managed Native Protocol Test");
+        assert!(!profile.email_verified);
+        assert!(profile.administrator_approved);
+        assert!(auth
+            .sessions()
+            .await
+            .unwrap()
+            .iter()
+            .any(|s| s.current && s.id == profile.session_id));
+        let previous = auth.inner.lock().unwrap().credentials.clone().unwrap();
+        auth.inner
+            .lock()
+            .unwrap()
+            .credentials
+            .as_mut()
+            .unwrap()
+            .access_expires = 0;
+        let (first, second) = tokio::join!(auth.status(), auth.status());
+        for snapshot in [first, second] {
+            assert_eq!(
+                snapshot.status, "authenticated",
+                "refresh code {:?}",
+                snapshot.error_code
+            );
+            assert!(!snapshot.profile.as_ref().unwrap().email_verified);
+            assert!(snapshot.profile.as_ref().unwrap().administrator_approved);
+        }
+        let refreshed = auth.inner.lock().unwrap().credentials.clone().unwrap();
+        assert!(refreshed.refresh != previous.refresh);
+        assert_eq!(refreshed.family_expires, previous.family_expires);
+        drop(auth);
+        let restored = Auth::create(store.clone(), Some(network.clone()), "guest");
+        let snapshot = restored.status().await;
+        assert_eq!(
+            snapshot.status, "authenticated",
+            "restore code {:?}",
+            snapshot.error_code
+        );
+        assert!(snapshot.persistent);
+        assert!(!snapshot.profile.as_ref().unwrap().email_verified);
+        assert!(snapshot.profile.as_ref().unwrap().administrator_approved);
+        let other = Auth::create(
+            Arc::new(super::tests::Store::default()),
+            Some(network.clone()),
+            "guest",
+        );
+        let other_snapshot = login(&other, &fixture, false, false).await;
+        let other_id = other_snapshot.profile.unwrap().session_id;
+        assert!(restored
+            .sessions()
+            .await
+            .unwrap()
+            .iter()
+            .any(|s| !s.current && s.id == other_id));
+        assert_eq!(
+            restored.revoke_session(other_id).await.status,
+            "authenticated"
+        );
+        assert_eq!(other.status().await.status, "reauth_required");
+        let before_logout = restored.inner.lock().unwrap().credentials.clone().unwrap();
+        assert_eq!(restored.logout().await.status, "guest");
+        assert!(store.load().unwrap().is_none());
+        assert!(restored.inner.lock().unwrap().credentials.is_none());
+        // Local fencing returns immediately; server revocation is deliberately asynchronous.
+        tokio::time::timeout(Duration::from_secs(5), async {
+            loop {
+                match network.profile(&before_logout).await {
+                    Err("unauthorized") => break,
+                    Ok(_) => tokio::time::sleep(Duration::from_millis(250)).await,
+                    Err(code) => panic!("unexpected logout revocation response: {code}"),
+                }
+            }
+        })
+        .await
+        .expect("server confirmed asynchronous logout revocation");
+        let snapshot = login(&restored, &fixture, true, false).await;
+        assert!(!snapshot.profile.as_ref().unwrap().email_verified);
+        login(&other, &fixture, false, false).await;
+        assert_eq!(restored.revoke_all().await.status, "guest");
+        assert!(store.load().unwrap().is_none());
+        assert_eq!(other.status().await.status, "reauth_required");
+    }
     #[tokio::test]
     #[ignore = "requires isolated local service, private TITAN_NATIVE_FIXTURE and macOS/Windows credential store"]
     async fn local_service_full_roundtrip() {
@@ -1135,6 +1291,23 @@ mod transport_tests {
         Arc<AtomicUsize>,
         tokio::task::JoinHandle<()>,
     ) {
+        issuer_with_profile(
+            drop_refresh,
+            fail_second_discovery,
+            serde_json::to_value(profile()).unwrap(),
+        )
+        .await
+    }
+    async fn issuer_with_profile(
+        drop_refresh: bool,
+        fail_second_discovery: bool,
+        response_profile: serde_json::Value,
+    ) -> (
+        Network,
+        Arc<AtomicUsize>,
+        Arc<AtomicUsize>,
+        tokio::task::JoinHandle<()>,
+    ) {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let base = format!("http://{}", listener.local_addr().unwrap());
         let config = Config::parse(&base, true).unwrap();
@@ -1150,6 +1323,7 @@ mod transport_tests {
                 let base = base.clone();
                 let calls = calls.clone();
                 let discovery_calls = discovery_calls.clone();
+                let response_profile = response_profile.clone();
                 tokio::spawn(async move {
                     let mut raw = Vec::new();
                     loop {
@@ -1189,7 +1363,7 @@ mod transport_tests {
     "/.well-known/openid-configuration"=>serde_json::json!({"issuer":base,"authorization_endpoint":format!("{base}/o/authorize/"),"token_endpoint":format!("{base}/o/token/"),"jwks_uri":format!("{base}/jwks"),"response_types_supported":["code"],"subject_types_supported":["public"],"id_token_signing_alg_values_supported":["RS256"],"code_challenge_methods_supported":["S256"]}).to_string(),
     "/jwks"=>"{\"keys\":[]}".into(),
     "/o/token/"=>{calls.fetch_add(1,Ordering::SeqCst);if drop_refresh{return;}tokio::time::sleep(Duration::from_millis(30)).await;serde_json::json!({"access_token":"new-access","refresh_token":"new-refresh","expires_in":600,"token_type":"Bearer","refresh_expires_in":900,"session_id":"s1"}).to_string()},
-    "/api/v1/me"=>serde_json::to_string(&profile()).unwrap(),_=>"null".into(),
+    "/api/v1/me"=>response_profile.to_string(),_=>"null".into(),
    };
                     let response=format!("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",body.len());
                     let _ = socket.write_all(response.as_bytes()).await;
@@ -1197,6 +1371,131 @@ mod transport_tests {
             }
         });
         (Network::new(config).unwrap(), count, discovery_count, task)
+    }
+    #[tokio::test]
+    async fn profile_update_rejects_unapproved_unverified_response() {
+        let mut value = serde_json::to_value(profile()).unwrap();
+        value["emailVerified"] = serde_json::json!(false);
+        value["administratorApproved"] = serde_json::json!(false);
+        let (network, _, _, server) = issuer_with_profile(false, false, value).await;
+        let auth = Auth::create(Arc::new(Store::default()), Some(network), "guest");
+        let generation = auth.begin();
+        auth.commit(generation, credentials(), profile(), false)
+            .await;
+        let result = auth.update_profile("New Name".into()).await;
+        assert_eq!(result.status, "reauth_required");
+        assert!(result.profile.is_none());
+        server.abort();
+    }
+    #[tokio::test]
+    async fn older_profile_without_approval_defaults_to_email_verification() {
+        for (verified, accepted) in [(false, false), (true, true)] {
+            let mut value = serde_json::to_value(profile()).unwrap();
+            value
+                .as_object_mut()
+                .unwrap()
+                .remove("administratorApproved");
+            value["emailVerified"] = serde_json::json!(verified);
+            let (network, _, _, server) = issuer_with_profile(false, false, value).await;
+            let result = network.profile(&credentials()).await;
+            assert_eq!(result.is_ok(), accepted);
+            if let Ok(profile) = result {
+                assert!(!profile.administrator_approved);
+            }
+            server.abort();
+        }
+    }
+    // A trusted API profile still must match this token's subject/session and eligibility.
+    #[tokio::test]
+    async fn managed_profiles_guard_network_status_and_updates() {
+        for (flag, verified, subject, session, expected) in [
+            (serde_json::json!(true), false, "u1", "s1", Ok(())),
+            (
+                serde_json::json!(false),
+                false,
+                "u1",
+                "s1",
+                Err("invalid_id_token"),
+            ),
+            (
+                serde_json::json!(true),
+                false,
+                "other",
+                "s1",
+                Err("invalid_id_token"),
+            ),
+            (
+                serde_json::json!(true),
+                false,
+                "u1",
+                "other",
+                Err("invalid_id_token"),
+            ),
+            (
+                serde_json::json!("true"),
+                false,
+                "u1",
+                "s1",
+                Err("invalid_response"),
+            ),
+            (
+                serde_json::Value::Null,
+                false,
+                "u1",
+                "s1",
+                Err("invalid_response"),
+            ),
+        ] {
+            let mut value = serde_json::to_value(profile()).unwrap();
+            value["emailVerified"] = serde_json::json!(verified);
+            value["administratorApproved"] = flag;
+            value["id"] = serde_json::json!(subject);
+            value["sessionId"] = serde_json::json!(session);
+            let (network, _, _, server) = issuer_with_profile(false, false, value).await;
+            assert_eq!(network.profile(&credentials()).await.map(|_| ()), expected);
+            for update in [false, true] {
+                let auth = Auth::create(Arc::new(Store::default()), Some(network.clone()), "guest");
+                let generation = auth.begin();
+                auth.commit(generation, credentials(), profile(), false)
+                    .await;
+                let result = if update {
+                    auth.update_profile("New Name".into()).await
+                } else {
+                    auth.status().await
+                };
+                if expected.is_ok() {
+                    assert_eq!(result.status, "authenticated");
+                    assert!(!result.profile.unwrap().email_verified);
+                } else {
+                    assert_ne!(
+                        result.status, "authenticated",
+                        "update={update}, expected={expected:?}"
+                    );
+                    assert!(result.profile.is_none());
+                }
+            }
+            server.abort();
+        }
+    }
+    #[tokio::test]
+    async fn managed_profile_refresh_and_restore_keep_real_verification_state() {
+        let mut value = serde_json::to_value(profile()).unwrap();
+        value["emailVerified"] = serde_json::json!(false);
+        value["administratorApproved"] = serde_json::json!(true);
+        let (network, posts, _, server) = issuer_with_profile(false, false, value).await;
+        let store = Arc::new(Store::default());
+        let auth = Auth::create(store.clone(), Some(network.clone()), "guest");
+        let generation = auth.begin();
+        auth.commit(generation, credentials(), profile(), true)
+            .await;
+        drop(auth);
+        let restored = Auth::create(store.clone(), Some(network), "guest");
+        let result = restored.status().await;
+        assert_eq!(result.status, "authenticated", "{:?}", result.error_code);
+        assert!(!result.profile.unwrap().email_verified);
+        assert_eq!(posts.load(Ordering::SeqCst), 1);
+        assert_eq!(store.load().unwrap().unwrap().refresh, "new-refresh");
+        server.abort();
     }
     #[tokio::test]
     async fn authorization_request_carries_native_device_metadata() {

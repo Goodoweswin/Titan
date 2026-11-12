@@ -1,6 +1,6 @@
 import {invoke} from '@tauri-apps/api/core'
 
-export interface AccountProfile {id:string;name:string;email:string;createdAt:string;emailVerified:boolean;sessionId:string}
+export interface AccountProfile {id:string;name:string;email:string;createdAt:string;emailVerified:boolean;administratorApproved?:boolean;sessionId:string}
 export interface AccountSession {id:string;label:string;platform:string;createdAt:string;lastSeenAt:string;expiresAt:string;current:boolean}
 export interface AccountSnapshot {
  status:'unconfigured'|'guest'|'logging_in'|'authenticated'|'offline'|'reauth_required'|'unavailable'

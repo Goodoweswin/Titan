@@ -17,15 +17,15 @@ async function mount(){await act(async()=>root.render(createElement(Harness)))}
 beforeEach(()=>{Object.assign(globalThis,{IS_REACT_ACT_ENVIRONMENT:true,__TAURI_INTERNALS__:{}});host=document.createElement('div');document.body.append(host);root=createRoot(host);vi.mocked(invoke).mockImplementation(async command=>command==='auth_sessions'?[]:guest as any)})
 afterEach(async()=>{await act(async()=>root.unmount());host.remove();delete (window as any).__TAURI_INTERNALS__;vi.resetAllMocks()})
 it('offers system-browser login for configured guests without password inputs',async()=>{
- await mount();expect(button('登录 / 注册').disabled).toBe(false);expect(host.textContent).toContain('系统浏览器');expect(host.querySelector('input[type=password]')).toBeNull()
+ await mount();expect(button('登录账户').disabled).toBe(false);expect(host.textContent).toContain('系统浏览器');expect(host.querySelector('input[type=password]')).toBeNull()
 })
 it('offers only an explanatory service notice when unconfigured',async()=>{
- vi.mocked(invoke).mockResolvedValue({...guest,status:'unconfigured'});await mount();await click('登录 / 注册');expect(host.textContent).toContain('登录服务尚未开放');expect(invoke).not.toHaveBeenCalledWith('auth_login',expect.anything())
+ vi.mocked(invoke).mockResolvedValue({...guest,status:'unconfigured'});await mount();await click('登录账户');expect(host.textContent).toContain('登录服务尚未开放');expect(invoke).not.toHaveBeenCalledWith('auth_login',expect.anything())
 })
 it('keeps cancel enabled during browser login and exposes memory-only choice after storage failure',async()=>{
  let finish!:(s:AccountSnapshot)=>void
  vi.mocked(invoke).mockImplementation(async command=>command==='auth_login'?new Promise<AccountSnapshot>(r=>{finish=r}):guest as any)
- await mount();await click('登录 / 注册');expect(button('取消登录').disabled).toBe(false);expect(host.textContent).toContain('等待浏览器')
+ await mount();await click('登录账户');expect(button('取消登录').disabled).toBe(false);expect(host.textContent).toContain('等待浏览器')
  await act(async()=>finish({...guest,status:'unavailable',errorCode:'credential_storage_failed',message:'系统凭据存储不可用'}));expect(button('仅本次登录')).toBeTruthy();expect(invoke).toHaveBeenCalledTimes(2)
  await click('仅本次登录');expect(invoke).toHaveBeenLastCalledWith('auth_login',{memoryOnly:true,switchAccount:false})
  await click('取消登录');expect(host.textContent).not.toContain('等待浏览器')
@@ -53,10 +53,10 @@ it.each([['rate_limited','操作过于频繁'],['forbidden','当前操作未获�
 
 it('keeps local tools available without login or memory-only controls when account ownership is unavailable',async()=>{
  vi.mocked(invoke).mockResolvedValue({...guest,status:'unavailable',errorCode:'account_owner_unavailable',message:null})
- await mount();expect(button('登录 / 注册').disabled).toBe(true)
+ await mount();expect(button('登录账户').disabled).toBe(true)
  expect(host.textContent).toContain('本地功能可正常使用')
  expect(host.textContent).toContain('重启 Titan')
  expect(button('仅本次登录')).toBeUndefined()
- await click('登录 / 注册')
+ await click('登录账户')
  expect(invoke).not.toHaveBeenCalledWith('auth_login',expect.anything())
 })
