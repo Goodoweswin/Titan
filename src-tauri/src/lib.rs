@@ -1,3 +1,4 @@
+mod auth;
 use serde_json::{json,Value};
 use tauri::Manager;
 mod engine_worker;
@@ -23,6 +24,7 @@ async fn engine(mut request:Value,session:tauri::State<'_,Session>,worker:tauri:
 pub fn run(){
     tauri::Builder::default()
       .setup(|app| {
+        app.manage(auth::Auth::new(app.path().app_local_data_dir()?.join("accounts")));
         app.manage(Session{token:uuid::Uuid::new_v4().to_string(),library_root:app.path().app_local_data_dir()?.join("library")});
         let (program,args)=if cfg!(debug_assertions){
           let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
@@ -32,7 +34,7 @@ pub fn run(){
         };
         app.manage(EngineWorker::new(program,args));Ok(())
       })
-      .plugin(tauri_plugin_dialog::init()).invoke_handler(tauri::generate_handler![engine, if_volume::if_volume_read, library_files::library_open_file])
+      .plugin(tauri_plugin_dialog::init()).invoke_handler(tauri::generate_handler![auth::auth_status, auth::auth_login, auth::auth_cancel, auth::auth_logout, auth::auth_update_profile, auth::auth_sessions, auth::auth_revoke_session, auth::auth_revoke_all, engine, if_volume::if_volume_read, library_files::library_open_file])
       .build(tauri::generate_context!()).expect("Titan WB启动失败")
       .run(|app,event|{if matches!(event,tauri::RunEvent::Exit){tauri::async_runtime::block_on(app.state::<EngineWorker>().shutdown());}});
 }

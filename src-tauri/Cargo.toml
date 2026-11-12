@@ -16,5 +16,15 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-dialog = "2"
 serde_json = { version = "1", features = ["float_roundtrip"] }
-tokio = { version = "1", features = ["process", "io-util", "time", "sync", "macros", "rt-multi-thread"] }
+tokio = { version = "1", features = ["process", "io-util", "time", "sync", "macros", "rt-multi-thread", "net"] }
 uuid = { version = "1", features = ["v4"] }
+
+serde = { version = "1", features = ["derive"] }
+openidconnect = { version = "4.1.0", default-features = false, features = ["reqwest", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+keyring = { version = "3.6.3", features = ["apple-native", "windows-native", "linux-native-sync-persistent", "crypto-rust"] }
+sha2 = "0.10"
+subtle = "2.6"
+url = "2"
+zeroize = { version = "1", features = ["derive"] }
+open = "5.3"
