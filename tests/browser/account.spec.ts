@@ -26,10 +26,113 @@ async function nativeFixture(page:Page,mode:'authenticated'|'guest'|'storage'='a
   }}
  },{guest,profile,mode})
 }
-const account=(page:Page)=>page.getByRole('dialog',{name:'账户',exact:true})
+const account=(page:Page)=>page.getByRole('region',{name:'账户',exact:true})
 async function openAccount(page:Page){await page.locator('.account-trigger').click();await expect(account(page)).toBeVisible()}
 
-test('unconfigured account preserves WB figure draft and isolates keyboard shortcuts',async({page})=>{
+async function createLibraryAnalysis(page:Page,name:string){
+ const response=await page.request.post('/test-engine',{data:{command:'library_create',payload:{name}}})
+ const result=await response.json();expect(result.ok,result.error).toBe(true)
+}
+
+
+test('account occupies the center with usable sidebar and global navigation',async({page})=>{
+ await page.goto('/?integration=1');await openAccount(page)
+ const sidebar=page.getByRole('complementary',{name:'Titan 导航',exact:true})
+ const nav=page.getByRole('navigation',{name:'浏览导航',exact:true})
+ await expect(page.getByRole('dialog',{name:'账户',exact:true})).toHaveCount(0)
+ await expect(page.locator('.account-dialog,.modal-backdrop,[aria-modal=true]')).toHaveCount(0)
+ await expect(account(page).locator('xpath=ancestor::main')).toBeVisible()
+ await expect(sidebar.locator('.account-trigger')).toHaveAttribute('aria-current','page')
+ await expect(nav).toContainText('账户')
+ await expect(nav.getByRole('button',{name:'展开右栏',exact:true})).toBeDisabled()
+ const bounds=await account(page).boundingBox(),left=await sidebar.boundingBox(),top=await nav.boundingBox()
+ expect(bounds!.x).toBeGreaterThanOrEqual(left!.x+left!.width)
+ expect(bounds!.y).toBeGreaterThanOrEqual(top!.y+top!.height)
+ await page.screenshot({path:'artifacts/accounts/account-center.png',fullPage:true})
+ // Sidebar actions must work while the account page is displayed.
+ await sidebar.getByRole('button',{name:'免疫荧光',exact:true}).click()
+ await expect(account(page)).toBeHidden()
+ await expect(page.getByRole('heading',{name:'免疫荧光',exact:true})).toBeVisible()
+ await nav.getByRole('button',{name:'后退',exact:true}).click()
+ await expect(account(page)).toBeVisible()
+ await account(page).getByRole('button',{name:'返回工作区',exact:true}).click()
+ await expect(page.getByRole('heading',{name:'Titan 工作区',exact:true})).toBeVisible()
+ await expect(sidebar.locator('.account-trigger')).not.toHaveAttribute('aria-current','page')
+})
+
+for(const tool of ['if','stats'] as const)test(`account navigation preserves the live ${tool} draft${tool==='stats'?' and undo state':''}`,async({page})=>{
+ await page.goto('/?integration=1')
+ await page.getByRole('button',{name:tool==='if'?'免疫荧光':'统计与绘图',exact:true}).click()
+ await page.getByRole('button',{name:tool==='if'?'体验 IF 合成示例':'体验合成示例',exact:true}).click()
+ const field=tool==='if'?page.getByLabel('当前视野名称',{exact:true}):page.getByLabel('数值 1 1',{exact:true})
+ const before=await field.inputValue(),edited=tool==='if'?'未保存的 IF 视野':'42'
+ await field.fill(edited)
+ // This unfinished IF polygon exists only inside the mounted canvas, never in
+ // autosaved project data, so reopening saved data cannot satisfy the check.
+ const polygon=page.locator('.if-canvas polygon[stroke-dasharray]')
+ let points:string|null=null
+ if(tool==='if'){
+  await page.getByLabel('区域工具',{exact:true}).selectOption('polygon')
+  const canvas=page.getByLabel('IF 原始坐标画布',{exact:true})
+  for(const position of [{x:30,y:30},{x:100,y:30},{x:100,y:100}])await canvas.click({position})
+  points=await polygon.getAttribute('points');expect(points).toBeTruthy()
+ }
+ await openAccount(page)
+ await expect(field).toBeHidden()
+ // A hidden scientific pane cannot be focused or receive account key presses.
+ const pane=page.locator(tool==='if'?'.if-pane':'.stats-pane')
+ await expect(pane).toHaveAttribute('inert','')
+ await account(page).getByRole('heading',{name:'账户',exact:true}).focus()
+ await page.keyboard.press('ControlOrMeta+z');await page.keyboard.press('Delete')
+ await account(page).getByRole('button',{name:'返回工作区',exact:true}).click()
+ await expect(field).toHaveValue(edited)
+ const nav=page.getByRole('navigation',{name:'浏览导航',exact:true})
+ await nav.getByRole('button',{name:'前进',exact:true}).click();await expect(account(page)).toBeVisible()
+ await nav.getByRole('button',{name:'后退',exact:true}).click();await expect(field).toHaveValue(edited)
+ if(tool==='if'){await expect(polygon).toHaveAttribute('points',points!);await expect(page.getByRole('button',{name:'闭合多边形',exact:true})).toBeEnabled()}
+ if(tool==='stats'){
+  await page.getByRole('button',{name:'撤销统计修改',exact:true}).click()
+  await expect(field).toHaveValue(before)
+ }
+})
+
+test('leaving account for another module or library analysis still guards an unsaved WB figure',async({page})=>{
+ await page.goto('/?integration=1')
+ await createLibraryAnalysis(page,'账户导航离开保护');await page.reload()
+ await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await page.getByRole('button',{name:'WB 组图',exact:true}).click()
+ await page.getByRole('button',{name:'新建组图',exact:true}).click()
+ await page.getByLabel('蛋白名称',{exact:true}).fill('保留直到批准离开')
+ await openAccount(page)
+ let prompts=0
+ page.on('dialog',dialog=>{prompts++;void dialog.dismiss()})
+ await page.getByRole('complementary',{name:'Titan 导航',exact:true}).getByRole('button',{name:'免疫荧光',exact:true}).click()
+ await expect(account(page)).toBeVisible();expect(prompts).toBe(1)
+ await page.getByRole('button',{name:'打开分析 账户导航离开保护',exact:true}).click()
+ await expect(account(page)).toBeVisible();expect(prompts).toBe(2)
+ await account(page).getByRole('button',{name:'返回工作区',exact:true}).click()
+ await expect(page.getByLabel('蛋白名称',{exact:true})).toHaveValue('保留直到批准离开')
+})
+
+test('recent account items and sidebar library entries navigate out of account without stale overlays',async({page})=>{
+ await page.goto('/?integration=1')
+ await createLibraryAnalysis(page,'账户最近分析');await createLibraryAnalysis(page,'账户左栏分析');await page.reload()
+ await openAccount(page)
+ await account(page).getByRole('button',{name:'继续项目 账户最近分析',exact:true}).click()
+ await expect(account(page)).toBeHidden()
+ await expect(page.getByLabel('实验名称',{exact:true})).toHaveValue('账户最近分析')
+ const nav=page.getByRole('navigation',{name:'浏览导航',exact:true})
+ await nav.getByRole('button',{name:'后退',exact:true}).click();await expect(account(page)).toBeVisible()
+ await page.getByRole('button',{name:'打开分析 账户左栏分析',exact:true}).click()
+ await expect(account(page)).toBeHidden()
+ await expect(page.getByLabel('实验名称',{exact:true})).toHaveValue('账户左栏分析')
+ await expect(nav.getByRole('button',{name:'前进',exact:true})).toBeDisabled()
+ await nav.getByRole('button',{name:'后退',exact:true}).click();await expect(account(page)).toBeVisible()
+ await nav.getByRole('button',{name:'前进',exact:true}).click()
+ await expect(page.getByLabel('实验名称',{exact:true})).toHaveValue('账户左栏分析')
+})
+
+test('account center preserves a WB figure draft through return and browsing history',async({page})=>{
  await page.goto('/?integration=1')
  await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
  await page.getByRole('button',{name:'WB 组图',exact:true}).click()
@@ -43,13 +146,18 @@ test('unconfigured account preserves WB figure draft and isolates keyboard short
  await page.keyboard.press('ControlOrMeta+z')
  await page.keyboard.press('Delete')
  await page.keyboard.press('Escape')
- await expect(account(page)).toBeHidden()
+ await expect(account(page)).toBeVisible()
+ await expect(page.getByLabel('蛋白名称',{exact:true})).toBeHidden()
+ await account(page).getByRole('button',{name:'返回工作区',exact:true}).click()
  await expect(page.getByLabel('蛋白名称',{exact:true})).toHaveValue('未保存的账户导航草稿')
- await openAccount(page);await account(page).getByRole('button',{name:'返回工作区',exact:true}).click()
+ const nav=page.getByRole('navigation',{name:'浏览导航',exact:true})
+ await nav.getByRole('button',{name:'前进',exact:true}).click()
+ await expect(account(page)).toBeVisible()
+ await nav.getByRole('button',{name:'后退',exact:true}).click()
  await expect(page.getByLabel('蛋白名称',{exact:true})).toHaveValue('未保存的账户导航草稿')
 })
 
-test('browser login stays cancellable across dialog reopen and ignores its late result',async({page})=>{
+test('mocked native login stays cancellable across account navigation and ignores its late result',async({page})=>{
  await nativeFixture(page,'guest');await page.goto('/?integration=1');await openAccount(page)
  await account(page).getByRole('button',{name:'登录 / 注册',exact:true}).click()
  await expect(account(page).getByText('等待浏览器完成登录',{exact:true})).toBeVisible()
@@ -61,11 +169,18 @@ test('browser login stays cancellable across dialog reopen and ignores its late 
  expect(await page.evaluate(()=>(window as any).accountCalls.filter((call:any)=>call.command==='auth_cancel').length)).toBe(1)
 })
 
-test('verified profile, device list and guarded all-device logout use native account commands',async({page})=>{
- await nativeFixture(page);await page.goto('/?integration=1');await openAccount(page)
+test('mocked native profile, device list and guarded all-device logout remain usable in the center',async({page})=>{
+ await nativeFixture(page);await page.goto('/?integration=1')
+ await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await page.getByRole('button',{name:'WB 组图',exact:true}).click()
+ await page.getByRole('button',{name:'新建组图',exact:true}).click()
+ await page.getByLabel('蛋白名称',{exact:true}).fill('昵称编辑不得改变组图')
+ await openAccount(page)
  await expect(account(page).getByRole('heading',{name:'研究者甲',exact:true})).toBeVisible()
  await expect(account(page).getByText('测试 Mac',{exact:true})).toBeVisible()
  await expect(account(page).getByText('另一台设备',{exact:true})).toBeVisible()
+ await account(page).getByLabel('昵称',{exact:true}).fill('编辑中的昵称')
+ await page.keyboard.press('ControlOrMeta+z');await page.keyboard.press('Delete')
  await account(page).getByLabel('昵称',{exact:true}).fill('确认后的昵称')
  await account(page).getByRole('button',{name:'保存昵称',exact:true}).click()
  await expect(account(page).getByRole('heading',{name:'确认后的昵称',exact:true})).toBeVisible()
@@ -82,6 +197,8 @@ test('verified profile, device list and guarded all-device logout use native acc
  await account(page).getByRole('button',{name:'退出本机',exact:true}).click()
  await expect(account(page).getByText(/服务端撤销未确认/)).toBeVisible()
  await expect(account(page).getByRole('heading',{name:'本地研究者',exact:true})).toBeVisible()
+ await account(page).getByRole('button',{name:'返回工作区',exact:true}).click()
+ await expect(page.getByLabel('蛋白名称',{exact:true})).toHaveValue('昵称编辑不得改变组图')
 })
 
 test('credential storage failure waits for explicit memory-only login',async({page})=>{

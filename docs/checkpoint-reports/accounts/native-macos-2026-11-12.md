@@ -26,7 +26,9 @@ Temporary diagnostics, file switch and direct dependency were removed by the Tas
 Native debug builds succeed; pre-existing Cargo warning `function decode_response is never used` at `src-tauri/src/lib.rs:11:4` and lack of notarization credentials reported.
 
 ## Cleanup state
-CUA later reported Mac locked and automatic unlock failed, so test app/window cleanup awaits user handoff. Async unlock request sent. No further UI action while locked. Local Chrome test tab IDs:1251376197,1251376200,1251376203,1251376206.
+Historical handoff: CUA reported Mac locked and automatic unlock failed; an async unlock request was sent and no further UI action was taken while locked.
+
+Controller subsequently completed the GUI cleanup after handoff: CUA observed the isolated test app exited; owned Chrome tabs1251376197,1251376200,1251376203,1251376206 were closed and none remain; IAB preview absent. Installed Titan and its library were not targeted. Cleanup is DONE; the earlier lock/unlock failure remains historical evidence. This does not repair or rerun Keychain -25293 or constitute final-binary native account acceptance.
 
 ## Final repair wave boundary
 The subsequent code repair adds a lifetime process owner for an application/issuer/client/data-root credential namespace and descriptive native platform labels. Its regular Rust/process-boundary, service and frontend tests do not access the OS credential manager. The actual Keychain failure above is unchanged and remains NOT PASSED. No native GUI/desktop interaction, OS/security changes or live-service restart/migration were performed in this repair wave. The new duplicate-startup dialog is compiled but has no new GUI acceptance evidence. The existing unused `decode_response` warning now appears at `src-tauri/src/lib.rs:12:4` after adding a dialog import; the helper itself is unchanged.
@@ -34,4 +36,11 @@ The subsequent code repair adds a lifetime process owner for an application/issu
 ## Scoped startup correction
 The subsequent scoped review confirmed the original four repairs and identified that account-owner I/O failures incorrectly blocked guest startup. The correction uses an inert unavailable account while continuing the shared scientific startup bundle; only proven duplicate-owner conflicts retain startup refusal. A new non-GUI regression exercises invalid account/lock paths through the same factory as setup and starts its real EngineWorker successfully. Unconfigured accounts no longer touch account storage. This neither changes nor passes the failed Keychain gate above.
 
-The controller has now verified and stopped its local Gunicorn/PostgreSQL test processes, preserving data and private configuration. Future live acceptance requires starting PostgreSQL, applying migration0004 and cold-starting updated service code. Locked-Mac test windows/browser tabs still await user handoff; no native GUI cleanup was performed in this correction.
+The controller has now verified and stopped its local Gunicorn/PostgreSQL test processes, preserving data and private configuration. Future live acceptance requires starting PostgreSQL, applying migration0004 and cold-starting updated service code. The scoped startup correction itself performed no native GUI cleanup; the controller subsequently completed cleanup as recorded above.
+
+
+## Later account-center browser layout check
+
+Controller CUA visually verified the current frontend in actual Chrome on local preview1430: account occupies the shell center; sidebar and global navigation remain visible, with no modal backdrop. Clicking sidebar 首页 navigated successfully and global 后退 returned to the account center. This was a browser layout/navigation check without a login fixture or OS authentication; it did not replace the installed app. Controller closed its test tab1251376213 and stopped preview1430 with Ctrl-C. The shareable headless layout screenshot is `artifacts/accounts/account-center.png` (1440px desktop viewport); it is separate from the controller CUA observation.
+
+This later check is frontend layout/navigation evidence, not a new native credential or final-binary acceptance result. The actual native failures above remain unchanged.

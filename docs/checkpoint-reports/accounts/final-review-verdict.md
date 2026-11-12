@@ -30,6 +30,15 @@ The user deferred ECS, domain/DNS and real mail setup. [Deployment materials](..
 
 Controller-owned local Gunicorn8000 and PostgreSQL55432 were verified and stopped; data/private config were retained. Before future live local acceptance, start the database, apply migration0004 and cold-start updated service code. The new application/data-root credential namespace requires a fresh login and does not migrate/delete old v1 items.
 
-The Mac remained locked at the GUI cleanup handoff. The isolated test app and owned browser tabs have not been confirmed closed. Their cleanup and actual final native persistent-login/restart/rotation acceptance remain pending; installed Titan and its library were not targeted.
+Controller subsequently completed the GUI cleanup after handoff: CUA observed the isolated test app exited; owned Chrome tabs1251376197,1251376200,1251376203,1251376206 were closed and none remain; IAB preview absent. Installed Titan and its library were not targeted. Cleanup is DONE; the earlier lock/unlock failure remains historical evidence. This does not repair or rerun Keychain -25293 or constitute final-binary native account acceptance. Actual final native persistent-login/restart/rotation acceptance remains pending.
 
 This final handoff changes documentation only. No product suites were repeated for the record update.
+
+
+## User-requested account center correction after that review
+
+The latest user correction moves account from a modal into the existing center workspace pane (base `8557e00`). Sidebar selection, global title/history, hidden-pane keyboard isolation, live WB/IF/statistics draft resumption and ordinary guarded navigation are covered by the frontend/browser evidence in [implementation verification](implementation-verification.md#user-corrected-account-center-base-8557e00). Full frontend **123 passed**, build passed, affected browser scopes **34 passed**, and the final strengthened account-only scope **9 passed**. Those account native fixtures remain mocks. Controller owns the independent scoped code review for this correction.
+
+Controller CUA visually verified the current frontend in actual Chrome on local preview1430: account occupies the shell center; sidebar and global navigation remain visible, with no modal backdrop. Clicking sidebar 首页 navigated successfully and global 后退 returned to the account center. This was a browser layout/navigation check without a login fixture or OS authentication; it did not replace the installed app. Controller closed its test tab1251376213 and stopped preview1430 with Ctrl-C. The shareable headless layout screenshot is `artifacts/accounts/account-center.png` (1440px desktop viewport); it is separate from the controller CUA observation.
+
+These new layout/navigation checks do not rerun or pass the failed Keychain gate or final native persistent-login/restart acceptance. No deployment or installed-app replacement occurred.

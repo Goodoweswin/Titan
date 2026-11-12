@@ -41,7 +41,7 @@ import SidebarResize from './SidebarResize'
 import WorkspaceNavigation from './WorkspaceNavigation'
 import useWorkspaceHistory from './useWorkspaceHistory'
 import useWorkspacePanels from './useWorkspacePanels'
-import type {Screen,ModuleView,AnalysisLocation,WorkspaceLocation} from './workspace-navigation'
+import {sameLocation,type Screen,type ModuleView,type AnalysisLocation,type WorkspaceLocation} from './workspace-navigation'
 import ToolHome,{toolInfo,type Tool} from './ToolHome'
 import ImportDialog from './if/ImportDialog'
 import ToolImport from './stats/ToolImport'
@@ -60,6 +60,9 @@ export default function App(){
  const panels=useWorkspacePanels()
  const [module,setModule]=useState<Tool>('wb'),moduleRef=useRef(module);moduleRef.current=module
  const [screen,setScreen]=useState<Screen>({kind:'home'})
+ // Account suspends the current page; leaving it for another workspace still
+ // uses that page's normal save/discard protection.
+ const accountOrigin=useRef<Screen>({kind:'home'})
  const [firstImport,setFirstImport]=useState<FirstImport|null>(null)
  const [ifView,setIFView]=useState<ModuleView>({})
  const [statsView,setStatsView]=useState<ModuleView>({})
@@ -75,7 +78,7 @@ export default function App(){
  const [exportRetries,setExportRetries]=useState<NonNullable<LibraryExportReceipt['library_export_retry']>[]>([])
  function activateModule(target:Tool){setModule(target);setScreen({kind:'analysis'})}
  async function prepareCurrent(keepWbDraft=false,approval?:LeaveApproval){
-  if(screen.kind!=='analysis')return true
+  if(screen.kind!=='analysis'&&!(screen.kind==='account'&&accountOrigin.current.kind==='analysis'))return true
   const source=moduleRef.current
   if(source==='wb'){
    if(busy||wbBusy.current)return false
@@ -105,6 +108,10 @@ export default function App(){
   return moduleRef.current===target||await prepareCurrent()
  }
  function visit(next:Screen){
+  if(next.kind==='account'){
+   if(screen.kind!=='account')accountOrigin.current=screen
+   setScreen(next);return
+  }
   void guardLibrary(async()=>{
    const keepWbDraft=next.kind==='tool'&&next.tool==='wb'&&moduleRef.current==='wb'
    if(!await prepareCurrent(keepWbDraft))return false
@@ -148,11 +155,9 @@ export default function App(){
 
 
  const [project,setProject]=useState<Project|null>(null),[result,setResult]=useState<AnalysisResult|null>(null)
- const [showAccount,setShowAccount]=useState(false),[showSettings,setShowSettings]=useState(false)
+ const [showSettings,setShowSettings]=useState(false)
  const account=useAccount()
  const research=useResearchActivity(project,result)
- const accountDialog=useRef<HTMLDialogElement>(null)
- useEffect(()=>{if(showAccount&&!accountDialog.current?.open)accountDialog.current?.showModal()},[showAccount])
  const [interfaceColor,setInterfaceColor]=useState(readInterfaceColor),[colorPersisted,setColorPersisted]=useState(true)
  function changeInterfaceColor(color:InterfaceColor){setInterfaceColor(color);setColorPersisted(saveInterfaceColor(color))}
  const library=useProjectLibrary()
@@ -630,11 +635,11 @@ export default function App(){
  useEffect(()=>{
   const listener=(e:KeyboardEvent)=>{
    if(!(e.metaKey||e.ctrlKey)||e.key.toLowerCase()!=='z'||(e.target instanceof HTMLElement&&(e.target.closest('input,textarea,select,[contenteditable="true"]'))))return
-   if(moduleRef.current!=='wb'||!project||project.read_only||busy||showWbGuide||showAccount||showSettings||homeVisible)return
+   if(moduleRef.current!=='wb'||!project||project.read_only||busy||showWbGuide||showSettings||homeVisible)return
    e.preventDefault();historyUndo(e.shiftKey)
   }
   window.addEventListener('keydown',listener);return()=>window.removeEventListener('keydown',listener)
- },[project,past,future,busy,canvasHistory,guided,tab,showWbGuide,showAccount,showSettings,homeVisible])
+ },[project,past,future,busy,canvasHistory,guided,tab,showWbGuide,showSettings,homeVisible])
  function onFigurePreview(value:LiveFigurePreview|null){figurePreview.current=value}
  function stillViewingFigure(history:FrozenFigure,token:number,view:number){return projectNavigation.current===token&&navigation.current===view&&frozenRef.current===history&&current.current?.project_path===history.project.project_path}
  function openExport(){
@@ -729,11 +734,12 @@ export default function App(){
  const currentEntry=analysisVisible?entries.find(entry=>entry.path===currentView.path):undefined
  const membership=library.projects.find(item=>item.id===currentEntry?.collection_id)
  const selectedProject=screen.kind==='project'?library.projects.find(item=>item.id===screen.id):undefined
- const browsingLocation:WorkspaceLocation|null=screen.kind==='analysis'?
+ const liveLocation:AnalysisLocation|null=
   currentView.projectId&&currentView.view?{kind:'analysis',module,projectId:currentView.projectId,view:currentView.view,
    path:currentView.path,name:currentView.name,entryId:currentEntry?.entry_id,resourceId:currentView.resourceId,
    artifactId:currentView.artifactId,versionId:currentView.versionId,runId:currentView.runId,
-   ...(module==='wb'?{manualMode,activeSetId,roiId:selection.roiId}:{})}:null:screen
+   ...(module==='wb'?{manualMode,activeSetId,roiId:selection.roiId}:{})}:null
+ const browsingLocation:WorkspaceLocation|null=screen.kind==='analysis'?liveLocation:screen
  const browsingBlocked=libraryBusy||switching||!!currentView.busy||module==='wb'&&(!!busy||wbWorking)||
   !!firstImport||!!pageChoice||!!libraryDialog||showExport||showWbGuide
  const browsing=useWorkspaceHistory(browsingLocation,browsingBlocked,restoreLocation)
@@ -770,6 +776,12 @@ export default function App(){
  }
  async function restoreLocation(location:WorkspaceLocation){
   try{return await guardLibrary(async()=>{
+   if(location.kind==='account'){visit(location);return true}
+   // Resuming the suspended live page must not reload/rebuild its editor:
+   // unsaved WB figures and the IF/stats undo state live inside mounted panes.
+   if(screen.kind==='account'&&location.kind==='analysis'&&liveLocation&&sameLocation(location,liveLocation)){
+    activateModule(location.module);return true
+   }
    if(location.kind!=='analysis'){
     if(location.kind==='project'&&!library.projects.some(project=>project.id===location.id))throw new Error('原项目已移出列表，请从左栏选择当前项目。')
     const keepDraft=location.kind==='tool'&&location.tool==='wb'&&moduleRef.current==='wb'
@@ -785,7 +797,7 @@ export default function App(){
    return !!restored
   })}catch(error){setLibraryNotice('未能切换页面：'+(error instanceof Error?error.message:String(error)));return false}
  }
- const browsingTitle=screen.kind==='home'?'Titan 工作区':screen.kind==='project'?selectedProject?.name??'项目':screen.kind==='tool'?toolInfo[screen.tool].label:currentView.name??currentEntry?.name??'分析'
+ const browsingTitle=screen.kind==='account'?'账户':screen.kind==='home'?'Titan 工作区':screen.kind==='project'?selectedProject?.name??'项目':screen.kind==='tool'?toolInfo[screen.tool].label:currentView.name??currentEntry?.name??'分析'
  const memberLine=currentEntry&&<div className="analysis-membership">
   {membership?<button className="text-btn" onClick={()=>visit({kind:'project',id:membership.id})}><Folder size={13}/>{membership.name}</button>:<span>独立分析</span>}
  </div>
@@ -817,7 +829,7 @@ export default function App(){
       aria-current={selected?'page':undefined} onClick={()=>enterModule(key)}><Icon size={16}/><span>{label}</span></button>
     })}</nav>
    </div>
-   <div className="sidebar-settings"><button type="button" className="nav account-trigger" onClick={()=>setShowAccount(true)}><UserRound size={18}/><span>账户<small>{account.snapshot.status==='logging_in'?'正在登录':account.snapshot.profile&&['authenticated','offline'].includes(account.snapshot.status)?`${account.snapshot.profile.name} · ${account.snapshot.status==='offline'?'离线':'已登录'}`:'未登录 · 本地使用'}</small></span></button><button type="button" className="nav" onClick={()=>setShowSettings(true)}><Settings size={18}/><span>设置</span></button></div>
+   <div className="sidebar-settings"><button type="button" className={`nav account-trigger${screen.kind==='account'?' active':''}`} aria-current={screen.kind==='account'?'page':undefined} onClick={()=>visit({kind:'account'})}><UserRound size={18}/><span>账户<small>{account.snapshot.status==='logging_in'?'正在登录':account.snapshot.profile&&['authenticated','offline'].includes(account.snapshot.status)?`${account.snapshot.profile.name} · ${account.snapshot.status==='offline'?'离线':'已登录'}`:'未登录 · 本地使用'}</small></span></button><button type="button" className="nav" onClick={()=>setShowSettings(true)}><Settings size={18}/><span>设置</span></button></div>
   </aside>
   {screen.kind==='home'&&<main className="main-shell project-workspace" inert={libraryBusy}>
    <header className="project-intro"><Home size={24}/><div><h1>Titan 工作区</h1><p>从一份独立分析开始，或创建项目来管理资料、分析和图表。</p></div></header>
@@ -842,7 +854,7 @@ export default function App(){
     onResume={()=>activateModule(screen.tool)} onDemo={()=>showDemo(screen.tool)} onGuide={()=>setShowWbGuide(true)}
     onSource={()=>presentStatsSource(undefined,true)} onVolume={()=>ifLibrary.current?.showVolume()}/>
   </div>}
-  <div className="module-pane" hidden={homeVisible} inert={libraryBusy||!!pageChoice}>
+  <div className="module-pane" hidden={homeVisible} inert={homeVisible||libraryBusy||!!pageChoice}>
   <div className="main-shell"><WorkspaceHeader project={homeVisible?null:project} dirty={dirty} switching={switching} textSize={textSize} onTextSize={setTextSize} onName={name=>edit(p=>p.name=name)}>
    {project&&!homeVisible&&<>
     <button className="icon-btn header-icon" aria-label="保存实验" title="保存实验" disabled={!!busy||wbWorking} onClick={()=>saveProject(project.read_only).catch(e=>setMessage(String(e)))}><Save size={17}/></button>
@@ -887,7 +899,10 @@ export default function App(){
    }).catch(error=>setLibraryNotice(String(error)))}
    registerLibrary={actions=>{statsLibrary.current=actions}} registerClose={close=>{statsClose.current=close}} onExported={reportLibraryExport}/>
   {showSettings&&<SettingsDialog color={interfaceColor} onColor={changeInterfaceColor} textSize={textSize} onTextSize={setTextSize} persisted={colorPersisted} onClose={()=>setShowSettings(false)}/>}
-  {showAccount&&<dialog ref={accountDialog} className="account-dialog" aria-label="账户" onKeyDown={event=>event.stopPropagation()} onClose={()=>setShowAccount(false)}><AccountPage account={account} entries={entries} libraryError={library.error} activity={research.activity} activityError={research.error} opening={libraryBusy} onBack={()=>accountDialog.current?.close()} onOpen={entry=>{accountDialog.current?.close();openLibraryEntry(entry)}} onRetry={()=>void library.refresh()}/></dialog>}
+  {screen.kind==='account'&&<main className="main-shell account-workspace" inert={libraryBusy}>
+   <AccountPage account={account} entries={entries} libraryError={library.error} activity={research.activity} activityError={research.error} opening={libraryBusy}
+    onBack={()=>void browsing.go(-1)} onOpen={openLibraryEntry} onRetry={()=>void library.refresh()}/>
+  </main>}
   {showWbGuide&&<WbImageGuide onClose={()=>setShowWbGuide(false)}/>}
   {pageChoice&&<ImagePagePicker path={pageChoice.path} info={pageChoice.info} onChoose={choosePages}/>}
   {firstImport?.tool==='if'&&<div className="if-shell"><ImportDialog initialPaths={firstImport.paths} onClose={()=>setFirstImport(null)} onImport={firstIF}/></div>}

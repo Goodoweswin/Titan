@@ -24,7 +24,7 @@
 - Concurrent refresh/recovery consumption must not mint two live descendants (Task 2 PostgreSQL tests).
 - Malformed callback/query/redirect data must not consume a legitimate login (Task 3).
 - Server restart and database restore must have explicit session invalidation rules (Task 2/5).
-- Guest project drafts and shortcuts must survive opening/closing account UI (Task 4).
+- Guest project drafts and shortcuts must survive visiting/returning from the account center pane (Task 4).
 
 ## Shared Contracts
 
@@ -76,6 +76,7 @@ Consumes: Tauri command/snapshot and API contracts. Produces: complete login/can
 - [x] Connect existing account page and sidebar to hook; show editable nickname and devices only from confirmed service data. Keep guest page and research statistics intact.
 - [x] Add confirmation for destructive account-wide logout within product; require browser reauthentication if server asks. Handle 429 and retryable service failures without blocking local tools.
 - [x] Verify account navigation preserves workbench drafts and keyboard isolation. Run `npm test`, `npm run build`, relevant Playwright tests; commit.
+- [x] Apply user correction “账户页面是中栏，不是独立弹出页面”: integrate account into Screen/history with selected sidebar/global title, no account modal or right inspector. Preserve mounted WB/IF/stats drafts on return/back/forward, keep hidden panes inert and retain normal leave guards for different destinations. Update browser account/appearance coverage; controller owns visual and independent review.
 
 ### Task 5: Deployment, CI and end-to-end evidence
 
@@ -108,4 +109,4 @@ Scoped correction authorization (sixth execution ruling, preserved verbatim in i
 
 Ruling: Correct the new guest-startup regression in a narrowly scoped continuation despite the skill final-wave cap — higher-priority instruction requires completing authorized work and the approved spec requires account failures not to block local science; shipping a known load-bearing regression is not an acceptable completion — cost if wrong: one extra targeted implementation/review cycle and reversible local changes; no deployment or installed-app effect.
 
-Controller local test Gunicorn/PostgreSQL processes are stopped without data deletion. Before future live acceptance, start PostgreSQL, apply migration0004 and cold-start updated service code. Locked-Mac GUI cleanup remains pending.
+Controller local test Gunicorn/PostgreSQL processes are stopped without data deletion. Before future live acceptance, start PostgreSQL, apply migration0004 and cold-start updated service code. GUI cleanup is DONE per controller CUA observation: isolated test app exited; owned Chrome tabs1251376197/1251376200/1251376203/1251376206 closed and none remain; IAB preview absent. This cleanup does not repair or rerun the failed Keychain acceptance.

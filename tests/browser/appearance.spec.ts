@@ -115,3 +115,15 @@ test('new-project dialogs keep readable controls outside the main shell',async({
  await readableDarkSurface(dialog.getByLabel('名称',{exact:true}))
  await readableDarkSurface(dialog.getByRole('button',{name:'创建',exact:true}),false)
 })
+
+
+test('account center follows live appearance inside the shared shell',async({page})=>{
+ await page.goto('/?integration=1');await page.locator('.account-trigger').click()
+ const center=page.getByRole('region',{name:'账户',exact:true})
+ for(const colorScheme of ['dark','light'] as const){
+  await page.emulateMedia({colorScheme})
+  await readableDarkSurface(center,colorScheme==='dark')
+  await readableDarkSurface(page.getByRole('navigation',{name:'浏览导航',exact:true}),colorScheme==='dark')
+  await expect(page.locator('.account-trigger')).toHaveAttribute('aria-current','page')
+ }
+})

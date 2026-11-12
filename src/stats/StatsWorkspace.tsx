@@ -235,7 +235,7 @@ export default function StatsWorkspace({
   artifactId:frozenDocument?'stats:'+frozenDocument.id:undefined,runId:!frozenDocument?frozen?.run?.id:undefined,
   busy:!!busy||!!modal||!!sourceDialog})},
   [reportView,p?.project_path,p?.id,p?.name,view,display?.id,frozenDocument?.id,frozen?.run?.id,busy,modal,sourceDialog])
- return <><div className="module-pane stats-pane" hidden={!active} inert={libraryBusy}>
+ return <><div className="module-pane stats-pane" hidden={!active} inert={!active||libraryBusy}>
  <div className="main-shell"><header className="app-header stats-header">{p?<><input aria-label="统计项目名称" value={p.name} disabled={!!busy} onChange={e=>edit(p=>{p.name=e.target.value})}/><span>{p.revision===p.saved_revision?'已保存':'待保存'}</span><div className="stats-toolbar"><button className="icon-btn" aria-label="撤销统计修改" disabled={!past.length||!!busy} onClick={()=>undo()}><Undo2 size={16}/></button><button className="icon-btn" aria-label="重做统计修改" disabled={!future.length||!!busy} onClick={()=>undo(true)}><Redo2 size={16}/></button><button className="btn secondary" disabled={!!busy} onClick={()=>flush()}>保存</button><button className="btn secondary" disabled={!!busy} onClick={()=>chooseFolder('copy')}>另存副本</button><button className="btn primary" disabled={!!busy} onClick={()=>chooseFolder('export')}><Download size={15}/>导出</button></div></>:<strong>统计与绘图</strong>}</header>
  {membership}{message&&<div className="notice" role="status">{message}<button onClick={()=>setMessage('')}>×</button></div>}{busy&&<div className="busy" role="status">{busy}…</div>}
  {p&&display&&style&&<>

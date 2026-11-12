@@ -1,6 +1,6 @@
 import type {Tool} from './ToolHome'
 
-export type Screen={kind:'home'}|{kind:'project';id:string}|{kind:'tool';tool:Tool}|{kind:'analysis'}
+export type Screen={kind:'home'}|{kind:'account'}|{kind:'project';id:string}|{kind:'tool';tool:Tool}|{kind:'analysis'}
 export interface ModuleView {
  path?:string|null
  projectId?:string
@@ -26,7 +26,7 @@ export type WorkspaceLocation=Exclude<Screen,{kind:'analysis'}>|AnalysisLocation
 export interface NavigationHistory {entries:WorkspaceLocation[];index:number}
 
 export function locationKey(location:WorkspaceLocation):string {
- if(location.kind==='home')return 'home'
+ if(location.kind==='home'||location.kind==='account')return location.kind
  if(location.kind==='project')return 'project:'+location.id
  if(location.kind==='tool')return 'tool:'+location.tool
  return JSON.stringify([location.module,location.entryId??location.path??location.projectId,location.projectId,location.view,location.resourceId,

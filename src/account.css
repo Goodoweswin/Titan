@@ -1,12 +1,13 @@
 .app-shell .account-trigger { gap:10px; }
 .account-trigger>span { flex:1; text-align:left; }
 .account-trigger small { display:block; font-size:var(--text-xs); color:var(--muted); font-weight:400; }
-.account-page { min-height:100vh; background:var(--surface); }
+.account-workspace { padding-bottom:0; }
+.account-page { min-height:calc(100dvh - var(--workspace-bar-height,0px)); background:var(--surface); }
 .welcome-shell>.workspace-pane:not([hidden]) { display:flex; flex-direction:column; flex:1; }
 .account-topbar { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:20px 28px; border-bottom:1px solid var(--border); }
 .account-topbar h1 { font-size:var(--text-base); font-weight:500; color:var(--text-secondary); }
 .account-topbar .text-btn { display:flex; align-items:center; gap:7px; }
-.account-content { max-width:1120px; margin:auto; padding:28px 48px 10px; }
+.account-content { max-width:1120px; margin:auto; padding:28px 48px 24px; }
 .account-profile { display:flex; flex-direction:column; align-items:center; text-align:center; gap:7px; margin:0 0 32px; }
 .account-avatar { width:86px; height:86px; display:grid; place-items:center; border-radius:50%; background:var(--accent-soft); color:var(--accent); font-size:28px; margin-bottom:8px; }
 .account-profile h2 { font-size:1.35rem; }
@@ -66,10 +67,6 @@
  .account-projects { grid-template-columns:1fr; }.account-project { padding-left:76px; min-height:95px; }.account-project-icon { position:absolute; left:18px; top:20px; }
  .account-project strong { padding-right:12px; }
 }
-
-.account-dialog { width:min(1100px,calc(100vw - 48px)); max-height:calc(100dvh - 48px); padding:0; border:1px solid var(--border); border-radius:14px; background:var(--surface); color:var(--ink); }
-.account-dialog::backdrop { background:#12171d66; }
-.account-dialog .account-page { min-height:0; }.account-dialog .account-content { padding-bottom:24px; }
 
 .account-session-panel { margin:0 auto 30px; max-width:760px; }
 .account-login-actions { display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center; }
