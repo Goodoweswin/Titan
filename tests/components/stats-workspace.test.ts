@@ -7,6 +7,7 @@ import {mkdtempSync,rmSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import path from 'node:path'
 import StatsWorkspace,{type StatsLibraryActions} from '../../src/stats/StatsWorkspace'
+import {ActionMenuProvider} from '../../src/ActionMenu'
 const python=path.resolve(process.platform==='win32'?'.venv/Scripts/python.exe':'.venv/bin/python')
 let folder=''
 vi.mock('../../src/bridge',()=>({callEngine:vi.fn()}))
@@ -24,12 +25,12 @@ const input=async(label:string,value:string)=>{const el=host.querySelector(`[ari
 beforeEach(()=>{folder=mkdtempSync(path.join(tmpdir(),'titan-stats-component-'));host=document.createElement('div');document.body.append(host);root=createRoot(host);vi.mocked(callEngine).mockImplementation(async(command,payload={})=>{const output=execFileSync(python,[path.resolve('backend/entry.py')],{input:JSON.stringify({command,payload,session:{pid:process.pid,token:'component',library_root:folder}}),encoding:'utf8',maxBuffer:20*1024*1024});const result=JSON.parse(output);if(!result.ok)throw new Error(result.error);return result.data})})
 afterEach(async()=>{await act(async()=>root.unmount());host.remove();rmSync(folder,{recursive:true,force:true});vi.clearAllMocks()})
 async function mount(entries:LibraryEntry[]=[],onSource:(source:DatasetSource)=>void=()=>{},requestSource=false){
- await act(async()=>root.render(React.createElement(StatsWorkspace,{
+ await act(async()=>root.render(React.createElement(ActionMenuProvider,null,React.createElement(StatsWorkspace,{
   active:true,libraryBusy:false,onSource,registerClose:()=>{},sourceRequest:requestSource?{request:1,forceNew:true}:undefined,
   registerLibrary:value=>{actions=value},
   library:{entries,projects:[],error:'',refresh:vi.fn(),remember:vi.fn(),resume:vi.fn(),change:vi.fn()},
   reportView:vi.fn(),membership:null,beforeSourceImport:async()=>()=>{},onSourceCreated:vi.fn(),onExported:vi.fn(),
- })))
+ }))))
 }
 it('runs the real engine from table import through inference, stale detection, frozen figure and reload',async()=>{
  await mount();await act(async()=>{await actions.create({name:'独立统计'})});await click('导入 / 粘贴')
