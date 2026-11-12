@@ -33,6 +33,8 @@ class FormControls(HTMLParser):
 def test_browser_pages_preserve_csrf_post_form_and_fields(client, db, path, fields):
     response = client.get(path)
     assert response.status_code == 200
+    # Same-origin forms need a concrete Origin; cross-origin URLs must omit referrers.
+    assert response["Referrer-Policy"] == "same-origin"
     controls = FormControls(response.content.decode())
     assert controls.posts == 1
     assert fields | {"csrfmiddlewaretoken", "next"} <= controls.names

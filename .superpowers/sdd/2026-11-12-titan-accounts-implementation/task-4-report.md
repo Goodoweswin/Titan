@@ -48,3 +48,20 @@ Existing nonfatal output: Vite warns about chunks over 500 kB, Cargo warns about
 - The account modal is vertically scrollable at the existing size; device controls precede research statistics. Guest and research content remain usable when account service is absent or failing.
 - No installed application or user project library was modified. Science environment links and dependencies were not changed; browser tests use the existing temporary integration library. No credentials were printed or committed. No mail dispatch, ECS changes, deployment or push occurred.
 - The controller-owned plan edits were left untouched and excluded from the commit. No scope blocker remains for independent review.
+
+## Integration fix round 1 — same-origin browser form CSRF
+
+The controller's actual native/default-browser GUI acceptance found a blocker that the earlier manually supplied-Origin test clients and mocked native UI did not exercise: Chrome's real basic form `POST /login` sent `Origin: null`, and Django correctly rejected it with HTTP403. Inspection identified `BrowserEpochMiddleware` emitting `Referrer-Policy: no-referrer` on every account form. The controller explicitly expanded Task 4's scope to this narrow middleware policy fix and its regressions.
+
+Changed only the response policy to `same-origin`, with a code comment explaining the browser interaction. This preserves same-origin form Origin/Referer information while suppressing referrers on cross-origin navigation, including native loopback callbacks on a different port. No CSRF middleware, token checks, trusted-origin configuration, null-origin handling or wildcard-origin allowances were relaxed. Authentication/token/credential logic is unchanged.
+
+Primary references verified directly: [MDN Referrer-Policy: directives and effect on Origin](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Referrer-Policy) documents that `no-referrer` produces null Origin for basic form submissions and that `same-origin` omits cross-origin referrers. [Django 5.2 CSRF documentation](https://docs.djangoproject.com/en/5.2/ref/csrf/) specifies Origin validation and strict HTTPS Referer fallback, and warns that global referrer suppression breaks unsafe-method CSRF protection.
+
+RED / GREEN and verification:
+
+- Added a response-policy regression to all six account form route cases, plus `test_browser_csrf.py` using the actual `Client(enforce_csrf_checks=True)` middleware. Before the policy fix, `/tmp/titan-accounts-venv/bin/python -m pytest -q accounts/tests/test_browser_forms.py accounts/tests/test_browser_csrf.py`: **6 failed, 8 passed**. All six failures observed `no-referrer` instead of the browser-safe same-origin policy. The strict-CSRF request controls passed before the fix and guard against weakening protection; they do not pretend to simulate browser Origin generation. The controller's real Chrome failure is the end-to-end RED evidence.
+- After the policy fix, `/tmp/titan-accounts-venv/bin/python -m pytest -q accounts/tests/test_browser_forms.py accounts/tests/test_browser_csrf.py accounts/tests/test_lifecycle.py`: **26 passed, 0 failed**. Controls prove valid-token, same-origin login succeeds over HTTP and HTTPS; null and foreign Origin remain HTTP403 with no authenticated browser session even with a valid token; HTTPS without Origin still requires a same-origin Referer.
+- Final full account service suite, `/tmp/titan-accounts-venv/bin/python -m pytest -q`: **63 passed, 0 failed** in 12.25 seconds.
+- `git diff --check`: passed. Frontend and native suites were not repeated for this service-response-header-only change.
+
+No service restart or GUI operation was performed in this round. The controller owns the cold restart and actual Chrome/native GREEN acceptance. Controller-owned plan edits and the unrelated untracked `.venv-native-check/` directory were not touched or staged.

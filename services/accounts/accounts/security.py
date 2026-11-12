@@ -82,7 +82,10 @@ class BrowserEpochMiddleware:
             response = self.get_response(request)
         except DatabaseError:
             return error("unavailable", "Account service temporarily unavailable.", 503)
-        response["Referrer-Policy"] = "no-referrer"
+        # Preserve Origin/Referer for same-origin forms; no-referrer makes basic
+        # browser POSTs send Origin: null and fail Django's strict CSRF check.
+        # Cross-origin navigation still omits URLs that may contain login codes.
+        response["Referrer-Policy"] = "same-origin"
         response["Cache-Control"] = "no-store"
         return response
 
