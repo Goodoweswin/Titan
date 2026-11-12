@@ -1,0 +1,30 @@
+{
+  "recordedAt": "2026-11-13T02:33:26.864209+08:00",
+  "installedApp": "/Applications/Titan.app",
+  "backup": "/Users/janus/Desktop/Titan/release/local-backups/ecs-ip-login-20261113-023323/Titan-before-ECS-login.app",
+  "issuer": "https://121.40.43.188",
+  "version": "0.4.1",
+  "previousBinarySHA256": "6d326a37c23667fccce37c81d2dc23dc74ee791d96c585a94291cbdd0fcd6aa8",
+  "installedBinarySHA256": "898787eaa575d8ff25e75f7a0c7bb0e6b5dbb65015c573a0a47fa1ca983fdc24",
+  "strictSignatureVerified": true,
+  "nativeTests": {
+    "passed": 47,
+    "ignored": 2
+  },
+  "bundledEngine": {
+    "fileCount": 689,
+    "sha256": "4fd9e21aed73eaa6202d61ce0c087a462c3f8a3cabc444ef6bfbb5a3b2843133",
+    "matchesPreviousInstall": true
+  },
+  "realNativeLoginVerified": false,
+  "keychainPersistenceVerified": false,
+  "nativeAppLaunched": true,
+  "libraryProjectsVisible": true,
+  "accountIsCenterPane": true,
+  "loginButtonEnabled": true,
+  "correctedDeploymentArchive": {
+    "sourceCommit": "319e79b",
+    "sha256": "17284225e33357422e50c86b5c4ca0f31728c85491efc3d461efba29ca04abb7",
+    "desktopPath": "/Users/janus/Desktop/Titan-ECS-\u8d26\u6237\u670d\u52a1\u90e8\u7f72\u5305.tar.gz"
+  }
+}
