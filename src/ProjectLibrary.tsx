@@ -30,9 +30,10 @@ export default function ProjectLibrary({entries,projects,selectedProjectId,onPro
  const [query,setQuery]=useState('')
  const [expanded,setExpanded]=useState<string[]>(['unassigned'])
  const {openMenu,closeMenu,activeId}=useActionMenu()
- const stateKey=JSON.stringify([entries,projects,selectedProjectId,activeEntry?.entry_id,activeFigure,busy])
- const live=useRef({key:stateKey,busy});live.current={key:stateKey,busy}
- useEffect(()=>{if(busy||activeId!=='create')closeMenu()},[stateKey,closeMenu])
+ // Resume updates leave actions valid; opening an analysis reads its latest entry.
+ const stateKey=JSON.stringify([entries.map(({last_opened:_last,resume:_resume,...entry})=>entry),projects,selectedProjectId,activeEntry?.entry_id,activeFigure,busy])
+ const live=useRef({key:stateKey,busy,entries});live.current={key:stateKey,busy,entries}
+ useEffect(()=>{if(busy||activeId&&activeId!=='create'&&!activeId.startsWith('cell:'))closeMenu()},[stateKey,closeMenu])
  const active=activeEntry
  useEffect(()=>{
   if(selectedProjectId)setExpanded(previous=>previous.includes(selectedProjectId)?previous:[...previous,selectedProjectId])
@@ -77,7 +78,10 @@ export default function ProjectLibrary({entries,projects,selectedProjectId,onPro
  }
  function analysisRow(entry:LibraryEntry){
   const selected=active?.entry_id===entry.entry_id
-  const items=[item('open','打开分析',()=>entry.available?onOpen(entry):onRelocate(entry)),
+  const items=[item('open','打开分析',()=>{
+   const latest=live.current.entries.find(candidate=>candidate.entry_id===entry.entry_id)
+   if(latest)latest.available?onOpen(latest):onRelocate(latest)
+  }),
    item('move','移到项目',()=>onDialog({kind:'move',entry})),
    ...(entry.collection_id?[item('detach','移出项目',()=>onDialog({kind:'detach',entry}))]:[]),
    item('reveal','在文件管理器中显示',()=>onReveal(entry),!entry.available),
