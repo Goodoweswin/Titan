@@ -52,6 +52,45 @@ mod tests {
     fn response() -> NativeTokenResponse {
         serde_json::from_value(serde_json::json!({"access_token":"access", "refresh_token":"refresh", "token_type":"Bearer", "expires_in":600,"refresh_expires_in":2592000,"session_id":"s1"})).unwrap()
     }
+    #[tokio::test]
+    async fn api_distinguishes_unauthorized_forbidden_rate_limit_and_service_failure() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        for (status, body, expected) in [
+            (401, r#"{"code":"recent_auth_required"}"#, "unauthorized"),
+            (
+                403,
+                r#"{"code":"recent_auth_required"}"#,
+                "recent_auth_required",
+            ),
+            (403, r#"{"code":"upstream_private_detail"}"#, "forbidden"),
+            (429, r#"{"code":"rate_limited"}"#, "rate_limited"),
+            (429, "not-json", "rate_limited"),
+            (
+                503,
+                r#"{"code":"upstream_private_detail"}"#,
+                "service_unavailable",
+            ),
+            (400, r#"{"code":"invalid_profile"}"#, "invalid_profile"),
+            (404, r#"{"code":"not_found"}"#, "not_found"),
+        ] {
+            let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let config =
+                Config::parse(&format!("http://{}", listener.local_addr().unwrap()), true).unwrap();
+            let task = tokio::spawn(async move {
+                let (mut socket, _) = listener.accept().await.unwrap();
+                let mut buffer = [0u8; 4096];
+                let _ = socket.read(&mut buffer).await.unwrap();
+                let response = format!("HTTP/1.1 {status} Error\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}", body.len());
+                socket.write_all(response.as_bytes()).await.unwrap();
+            });
+            let result = Network::new(config)
+                .unwrap()
+                .api(reqwest::Method::GET, "/api/v1/me", "synthetic-access", None)
+                .await;
+            assert_eq!(result.unwrap_err(), expected, "HTTP {status}");
+            task.await.unwrap();
+        }
+    }
     #[test]
     fn accepts_required_native_token_fields() {
         assert!(validate_response(&response(), None).is_ok());
@@ -528,12 +567,16 @@ impl Network {
         if status == reqwest::StatusCode::UNAUTHORIZED {
             return Err("unauthorized");
         }
+        if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+            return Err("rate_limited");
+        }
         if !status.is_success() {
             let error = serde_json::from_slice::<serde_json::Value>(&bytes).ok();
             return Err(match error.as_ref().and_then(|v| v["code"].as_str()) {
                 Some("recent_auth_required") => "recent_auth_required",
                 Some("invalid_profile") => "invalid_profile",
                 Some("not_found") => "not_found",
+                _ if status == reqwest::StatusCode::FORBIDDEN => "forbidden",
                 _ => "service_unavailable",
             });
         }

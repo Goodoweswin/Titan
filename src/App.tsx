@@ -1,4 +1,5 @@
 import AccountPage from './AccountPage'
+import useAccount from './useAccount'
 import SettingsDialog from './SettingsDialog'
 import useResearchActivity from './useResearchActivity'
 import {readInterfaceColor,saveInterfaceColor,type InterfaceColor} from './appearance'
@@ -148,6 +149,7 @@ export default function App(){
 
  const [project,setProject]=useState<Project|null>(null),[result,setResult]=useState<AnalysisResult|null>(null)
  const [showAccount,setShowAccount]=useState(false),[showSettings,setShowSettings]=useState(false)
+ const account=useAccount()
  const research=useResearchActivity(project,result)
  const accountDialog=useRef<HTMLDialogElement>(null)
  useEffect(()=>{if(showAccount&&!accountDialog.current?.open)accountDialog.current?.showModal()},[showAccount])
@@ -815,7 +817,7 @@ export default function App(){
       aria-current={selected?'page':undefined} onClick={()=>enterModule(key)}><Icon size={16}/><span>{label}</span></button>
     })}</nav>
    </div>
-   <div className="sidebar-settings"><button type="button" className="nav account-trigger" onClick={()=>setShowAccount(true)}><UserRound size={18}/><span>账户<small>未登录 · 本地使用</small></span></button><button type="button" className="nav" onClick={()=>setShowSettings(true)}><Settings size={18}/><span>设置</span></button></div>
+   <div className="sidebar-settings"><button type="button" className="nav account-trigger" onClick={()=>setShowAccount(true)}><UserRound size={18}/><span>账户<small>{account.snapshot.status==='logging_in'?'正在登录':account.snapshot.profile&&['authenticated','offline'].includes(account.snapshot.status)?`${account.snapshot.profile.name} · ${account.snapshot.status==='offline'?'离线':'已登录'}`:'未登录 · 本地使用'}</small></span></button><button type="button" className="nav" onClick={()=>setShowSettings(true)}><Settings size={18}/><span>设置</span></button></div>
   </aside>
   {screen.kind==='home'&&<main className="main-shell project-workspace" inert={libraryBusy}>
    <header className="project-intro"><Home size={24}/><div><h1>Titan 工作区</h1><p>从一份独立分析开始，或创建项目来管理资料、分析和图表。</p></div></header>
@@ -885,7 +887,7 @@ export default function App(){
    }).catch(error=>setLibraryNotice(String(error)))}
    registerLibrary={actions=>{statsLibrary.current=actions}} registerClose={close=>{statsClose.current=close}} onExported={reportLibraryExport}/>
   {showSettings&&<SettingsDialog color={interfaceColor} onColor={changeInterfaceColor} textSize={textSize} onTextSize={setTextSize} persisted={colorPersisted} onClose={()=>setShowSettings(false)}/>}
-  {showAccount&&<dialog ref={accountDialog} className="account-dialog" aria-label="账户" onClose={()=>setShowAccount(false)}><AccountPage entries={entries} libraryError={library.error} activity={research.activity} activityError={research.error} opening={libraryBusy} onBack={()=>accountDialog.current?.close()} onOpen={entry=>{accountDialog.current?.close();openLibraryEntry(entry)}} onRetry={()=>void library.refresh()}/></dialog>}
+  {showAccount&&<dialog ref={accountDialog} className="account-dialog" aria-label="账户" onKeyDown={event=>event.stopPropagation()} onClose={()=>setShowAccount(false)}><AccountPage account={account} entries={entries} libraryError={library.error} activity={research.activity} activityError={research.error} opening={libraryBusy} onBack={()=>accountDialog.current?.close()} onOpen={entry=>{accountDialog.current?.close();openLibraryEntry(entry)}} onRetry={()=>void library.refresh()}/></dialog>}
   {showWbGuide&&<WbImageGuide onClose={()=>setShowWbGuide(false)}/>}
   {pageChoice&&<ImagePagePicker path={pageChoice.path} info={pageChoice.info} onChoose={choosePages}/>}
   {firstImport?.tool==='if'&&<div className="if-shell"><ImportDialog initialPaths={firstImport.paths} onClose={()=>setFirstImport(null)} onImport={firstIF}/></div>}

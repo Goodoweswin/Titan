@@ -48,9 +48,9 @@ def register(request):
     form = RegistrationForm(request.POST or None)
     if request.method == "POST":
         if limited(request, "register"):
-            return error("rate_limited", "Try again later.", 429)
+            return error("rate_limited", "操作过于频繁，请稍后重试。", 429)
         if not form.is_valid():
-            return page(request, "Create account", form, status=400)
+            return page(request, "注册账户", form, status=400)
         data = form.cleaned_data
         password_hash = make_password(
             data["password"]
@@ -71,10 +71,10 @@ def register(request):
         request.session["pending_next"] = safe_next(request)
         return page(
             request,
-            "Check your email",
-            message="If this address can be registered, a verification email will arrive. You can also sign in or recover your password.",
+            "请查收邮件",
+            message="如果此邮箱可以注册，你将收到验证邮件。你也可以登录或找回密码。",
         )
-    return page(request, "Create account", form)
+    return page(request, "注册账户", form)
 
 
 @require_http_methods(["GET", "POST"])
@@ -82,7 +82,7 @@ def sign_in(request):
     form = LoginForm(request.POST or None)
     if request.method == "POST":
         if limited(request, "login"):
-            return error("rate_limited", "Try again later.", 429)
+            return error("rate_limited", "操作过于频繁，请稍后重试。", 429)
         if form.is_valid():
             email = form.cleaned_data["email"].strip().lower()
             user = User.objects.filter(email=email).first()
@@ -99,12 +99,12 @@ def sign_in(request):
                 return redirect(destination)
         return page(
             request,
-            "Sign in",
+            "登录",
             form,
-            message="Email or password is incorrect.",
+            message="邮箱或密码不正确。",
             status=400,
         )
-    return page(request, "Sign in", form)
+    return page(request, "登录", form)
 
 
 @require_http_methods(["GET", "POST"])
@@ -122,9 +122,9 @@ def request_email(request, purpose):
     form = EmailForm(request.POST or None)
     if request.method == "POST":
         if limited(request, "email-" + purpose):
-            return error("rate_limited", "Try again later.", 429)
+            return error("rate_limited", "操作过于频繁，请稍后重试。", 429)
         if not form.is_valid():
-            return page(request, "Email link", form, status=400)
+            return page(request, "发送邮件链接", form, status=400)
         with transaction.atomic():
             user = (
                 User.objects.select_for_update()
@@ -137,12 +137,12 @@ def request_email(request, purpose):
                 enqueue_link(user, purpose)
         return page(
             request,
-            "Check your email",
-            message="If this address is eligible, an email will arrive shortly.",
+            "请查收邮件",
+            message="如果此邮箱符合条件，你将收到一封邮件，请稍后查收。",
         )
     return page(
         request,
-        "Recover password" if purpose == "reset" else "Resend verification",
+        "找回密码" if purpose == "reset" else "重新发送验证邮件",
         form,
     )
 
@@ -151,12 +151,12 @@ def consume(request, raw, purpose):
     form = ResetForm(request.POST or None) if purpose == "reset" else None
     if request.method == "GET":
         return page(
-            request, "Reset password" if purpose == "reset" else "Confirm email", form
+            request, "重设密码" if purpose == "reset" else "确认邮箱", form
         )
     if not rate_limit(request, "consume", limit=30):
-        return error("rate_limited", "Try again later.", 429)
+        return error("rate_limited", "操作过于频繁，请稍后重试。", 429)
     if form and not form.is_valid():
-        return page(request, "Reset password", form, status=400)
+        return page(request, "重设密码", form, status=400)
     reference = OneTimeToken.objects.filter(pk=digest(raw), purpose=purpose).first()
     if reference:
         with transaction.atomic():
@@ -187,13 +187,13 @@ def consume(request, raw, purpose):
                 ).update(consumed_at=now)
                 return page(
                     request,
-                    "Email verified" if purpose == "verify" else "Password changed",
-                    message="You can now sign in and return to Titan.",
+                    "邮箱已验证" if purpose == "verify" else "密码已更新",
+                    message="现在可以登录并返回 Titan。",
                 )
     return page(
         request,
-        "Link unavailable",
-        message="This link has expired or has already been used. Request a new email.",
+        "链接不可用",
+        message="此链接已过期或已使用，请重新申请邮件。",
         status=400,
     )
 
@@ -218,8 +218,8 @@ def sign_out(request):
 def complete(request):
     return page(
         request,
-        "Return to Titan",
-        message="Sign-in is ready. Return to Titan to start or continue account login.",
+        "返回 Titan",
+        message="浏览器登录已完成。请返回 Titan，继续或重新发起账户登录。",
     )
 
 

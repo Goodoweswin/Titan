@@ -27,8 +27,8 @@ def enqueue_link(user, purpose):
     MailOutbox.objects.create(
         recipient=user.email,
         subject="Titan: "
-        + ("Reset password" if purpose == "reset" else "Verify email"),
-        body=f"Open this link to continue:\n{settings.ISSUER}/{route}/{raw}\n\nIf you did not request this, ignore this email.",
+        + ("重设密码" if purpose == "reset" else "验证邮箱"),
+        body=f"请打开以下链接继续：\n{settings.ISSUER}/{route}/{raw}\n\n如果并非你本人发起，请忽略此邮件。",
         available_at=timezone.now(),
         expires_at=expires,
     )

@@ -1,11 +1,14 @@
 import {useEffect,useRef,useState} from 'react'
 import {ArrowLeft,ArrowUpRight,Check,Folder,LogIn,ShieldCheck,UserRound} from 'lucide-react'
+import AccountSessionPanel from './AccountSessionPanel'
+import type {AccountState} from './useAccount'
 import type {LibraryEntry} from './types'
 import {activityCalendar,activitySummary,type ResearchActivity} from './research-activity'
 
 /** Only a server-verified profile may populate these fields when authentication is connected. */
 export interface AccountProfile {name:string;email:string;createdAt:string;emailVerified:boolean}
 interface Props {
+ account?:AccountState
  profile?:AccountProfile|null
  entries:LibraryEntry[]
  libraryError:string
@@ -19,7 +22,8 @@ interface Props {
 const formatDate=(value:string)=>Number.isFinite(Date.parse(value))?new Date(value).toLocaleDateString('zh-CN'):'—'
 const number=(value:number|undefined)=>value===undefined?'—':value.toLocaleString('zh-CN')
 
-export default function AccountPage({profile=null,entries,libraryError,activity,activityError,opening,onBack,onOpen,onRetry}:Props){
+export default function AccountPage({account,profile:legacyProfile=null,entries,libraryError,activity,activityError,opening,onBack,onOpen,onRetry}:Props){
+ const profile=account?(['authenticated','offline'].includes(account.snapshot.status)?account.snapshot.profile:null):legacyProfile
  const title=useRef<HTMLHeadingElement>(null)
  const [loginInfo,setLoginInfo]=useState(false),[metric,setMetric]=useState<'images'|'bands'>('images')
  useEffect(()=>{title.current?.focus()},[])
@@ -36,9 +40,10 @@ export default function AccountPage({profile=null,entries,libraryError,activity,
     <h2>{profile?.name||'本地研究者'}</h2>
     <p className="account-email">{profile?.email||'登录后显示邮箱'}{profile?.emailVerified&&<Check size={15} aria-label="邮箱已验证"/>}</p>
     <p className="account-joined">账户创建日期 · {profile?formatDate(profile.createdAt):'登录后显示'}</p>
-    {!profile&&<><button className="btn primary" type="button" aria-expanded={loginInfo} aria-controls="account-login-info" onClick={()=>setLoginInfo(v=>!v)}><LogIn size={16}/>登录 / 注册</button><small>未登录 · 本地功能可正常使用</small></>}
+    {!account&&!profile&&<><button className="btn primary" type="button" aria-expanded={loginInfo} aria-controls="account-login-info" onClick={()=>setLoginInfo(v=>!v)}><LogIn size={16}/>登录 / 注册</button><small>未登录 · 本地功能可正常使用</small></>}
    </div>
-   {!profile&&<div id="account-login-info" className="account-login-info" hidden={!loginInfo} role="status"><strong>登录服务尚未开放</strong><p>后续将在系统浏览器中完成邮箱注册与登录。当前可继续使用本地项目，账户资料暂不保存。</p><button type="button" className="text-btn" onClick={()=>setLoginInfo(false)}>知道了</button></div>}
+   {account&&<AccountSessionPanel account={account}/>}
+   {!account&&!profile&&<div id="account-login-info" className="account-login-info" hidden={!loginInfo} role="status"><strong>登录服务尚未开放</strong><p>后续将在系统浏览器中完成邮箱注册与登录。当前可继续使用本地项目，账户资料暂不保存。</p><button type="button" className="text-btn" onClick={()=>setLoginInfo(false)}>知道了</button></div>}
    <section aria-labelledby="research-title">
     <div className="account-section-heading"><h3 id="research-title">研究足迹</h3><span>本机记录 · WB 分析足迹</span></div>
     {libraryError&&<p className="account-error" role="alert">项目库暂不可用，项目数量尚未确认。<button type="button" onClick={onRetry}>重试</button></p>}

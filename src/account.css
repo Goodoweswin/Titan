@@ -70,3 +70,27 @@
 .account-dialog { width:min(1100px,calc(100vw - 48px)); max-height:calc(100dvh - 48px); padding:0; border:1px solid var(--border); border-radius:14px; background:var(--surface); color:var(--ink); }
 .account-dialog::backdrop { background:#12171d66; }
 .account-dialog .account-page { min-height:0; }.account-dialog .account-content { padding-bottom:24px; }
+
+.account-session-panel { margin:0 auto 30px; max-width:760px; }
+.account-login-actions { display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center; }
+.account-login-actions>p,.account-login-actions small,.account-session-note { color:var(--muted); font-size:var(--text-sm); line-height:1.7; }
+.account-login-actions .account-login-info { width:100%; text-align:left; }
+.account-name-form { max-width:440px; margin:0 auto 14px; }
+.account-name-form label { display:block; margin-bottom:7px; color:var(--muted); font-size:var(--text-sm); }
+.account-name-form>div { display:flex; gap:10px; }
+.account-name-form input { flex:1; min-width:0; padding:8px 10px; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--ink); font:inherit; }
+.account-session-actions { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:12px; }
+.account-session-actions>span,.account-session-actions small { flex:1; min-width:160px; color:var(--muted); font-size:var(--text-xs); }
+.account-auth-error { margin-top:16px; }
+.account-session-note { margin-top:14px; }
+.account-device-section { border-top:1px solid var(--border); padding-top:22px; margin-top:24px; }
+.account-devices { margin:0; padding:0; list-style:none; }
+.account-devices li { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 0; border-bottom:1px solid var(--border); }
+.account-devices strong { font-size:var(--text-sm); font-weight:500; overflow-wrap:anywhere; }
+.account-devices p,.account-devices small { color:var(--muted); font-size:var(--text-xs); margin-top:5px; }
+.account-devices .text-btn { flex-shrink:0; }
+.account-current-device { color:var(--accent); margin-left:10px; font-size:var(--text-xs); }
+.account-revoke-confirm { margin-top:16px; border:1px solid var(--border); border-radius:9px; padding:16px 20px; background:var(--surface); }
+.account-revoke-confirm h4 { font-size:var(--text-sm); }
+.account-revoke-confirm p { color:var(--text-secondary); font-size:var(--text-sm); line-height:1.7; margin-top:7px; }
+@media(max-width:600px) { .account-name-form>div { flex-wrap:wrap; }.account-devices li { align-items:flex-start; }.account-devices small { display:block; } }

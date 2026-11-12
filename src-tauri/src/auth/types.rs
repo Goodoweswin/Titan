@@ -52,6 +52,9 @@ impl Snapshot {
             "login_timeout" => "登录等待超时，请重试。",
             "unauthorized" => "登录已失效，请重新登录。",
             "network_unavailable" => "账户服务暂时无法连接，本地功能仍可使用。",
+            "rate_limited" => "操作过于频繁，请稍后重试。本地功能仍可使用。",
+            "forbidden" => "当前操作未获授权，请重新验证身份或稍后重试。本地功能仍可使用。",
+            "service_unavailable" => "账户服务暂时不可用，请稍后重试。本地功能仍可使用。",
             "invalid_profile" => "请输入1至60个字符的昵称。",
             _ => "账户操作未完成，请稍后重试。",
         });
