@@ -53,12 +53,31 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 40
     env:
+      PYTHONUTF8: '1'
       # Library/executable compile only. This job does not fabricate an engine bundle.
       TAURI_CONFIG: '{"bundle":{"resources":[]}}'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: {node-version: '22', cache: npm}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11', architecture: x64}
+      - name: Linux scientific test environment
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m venv .venv
+          .venv/bin/python -m pip install -r requirements.lock
+      - name: Windows scientific test environment
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python -m venv .venv
+          if ($LASTEXITCODE -ne 0) { throw 'Scientific venv creation failed' }
+          .venv/Scripts/python.exe -m pip install -r requirements.lock
+          if ($LASTEXITCODE -ne 0) { throw 'Scientific dependencies installation failed' }
       - name: Linux native dependencies
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libdbus-1-dev
@@ -67,7 +86,9 @@ jobs:
       - run: npm test
       - run: npm run build
       - name: Native library tests and executable compile (not packaged acceptance)
+        shell: bash
         run: |
+          set -euo pipefail
           cargo test --manifest-path src-tauri/Cargo.toml --locked --lib
           cargo build --manifest-path src-tauri/Cargo.toml --locked --release
   windows-package:
