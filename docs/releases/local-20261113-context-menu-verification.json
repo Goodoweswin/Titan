@@ -1,0 +1,193 @@
+{
+  "installed_at": "2026-11-13T04:37:44.128160+08:00",
+  "source_commit": "7d748b9c653b762bcbfacb393b9373018962602e",
+  "display_version": "0.4.1",
+  "bundle_id": "com.titan.wb",
+  "application": "/Applications/Titan.app",
+  "codesign": "passed",
+  "installed_sha256": {
+    "Contents/MacOS/titan-wb": "bd0e5596665de9cf155cfd4e8e0277e592d5f06d6ef9159ec85114810dc80ff0",
+    "Contents/Resources/engine/wb-engine/wb-engine": "25c5f7ba4e2b4d48de8ad025ced2632e0027a883318ba248a3f3f66240d245e7"
+  },
+  "previous_sha256": {
+    "Contents/MacOS/titan-wb": "d8bb941f08621698d6fbae107261141cc63a07af82a0f9967a1471632a7849ad",
+    "Contents/Resources/engine/wb-engine/wb-engine": "25c5f7ba4e2b4d48de8ad025ced2632e0027a883318ba248a3f3f66240d245e7"
+  },
+  "backup": "~/Library/Application Support/Titan Backups/before-Titan-20261113-043744-e5dzopri",
+  "library_index_sha256_before": "9695123b2069c88eafa10cdd20d73f99fa8953955fbe897add674e8882738791",
+  "build_id": "local-20261113-context-menu",
+  "baseline_commit": "5ce46debc7d63d58547ad0745d889d97a1f5b3d0",
+  "integration_commit": "7d748b9c653b762bcbfacb393b9373018962602e",
+  "accounts_issuer_preserved": "https://121.40.43.188",
+  "local_checks": {
+    "frontend_tests": 140,
+    "related_browser_regressions_before_final_review": 39,
+    "final_context_menu_workflows": 9,
+    "production_build": "passed",
+    "native_macos_app_build": "passed",
+    "built_engine_matches_previous": true,
+    "final_related_browser_workflows": 14
+  },
+  "native_isolated_qa": {
+    "bundle_id": "com.titan.wb.contextmenuqa",
+    "production_account_issuer_embedded": false,
+    "separate_app_data": true,
+    "synthetic_only": true,
+    "checks": [
+      "Project right-click and ellipsis show same five actions",
+      "Esc restores origin focus; same ellipsis toggles closed",
+      "Shift+F10, arrow keys and Enter open/choose project action",
+      "Created project and statistics analysis; cancelled detach preserves project membership",
+      "Entered six synthetic values; right-click and Esc preserve exclusion state",
+      "Explicit exclusion changes menu to Restore; undo returns to Exclude and raw value remains 1",
+      "Restore returns excluded count to zero in chart preview",
+      "Saved frozen figure appears in sidebar; right-click opens figure/source actions",
+      "Opening frozen figure uses historical dataset; cell menu disables exclusion with read-only explanation",
+      "Right-edge cell menu remains fully inside native window"
+    ],
+    "deep_checks_source_commit": "8011d762379cb13976490fd980d61ffdf77e373d",
+    "final_source_recheck": [
+      "Reopened saved synthetic analysis in final QA build",
+      "Six original values retained, first value 1; right-click offers Exclude"
+    ],
+    "final_main_sha256": "f905e9c177fd135a5bc81c62f13c32125209a3c8a0ea59ee37b8eb5943c9320c",
+    "final_bundle_id": "com.titan.wb.contextmenuqa"
+  },
+  "installed_native": {
+    "initial_candidate_launched": true,
+    "initial_candidate_running_main_and_engine_paths_verified": true,
+    "initial_candidate_wb_if_statistics_tool_pages_open": true,
+    "final_candidate_launch": "passed",
+    "legacy_library_load": "passed after user confirmed Desktop access and UI retry",
+    "account_session_restore": "passed; existing logged-in state restored without entering credentials",
+    "final_signature_hash_and_issuer": "passed",
+    "final_running_main_and_engine_paths_verified": true,
+    "home_state_restored": true,
+    "legacy_wb_analysis_opened": true,
+    "legacy_wb_frozen_chart_rendered": true,
+    "legacy_if_and_linked_statistics_opened": true,
+    "project_analysis_and_chart_context_menus_verified": true,
+    "escape_restores_origin_focus": true,
+    "locked_source_cell_menu_disabled_with_reason": true,
+    "manual_data_edits_during_final_checks": false,
+    "library_index_unchanged_immediately_after_install": true,
+    "library_index_after_native_navigation_sha256": "3e873b9e72d06218e35c6d4625402fcd0e3b0e72d7fd6408bf1fac242f0ac48f",
+    "library_navigation_note": "Opening saved analyses updates resume metadata; original-value exclusion changes were tested in the isolated synthetic QA app, not in user research data."
+  },
+  "review": {
+    "critical_findings": 0,
+    "important_findings_fixed": [
+      "Focus restoration after scroll/resize dismissal",
+      "Repeated ellipsis/+ toggle (regraded Important from Minor)"
+    ],
+    "deferred_minors": [],
+    "test_harness_integration_fix": "Linux PTY canary readiness wait; account production code unchanged; service CI 191 passed",
+    "integration_findings_fixed": [
+      "Resume-only library metadata updates no longer dismiss an open menu; Open resolves latest resume",
+      "Sidebar list updates do not dismiss statistics cell menus"
+    ],
+    "rulings": [
+      "Optional stable menu id and activeId keep expanded state tied to its trigger",
+      "Workspace changes invalidate menu callbacks; unchanged resume metadata preserves menus and latest Open state",
+      "Minor repeated-trigger issue was regraded Important and fixed with focus restoration in one review fix pass",
+      "Direct native checks use synthetic data and do not claim physical trackpad, real-science accuracy or Windows GUI acceptance",
+      "Inherited account source/config was preserved; account integration checks are not a new complete account-business/security review"
+    ]
+  },
+  "github": {
+    "pull_request": "https://github.com/Goodoweswin/Titan/pull/5",
+    "source_commit": "7d748b9c653b762bcbfacb393b9373018962602e",
+    "ci_run": 43301924869,
+    "accounts_run": 43301924395,
+    "status": "passed",
+    "previous_source_complete_checks": {
+      "source_commit": "42f15d032efec58fd715d7a299ae9e1c0616a0d5",
+      "ci_run": 43299010883,
+      "accounts_run": 43299010765,
+      "python_tests": 346,
+      "python_subtests": 5,
+      "frontend_tests": 137,
+      "browser_tests": 106,
+      "service_tests": 191,
+      "windows_and_linux_native_tests_each": 47,
+      "native_ignored_each": 2,
+      "windows_installer_build": "passed"
+    },
+    "ci_status": "passed",
+    "python_tests": 346,
+    "python_subtests": 5,
+    "frontend_tests": 140,
+    "browser_tests": 106,
+    "service_tests": 191,
+    "windows_and_linux_native_tests_each": 47,
+    "native_ignored_each": 2,
+    "final_source_runs": [
+      {
+        "id": 43301924869,
+        "name": "CI",
+        "head_sha": "7d748b9c653b762bcbfacb393b9373018962602e",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/Goodoweswin/Titan/actions/runs/43301924869",
+        "jobs": [
+          {
+            "id": 131475047552,
+            "name": "test",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      },
+      {
+        "id": 43301924395,
+        "name": "Accounts integration",
+        "head_sha": "7d748b9c653b762bcbfacb393b9373018962602e",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/Goodoweswin/Titan/actions/runs/43301924395",
+        "jobs": [
+          {
+            "id": 131475046715,
+            "name": "windows-package",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 131475047131,
+            "name": "native-tests (windows-2022)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 131475047186,
+            "name": "native-tests (ubuntu-24.04)",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 131475047259,
+            "name": "service",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      }
+    ],
+    "windows_installer_build": "passed"
+  },
+  "limits": [
+    "Synthetic UI checks do not establish real WB or IF analytical accuracy",
+    "Native macOS right-click event tested; physical trackpad gesture not tested",
+    "Windows native GUI acceptance not performed",
+    "Existing account service was preserved and integration-tested, not a new comprehensive security audit",
+    "This is a local build and source sync, not a new public release"
+  ],
+  "original_application_backup": "~/Library/Application Support/Titan Backups/before-Titan-20261113-042410-jclmwuu5",
+  "original_application_sha256": {
+    "Contents/MacOS/titan-wb": "898787eaa575d8ff25e75f7a0c7bb0e6b5dbb65015c573a0a47fa1ca983fdc24",
+    "Contents/Resources/engine/wb-engine/wb-engine": "25c5f7ba4e2b4d48de8ad025ced2632e0027a883318ba248a3f3f66240d245e7"
+  },
+  "delivery_status": "complete; final installed application and legacy navigation verified",
+  "library_index_unchanged_after_initial_candidate_launch": true,
+  "native_verified_at": "2026-11-13T17:35:05.041712+08:00"
+}

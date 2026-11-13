@@ -6,6 +6,7 @@ import {readInterfaceColor,saveInterfaceColor,type InterfaceColor} from './appea
 import {Settings,UserRound} from 'lucide-react'
 import {invoke} from '@tauri-apps/api/core'
 import {useCallback,useEffect,useRef,useState} from 'react'
+import {useActionMenu} from './ActionMenu'
 import StatsWorkspace,{type StatsLibraryActions} from './stats/StatsWorkspace'
 import IFWorkspace,{type IFLibraryActions} from './if/IFWorkspace'
 import LibraryCreateDialog,{type AnalysisCreation,type LibraryDialog} from './LibraryCreateDialog'
@@ -743,6 +744,9 @@ export default function App(){
  const browsingBlocked=libraryBusy||switching||!!currentView.busy||module==='wb'&&(!!busy||wbWorking)||
   !!firstImport||!!pageChoice||!!libraryDialog||showExport||showWbGuide
  const browsing=useWorkspaceHistory(browsingLocation,browsingBlocked,restoreLocation)
+ const {closeMenu}=useActionMenu()
+ const menuLocation=JSON.stringify(browsingLocation)
+ useEffect(()=>closeMenu(),[menuLocation,browsingBlocked,closeMenu])
  async function restoreWB(location:AnalysisLocation){
   if(!await canLeaveFigure()||!await flushCurrent())return false
   const before=current.current

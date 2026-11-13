@@ -2,11 +2,12 @@ import {useEffect,useRef,useState} from 'react'
 import {open,save} from '@tauri-apps/plugin-dialog'
 import {Download,Undo2,Redo2} from 'lucide-react'
 import {callEngine} from '../bridge'
+import {useActionMenu,type ActionMenuItem} from '../ActionMenu'
 import type {AnalysisLocation,ModuleView} from '../workspace-navigation'
 import type {ProjectLibraryModel} from '../useProjectLibrary'
 import type {AnalysisCreation} from '../LibraryCreateDialog'
 import type {CloseActions,LibraryExportReceipt,LibraryResume,Project} from '../types'
-import type {Dataset,DatasetSource,Figure,Run,SourceCatalog,StatsProject,Style} from './types'
+import type {Dataset,DatasetSource,Figure,Group,Row,Run,SourceCatalog,StatsProject,Style} from './types'
 import {currentRun,inputKey} from './types'
 import ProjectResultsDialog from './ProjectResultsDialog'
 import SourceStatus from './SourceStatus'
@@ -231,6 +232,37 @@ export default function StatsWorkspace({
  function copyTable(){if(!display)return;const clone=structuredClone(display);clone.id=id();clone.name+=' · 副本';clone.source=null;clone.confirmed=false;clone.runs=[];void addTable(clone)}
  function paste(event:React.ClipboardEvent<HTMLInputElement>,ri:number,gi:number){const raw=event.clipboardData.getData('text');if(!raw.includes('\t')&&!raw.includes('\n'))return;event.preventDefault();const cells=raw.trimEnd().split(/\r?\n/).map(r=>r.split('\t'));if(cells.some(r=>r.length+gi>(d?.groups.length??0))){setMessage('粘贴列数超过现有分组，请先添加组。');return}editD(t=>{while(t.rows.length<ri+cells.length)t.rows.push({id:id(),label:String(t.rows.length+1),values:{},excluded:{}});cells.forEach((row,i)=>row.forEach((v,j)=>{t.rows[ri+i].values[t.groups[gi+j].id]=v}))})}
  const disabled=!!busy||!!frozen
+ const {openMenu,closeMenu}=useActionMenu()
+ const cellScope=JSON.stringify([active,p?.id,p?.project_path,display?.id,p?.revision,view,frozen?.id,locked,busy,modal,!!sourceDialog,libraryBusy])
+ const currentCellScope=useRef(cellScope);currentCellScope.current=cellScope
+ useEffect(()=>closeMenu(),[cellScope,closeMenu])
+ function cellMenu(event:React.MouseEvent<HTMLTableCellElement>|React.KeyboardEvent<HTMLTableCellElement>,row:Row,group:Group){
+  event.preventDefault();event.stopPropagation()
+  if(!active||!p||!display||busy||libraryBusy||view!=='data')return
+  const scope=cellScope,projectId=p.id,path=p.project_path,datasetId=display.id
+  const excluded=!!row.excluded[group.id]
+  const reason=frozen?'历史快照只读':locked?'来源数据已锁定':null
+  const items:ActionMenuItem[]=[...(reason?[{id:'readonly',label:reason,disabled:true,onSelect:()=>{}}]:[]),
+   {id:'exclusion',label:excluded?'恢复此值':'排除此值',disabled:!!reason,onSelect:()=>{
+    const live=ref.current,table=live?.datasets.find(table=>table.id===datasetId)
+    if(currentCellScope.current!==scope||live?.id!==projectId||live.project_path!==path||!table||table.source?.locked||
+     !table.rows.some(item=>item.id===row.id)||!table.groups.some(item=>item.id===group.id))return
+    editD(target=>{target.rows.find(item=>item.id===row.id)!.excluded[group.id]=!excluded})
+   }}]
+  const origin=(event.target as HTMLElement).closest<HTMLElement>('input:not(:disabled)')??event.currentTarget
+  const box=origin.getBoundingClientRect()
+  openMenu({id:`cell:${projectId}:${datasetId}:${row.id}:${group.id}`,label:`数值菜单 · ${display.name} · ${row.label} / ${group.label}`,
+   origin,items,position:'clientX' in event?{x:event.clientX,y:event.clientY}:{x:box.left,y:box.bottom}})
+ }
+ function valueCell(row:Row,ri:number,group:Group,gi:number){
+  return <td key={group.id} className={row.excluded[group.id]?'excluded':''} tabIndex={disabled||locked?0:-1}
+   onContextMenu={event=>cellMenu(event,row,group)} onKeyDown={event=>{
+    if(event.key==='ContextMenu'||event.shiftKey&&event.key==='F10')cellMenu(event,row,group)
+   }}>
+   <input aria-label={`数值 ${ri+1} ${gi+1}`} value={row.values[group.id]??''} disabled={disabled||locked}
+    onChange={event=>editD(table=>{table.rows[ri].values[group.id]=event.target.value})} onPaste={event=>paste(event,ri,gi)}/>
+  </td>
+ }
  useEffect(()=>{reportView({path:p?.project_path,projectId:p?.id,name:p?.name,view,resourceId:display?.id,
   artifactId:frozenDocument?'stats:'+frozenDocument.id:undefined,runId:!frozenDocument?frozen?.run?.id:undefined,
   busy:!!busy||!!modal||!!sourceDialog})},
@@ -252,7 +284,7 @@ export default function StatsWorkspace({
  <main className="stats-content">{frozen&&<div className="stats-source">正在查看冻结图形 {frozen.name}。<button className="text-btn" onClick={copyTable}>复制数据为新表</button></div>}
  {(display.source?.kind==='wb'||display.source?.kind==='if')&&<SourceStatus source={display.source} active={active} frozen={!!frozen}
   busy={!!busy||libraryBusy} onReturn={()=>onSource(display.source!)} onUpdate={refreshSource} onCopy={copyTable}/>}
- {view==='data'&&<section><div className="stats-section-title"><input aria-label="数据表名称" value={display.name} disabled={disabled} onChange={e=>editD(t=>{t.name=e.target.value})}/><span>{display.rows.length} 行 · {display.groups.length} 组</span></div><p className="hint">每格填入一个独立单位的数值。配对设计使用左列相同 ID；空格为缺失。右键单元格可排除/恢复，原值始终保留。</p><div className="stats-grid-scroll"><table className="stats-grid"><thead><tr><th>独立单位 / 配对 ID</th>{display.groups.map((g,i)=><th key={g.id}><input aria-label={`组名 ${i+1}`} value={g.label} disabled={disabled||locked} onChange={e=>editD(t=>{t.groups[i].label=e.target.value})}/>{!locked&&!frozen&&<button aria-label={`删除组 ${g.label}`} disabled={disabled||display.groups.length<=1} onClick={()=>editD(t=>{t.groups.splice(i,1);t.rows.forEach(r=>{delete r.values[g.id];delete r.excluded[g.id]});if(t.analysis.control_group===g.id)t.analysis.control_group=t.groups[0].id})}>×</button>}</th>)}<th/></tr></thead><tbody>{display.rows.map((row,ri)=><tr key={row.id}><th><input aria-label={`样本 ID ${ri+1}`} value={row.label} disabled={disabled||locked} onChange={e=>editD(t=>{t.rows[ri].label=e.target.value})}/></th>{display.groups.map((g,gi)=><td key={g.id} className={row.excluded[g.id]?'excluded':''}><input aria-label={`数值 ${ri+1} ${gi+1}`} value={row.values[g.id]??''} disabled={disabled||locked} onChange={e=>editD(t=>{t.rows[ri].values[g.id]=e.target.value})} onPaste={e=>paste(e,ri,gi)} onContextMenu={e=>{e.preventDefault();if(!disabled&&!locked)editD(t=>{t.rows[ri].excluded[g.id]=!row.excluded[g.id]})}}/></td>)}<td><button aria-label={`删除行 ${ri+1}`} disabled={disabled||locked} onClick={()=>editD(t=>{t.rows.splice(ri,1)})}>×</button></td></tr>)}</tbody></table></div><div className="stats-actions"><button className="btn secondary" disabled={disabled||locked} onClick={()=>editD(t=>t.rows.push({id:id(),label:String(t.rows.length+1),values:{},excluded:{}}))}>添加行</button><button className="btn secondary" disabled={disabled||locked||display.groups.length>=30} onClick={()=>editD(t=>t.groups.push({id:id(),label:'Group '+(t.groups.length+1)}))}>添加组</button><button className="btn primary" onClick={()=>setView('analysis')}>设置统计分析</button></div></section>}
+ {view==='data'&&<section><div className="stats-section-title"><input aria-label="数据表名称" value={display.name} disabled={disabled} onChange={e=>editD(t=>{t.name=e.target.value})}/><span>{display.rows.length} 行 · {display.groups.length} 组</span></div><p className="hint">每格填入一个独立单位的数值。配对设计使用左列相同 ID；空格为缺失。右键选择排除或恢复，原值保留。</p><div className="stats-grid-scroll"><table className="stats-grid"><thead><tr><th>独立单位 / 配对 ID</th>{display.groups.map((g,i)=><th key={g.id}><input aria-label={`组名 ${i+1}`} value={g.label} disabled={disabled||locked} onChange={e=>editD(t=>{t.groups[i].label=e.target.value})}/>{!locked&&!frozen&&<button aria-label={`删除组 ${g.label}`} disabled={disabled||display.groups.length<=1} onClick={()=>editD(t=>{t.groups.splice(i,1);t.rows.forEach(r=>{delete r.values[g.id];delete r.excluded[g.id]});if(t.analysis.control_group===g.id)t.analysis.control_group=t.groups[0].id})}>×</button>}</th>)}<th/></tr></thead><tbody>{display.rows.map((row,ri)=><tr key={row.id}><th><input aria-label={`样本 ID ${ri+1}`} value={row.label} disabled={disabled||locked} onChange={e=>editD(t=>{t.rows[ri].label=e.target.value})}/></th>{display.groups.map((g,gi)=>valueCell(row,ri,g,gi))}<td><button aria-label={`删除行 ${ri+1}`} disabled={disabled||locked} onClick={()=>editD(t=>{t.rows.splice(ri,1)})}>×</button></td></tr>)}</tbody></table></div><div className="stats-actions"><button className="btn secondary" disabled={disabled||locked} onClick={()=>editD(t=>t.rows.push({id:id(),label:String(t.rows.length+1),values:{},excluded:{}}))}>添加行</button><button className="btn secondary" disabled={disabled||locked||display.groups.length>=30} onClick={()=>editD(t=>t.groups.push({id:id(),label:'Group '+(t.groups.length+1)}))}>添加组</button><button className="btn primary" onClick={()=>setView('analysis')}>设置统计分析</button></div></section>}
  {view==='analysis'&&<section><h2>{display.name}</h2><fieldset disabled={disabled} className="stats-analysis-controls"><label>统计方法<select aria-label="统计方法" value={display.analysis.method} onChange={e=>editD(t=>{t.analysis.method=e.target.value})}><option value="descriptive">仅描述统计</option><option value="welch">Welch 独立样本 t 检验</option><option value="paired">配对 t 检验</option><option value="anova">普通单因素 ANOVA</option><option value="welch_anova">Welch 单因素 ANOVA</option></select></label><label>分析尺度<select value={display.analysis.scale} onChange={e=>editD(t=>{t.analysis.scale=e.target.value})}><option value="raw">原始数值</option><option value="log2">log2（仅正值）</option></select></label>{['anova','welch_anova'].includes(display.analysis.method)&&<><label>比较范围<select aria-label="统计比较范围" value={display.analysis.scope} onChange={e=>editD(t=>{t.analysis.scope=e.target.value})}><option value="control">各组与对照</option><option value="all">全部两两比较</option></select></label><label>对照组<select value={display.analysis.control_group} onChange={e=>editD(t=>{t.analysis.control_group=e.target.value})}>{display.groups.map(g=><option value={g.id} key={g.id}>{g.label}</option>)}</select></label></>}</fieldset><label className="stats-confirm"><input type="checkbox" aria-label="确认独立单位" checked={display.confirmed} disabled={disabled||locked} onChange={e=>editD(t=>{t.confirmed=e.target.checked})}/>已确认每格代表独立生物学单位；技术重复已汇总；配对关系由 ID 明确。</label><p className="hint">普通 ANOVA 假定独立、残差近似正态及等方差；Welch 允许不等方差。多组对照采用 Dunnett，全部比较采用 Tukey；Welch 后使用 Games–Howell。方法应由实验设计决定。</p>{!frozen&&<button className="btn primary" disabled={!!busy} onClick={analyze}>运行分析</button>}
  {!run?<p className="stats-empty">{display.runs?.length?'数据或设置已改变，请重新运行分析。':'尚未运行当前分析。'}</p>:<><p className="stats-method">{run.method_text}</p>{run.omnibus&&<p>总体检验：F = {fmt(run.omnibus.statistic)}，P = {fmt(run.omnibus.p_raw)}</p>}<table className="stats-results"><thead><tr><th>组别</th><th>独立 n</th><th>均值</th><th>SD</th><th>SEM</th></tr></thead><tbody>{run.summaries.map(s=><tr key={s.group}><td>{display.groups.find(g=>g.id===s.group)?.label??s.label}</td><td>{s.n}</td><td>{fmt(s.mean)}</td><td>{fmt(s.sd)}</td><td>{fmt(s.sem)}</td></tr>)}</tbody></table>{run.comparisons.length>0&&<table className="stats-results"><thead><tr><th>对比（B−A）</th><th>效应</th><th>95% CI</th><th>P 值</th><th>校正</th></tr></thead><tbody>{run.comparisons.map((r,i)=><tr key={i}><td>{display.groups.find(g=>g.id===r.group_b)?.label} − {display.groups.find(g=>g.id===r.group_a)?.label}</td><td>{fmt(r.effect)}</td><td>{r.ci95?.map(fmt).join(' 至 ')}</td><td>{fmt(r.p_adjusted)}</td><td>{r.adjustment_method}</td></tr>)}</tbody></table>}<p className="hint">图上每组均值区间、组对差值的普通区间与多重比较同时区间分别解释。SciPy {run.scipy_version}。</p><button className="btn secondary" onClick={()=>setView('graph')}>查看图形</button></>}
  {!!display.runs?.length&&<details><summary>分析历史（{display.runs.length}）</summary>{display.runs.map(r=><button className="text-btn" key={r.id} onClick={()=>{setFrozen({id:r.id,name:'历史分析 '+r.created_at,dataset:r.dataset,run:r,style:r.dataset.style});setView('analysis')}}>{new Date(r.created_at).toLocaleString()} · {r.dataset.analysis.method}</button>)}</details>}</section>}

@@ -238,7 +238,7 @@ for n in [1,2]:
 session=dict(pid=0,token='fixture');save_project(p,sys.argv[2],None,session);release_project(sys.argv[2],session)`,file,projectPath],{env:{...process.env,PYTHONPATH:path.resolve('backend')}})
  await page.goto('/?integration=1')
  await page.evaluate((source:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async()=>source}},projectPath)
- await page.getByRole('button',{name:'新建或打开',exact:true}).click();await page.getByRole('button',{name:'打开已有分析',exact:true}).click()
+ await page.getByRole('button',{name:'新建或打开',exact:true}).click();await page.getByRole('menu').getByRole('menuitem',{name:'打开已有分析',exact:true}).click()
  await page.getByRole('button',{name:'添加目标',exact:true}).click();await page.getByLabel('目标名称',{exact:true}).fill('AKT')
  await page.getByRole('button',{name:'选择区域',exact:true}).click();await drag(page,[20,20],[220,50]);await page.getByRole('button',{name:'识别目标',exact:true}).click();await page.getByRole('button',{name:'确认目标',exact:true}).click()
  await page.getByLabel('对应内参',{exact:true}).selectOption('ref2')

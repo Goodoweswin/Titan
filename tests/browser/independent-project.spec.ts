@@ -52,7 +52,7 @@ test('a project owns its materials across tools and moves independently of an an
   await project().click()
   await expect(page.getByRole('main').getByRole('button',{name:'打开分析 '+name+' WB',exact:true})).toBeVisible()
   await page.getByRole('button',{name:'分析菜单 '+name+' WB',exact:true}).click()
-  await page.getByRole('button',{name:'移出项目',exact:true}).click()
+  await page.getByRole('menu').getByRole('menuitem',{name:'移出项目',exact:true}).click()
   await page.getByRole('dialog').getByRole('button',{name:'移出',exact:true}).click()
   await expect(page.getByText('这个项目还没有分析。',{exact:true})).toBeVisible()
 
@@ -61,7 +61,7 @@ test('a project owns its materials across tools and moves independently of an an
   await expect(page.getByRole('status').filter({hasText:'项目包已导出'})).toBeVisible()
   pathPrompt(page,bundle)
   await page.getByRole('button',{name:'新建或打开',exact:true}).click()
-  await page.getByRole('button',{name:'打开项目包',exact:true}).click()
+  await page.getByRole('menu').getByRole('menuitem',{name:'打开项目包',exact:true}).click()
   await expect.poll(async()=>(await rpc(page,'library_workspace')).projects.filter((p:any)=>p.name===name).length).toBe(2)
   await expect(page.getByText('signal.csv',{exact:true})).toBeVisible()
  }finally{await rm(dir,{recursive:true,force:true})}
@@ -128,7 +128,7 @@ test('opening a damaged WB analysis from Home offers its backup recovery',async(
   await writeFile(join(path,'project.json'),'{invalid')
   pathPrompt(page,path)
   await page.getByRole('button',{name:'新建或打开',exact:true}).click()
-  await page.getByRole('button',{name:'打开已有分析',exact:true}).click()
+  await page.getByRole('menu').getByRole('menuitem',{name:'打开已有分析',exact:true}).click()
   page.once('dialog',dialog=>dialog.accept())
   await page.getByRole('button',{name:'尝试恢复项目',exact:true}).click()
   await expect(page.getByLabel('实验名称',{exact:true})).toHaveValue(name)
