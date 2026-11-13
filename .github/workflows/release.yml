@@ -19,6 +19,7 @@ jobs:
     timeout-minutes: 60
     env:
       PYTHONUTF8: "1"
+      TITAN_ACCOUNTS_ISSUER: https://121.40.43.188
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -38,6 +39,11 @@ jobs:
         run: |
           rustup default stable-x86_64-pc-windows-msvc
           ./packaging/build_windows.ps1
+          cargo test --manifest-path src-tauri/Cargo.toml --locked --lib
+          if ($LASTEXITCODE -ne 0) { throw 'Native account tests failed' }
+          $nativeVersion = (Get-Item 'src-tauri/target/x86_64-pc-windows-msvc/release/titan-wb.exe').VersionInfo.ProductVersion
+          .venv/Scripts/python.exe scripts/verify_accounts_release.py --binary src-tauri/target/x86_64-pc-windows-msvc/release/titan-wb.exe --issuer $env:TITAN_ACCOUNTS_ISSUER --platform windows-x64 --native-version $nativeVersion --output artifacts/accounts-release-verification.json
+          if ($LASTEXITCODE -ne 0) { throw 'Compiled account issuer verification failed' }
           $engine = 'src-tauri/engine/wb-engine/wb-engine.exe'
           .venv/Scripts/python.exe scripts/verify_lane_release.py --binary $engine --output artifacts/lane-verification
           if ($LASTEXITCODE -ne 0) { throw 'Packaged lane verification failed' }
@@ -69,6 +75,8 @@ jobs:
           .venv/bin/python scripts/collect_notices.py
           .venv/bin/python packaging/build_engine.py
           npm run desktop:build -- --target aarch64-apple-darwin --bundles app,dmg
+          cargo test --manifest-path src-tauri/Cargo.toml --locked --lib
+          .venv/bin/python scripts/verify_accounts_release.py --binary 'src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Titan.app/Contents/MacOS/titan-wb' --issuer "$TITAN_ACCOUNTS_ISSUER" --platform macos-arm64 --output artifacts/accounts-release-verification.json
           .venv/bin/python scripts/verify_release.py --app 'src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Titan.app' --output artifacts/release-verification
           ENGINE='src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Titan.app/Contents/Resources/engine/wb-engine/wb-engine'
           .venv/bin/python scripts/verify_lane_release.py --binary "$ENGINE" --output artifacts/lane-verification
