@@ -1,0 +1,83 @@
+{
+  "recordedAt": "2026-11-13T19:20:19.483429+08:00",
+  "version": "0.4.2",
+  "plannedTag": "v0.4.2-beta.1",
+  "productSourceCommit": "93fe85e9abb90183c7095dc4e6d0c989563d459c",
+  "compiledIssuer": "https://121.40.43.188",
+  "tests": {
+    "frontend": {
+      "passed": 140
+    },
+    "scientificPython": {
+      "passed": 346,
+      "subtestsPassed": 5,
+      "afterEngineVersionCorrection": true
+    },
+    "rust": {
+      "passed": 47,
+      "ignored": 2
+    },
+    "accountsPostgreSQL": {
+      "passed": 191
+    },
+    "browser": {
+      "passed": 106,
+      "durationMinutes": 5.4,
+      "sourceBase": "6d3c525",
+      "followup": "engine version metadata and release guard only; scientific suite and packaged verification rerun"
+    }
+  },
+  "independentReview": {
+    "base": "ef2c409",
+    "head": "6d3c525",
+    "critical": 0,
+    "important": 0,
+    "minor": 0
+  },
+  "nativeArtifact": {
+    "platform": "macos-arm64",
+    "version": "0.4.2",
+    "issuer": "https://121.40.43.188",
+    "versionManifestsAgree": true,
+    "nativeVersion": "0.4.2",
+    "embeddedIssuerFound": true,
+    "nativeBinarySHA256": "17d4b7f35cb15714545dd9686030fe023a4872fd270aa3830b090b47a4ccc7ff",
+    "scope": "Static artifact check; native login and credential-store acceptance are separate."
+  },
+  "packagedEngine": {
+    "version": "0.4.2",
+    "worker_starts": 1,
+    "engine_protocol": 1,
+    "clean_path": true,
+    "source_independent_copy": true,
+    "measurements": 24,
+    "targets": 12,
+    "blocked": 1,
+    "biological_units": 6,
+    "save_reopen": true,
+    "export_files": 14,
+    "signature_verify_exit": 0,
+    "signature_verify_message": "",
+    "profile_matches_measurement": true,
+    "preview_matches_export": true,
+    "native_window_verified": false,
+    "real_wb_verified": false,
+    "excel_workbook_verified": true,
+    "excel_embedded_plot_matches": true
+  },
+  "notices": {
+    "records": 818,
+    "bundledInventoryMatchesSource": true
+  },
+  "testPostgreSQLStopped": true,
+  "installedAppReplaced": false,
+  "githubPublicationVerifiedAtThisCheckpoint": false,
+  "windowsInteractiveAcceptanceVerified": false,
+  "realScientificAccuracyVerified": false,
+  "notes": "Initial local notice mismatch and retained 0.4.1 engine were caught before any tag push; final rebuilt package passed both checks.",
+  "localDmg": {
+    "path": "src-tauri/target/release/bundle/dmg/Titan_0.4.2_aarch64.dmg",
+    "sha256": "b7c1f62df30570c42f67ed670c3deab0a81cf224b416f0da663b36e05b58c942",
+    "bytes": 104762870
+  }
+}
