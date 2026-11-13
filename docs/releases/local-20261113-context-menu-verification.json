@@ -57,11 +57,22 @@
     "initial_candidate_launched": true,
     "initial_candidate_running_main_and_engine_paths_verified": true,
     "initial_candidate_wb_if_statistics_tool_pages_open": true,
-    "final_candidate_launch": "blocked by locked Mac on final launch attempt",
-    "legacy_library_load": "pending macOS Desktop access confirmation",
-    "account_session_restore": "not yet verified after replacement",
+    "final_candidate_launch": "passed",
+    "legacy_library_load": "passed after user confirmed Desktop access and UI retry",
+    "account_session_restore": "passed; existing logged-in state restored without entering credentials",
     "final_signature_hash_and_issuer": "passed",
-    "final_library_index_unchanged": true
+    "final_running_main_and_engine_paths_verified": true,
+    "home_state_restored": true,
+    "legacy_wb_analysis_opened": true,
+    "legacy_wb_frozen_chart_rendered": true,
+    "legacy_if_and_linked_statistics_opened": true,
+    "project_analysis_and_chart_context_menus_verified": true,
+    "escape_restores_origin_focus": true,
+    "locked_source_cell_menu_disabled_with_reason": true,
+    "manual_data_edits_during_final_checks": false,
+    "library_index_unchanged_immediately_after_install": true,
+    "library_index_after_native_navigation_sha256": "3e873b9e72d06218e35c6d4625402fcd0e3b0e72d7fd6408bf1fac242f0ac48f",
+    "library_navigation_note": "Opening saved analyses updates resume metadata; original-value exclusion changes were tested in the isolated synthetic QA app, not in user research data."
   },
   "review": {
     "critical_findings": 0,
@@ -176,6 +187,7 @@
     "Contents/MacOS/titan-wb": "898787eaa575d8ff25e75f7a0c7bb0e6b5dbb65015c573a0a47fa1ca983fdc24",
     "Contents/Resources/engine/wb-engine/wb-engine": "25c5f7ba4e2b4d48de8ad025ced2632e0027a883318ba248a3f3f66240d245e7"
   },
-  "delivery_status": "installed; final native launch and legacy access verification pending Mac unlock",
-  "library_index_unchanged_after_initial_candidate_launch": true
+  "delivery_status": "complete; final installed application and legacy navigation verified",
+  "library_index_unchanged_after_initial_candidate_launch": true,
+  "native_verified_at": "2026-11-13T17:35:05.041712+08:00"
 }

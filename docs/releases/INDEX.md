@@ -34,7 +34,7 @@
 
 | 构建编号 | 源码与基础版本 | 主要范围 | 验收及分发状态 |
 | --- | --- | --- | --- |
-| `local-20261113-context-menu` | `codex/unified-context-menu` · `7d748b9` · 账户整合基线 `5ce46de` · 显示版本 `0.4.1` | 项目、分析、图表与导出的统一右键／省略号菜单；统计明确排除／恢复 | 已安装 `/Applications/Titan.app`；旧应用和项目库已备份。140 项前端、106 项完整浏览器、346 项 Python 检查及本机打包通过；账户服务、Windows／Linux 原生测试和 Windows 安装包构建通过。合成原生验收覆盖菜单、取消、键盘、数值、撤销和快照只读；最终启动待解锁，旧项目访问待系统确认。[验证记录](local-20261113-context-menu-verification.json) |
+| `local-20261113-context-menu` | `codex/unified-context-menu` · `7d748b9` · 账户整合基线 `5ce46de` · 显示版本 `0.4.1` | 项目、分析、图表与导出的统一右键／省略号菜单；统计明确排除／恢复 | 已安装 `/Applications/Titan.app`；旧应用和项目库已备份。140 项前端、106 项完整浏览器、346 项 Python 检查及本机打包通过；账户服务、Windows／Linux 原生测试和 Windows 安装包构建通过。合成原生验收覆盖菜单、取消、键盘、数值、撤销和快照只读；系统访问确认后，最终安装版已核对旧 WB、IF、关联统计、冻结图和来源只读菜单；登录状态保留，结束时恢复首页。[验证记录](local-20261113-context-menu-verification.json) |
 | `local-20261112-account-activity` | 账户工作区 · `e4538ee` · 显示版本 `0.4.1` | 账户中栏、正方形活动格、每日／每周／累计总量；保留统计 PNG/PDF 导出 | 曾安装并启动 `/Applications/Titan.app`。签名、主程序哈希、打包 WB 保存／重开和统计 PNG/PDF 导出通过；原生窗口核对账户中栏及三种活动视图，旧应用和数据已备份。[本机验证报告](local-20261112-account-activity-verification.json) |
 | `local-20261112-sidebar-appearance` | `codex/sidebar-system-appearance` · `b274098` · 基础 `v0.4.1-beta.3` | 左栏、搜索框、选中行及项目菜单跟随系统明暗外观 | 曾安装至 `/Applications/Titan.app`。GitHub 完整 84 项浏览器、88 项前端、346 项 Python 检查及 Mac 构建通过；原生窗口已核对日间浅色左栏。用户确认系统访问后，旧项目及未确认的 TIFF 选页窗口已恢复。[本机验证报告](local-20261112-sidebar-appearance-verification.json) |
 | `local-20261112-navigation-panels` | `codex/independent-project-workspace` · `bb39acc` · 基础 `v0.4.1-beta.3` | 固定前进／后退导航、独立折叠左右栏、紧凑项目字体 | 曾安装至 `/Applications/Titan.app`。GitHub 完整 83 项浏览器、88 项单元及 346 项 Python 检查通过；原生窗口已显示紧凑左栏。用户完成系统验证后，已打开既有 WB 分析。[本机验证报告](local-20261112-navigation-panels-verification.json) |
@@ -73,7 +73,7 @@
 
 | 日期（北京时间） | 位置与应用标识 | 安装状态 |
 | --- | --- | --- |
-| 2026-11-13 04:37 | `/Applications/Titan.app` · `com.titan.wb` | **当前安装** `local-20261113-context-menu`，显示版本 `0.4.1`，源码 `7d748b9`；主程序签名和哈希已核对，内置引擎保持前版，项目库索引未变。最终启动待解锁，旧项目访问等待 macOS 确认。[校验值与备份](local-20261113-context-menu-verification.json) |
+| 2026-11-13 04:37 | `/Applications/Titan.app` · `com.titan.wb` | **当前安装** `local-20261113-context-menu`，显示版本 `0.4.1`，源码 `7d748b9`；主程序签名和哈希已核对，内置引擎保持前版，安装后项目库索引未变。系统访问确认后，旧项目与登录已恢复，原生菜单核对通过，结束时恢复首页。[校验值与备份](local-20261113-context-menu-verification.json) |
 | 2026-11-12 21:58 | `/Applications/Titan.app` · `com.titan.wb` | 此前安装 `local-20261112-account-activity`，显示版本 `0.4.1`，源码 `e4538ee`。原生已验证账户中栏、正方形日历和每日／每周／累计切换，活动记录和配色保留；项目库文件哈希未变。[校验值和备份位置](local-20261112-account-activity-verification.json) |
 | 2026-11-12 12:38 | `/Applications/Titan.app` · `com.titan.wb` | 此前安装 `local-20261112-sidebar-appearance`，显示版本 `0.4.1`。旧应用和项目库已备份；已核对实际浅色左栏，已恢复原 WB 分析及未选择页面的 TIFF 窗口。[校验值和备份位置](local-20261112-sidebar-appearance-verification.json) |
 | 2026-11-12 03:54 | `/Applications/Titan.app` · `com.titan.wb` | 此前安装 `local-20261112-navigation-panels`，显示版本 `0.4.1`。旧应用及项目库已备份，主程序和内置引擎校验通过。[校验值和备份位置](local-20261112-navigation-panels-verification.json) |
