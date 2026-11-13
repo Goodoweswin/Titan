@@ -1,0 +1,154 @@
+{
+  "recordedAt": "2026-11-13T19:43:08.972186+08:00",
+  "tag": "v0.4.2-beta.1",
+  "version": "0.4.2",
+  "sourceCommit": "0ab0e5ae3d1d47fb5aa7cbaea238b87a7a725b0e",
+  "annotatedTagObject": "9d0fd69a5a8e9caf410bbd6fc671e0080874760e",
+  "releaseUrl": "https://github.com/Goodoweswin/Titan/releases/tag/v0.4.2-beta.1",
+  "publishedAt": "2026-11-13T11:36:12Z",
+  "prerelease": true,
+  "releaseWorkflow": {
+    "runId": 43416320824,
+    "url": "https://github.com/Goodoweswin/Titan/actions/runs/43416320824",
+    "macOSBuild": "success",
+    "windowsBuild": "success",
+    "publish": "success"
+  },
+  "mainCI": {
+    "runId": 43416289933,
+    "url": "https://github.com/Goodoweswin/Titan/actions/runs/43416289933",
+    "conclusion": "success",
+    "testSummaries": [
+      "346 passed, 5 subtests passed in 41.71s",
+      "Tests  140 passed (140)",
+      "106 passed (12.4m)"
+    ]
+  },
+  "nativeReports": [
+    {
+      "platform": "macos-arm64",
+      "report": {
+        "platform": "macos-arm64",
+        "version": "0.4.2",
+        "issuer": "https://121.40.43.188",
+        "versionManifestsAgree": true,
+        "nativeVersion": "0.4.2",
+        "embeddedIssuerFound": true,
+        "nativeBinarySHA256": "2d5b476e303c17f1d2f93a894867ed3fab158bdb113631565dfceb49434eaaf7",
+        "scope": "Static artifact check; native login and credential-store acceptance are separate."
+      },
+      "testSummaries": [
+        "346 passed, 5 subtests passed in 50.48s",
+        "Tests  140 passed (140)",
+        "test result: ok. 47 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 3.64s"
+      ]
+    },
+    {
+      "platform": "windows-x64",
+      "report": {
+        "platform": "windows-x64",
+        "version": "0.4.2",
+        "issuer": "https://121.40.43.188",
+        "versionManifestsAgree": true,
+        "nativeVersion": "0.4.2",
+        "embeddedIssuerFound": true,
+        "nativeBinarySHA256": "baeca9c6eb90d7b20f6e5dad2c19a5e3f11ba40454518163a6a4a857bc9bb8f9",
+        "scope": "Static artifact check; native login and credential-store acceptance are separate."
+      },
+      "testSummaries": [
+        "346 passed, 5 subtests passed in 47.59s",
+        "Tests  140 passed (140)",
+        "test result: ok. 47 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 2.30s"
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "name": "SHA256SUMS.txt",
+      "size": 504,
+      "digest": "sha256:8a836cb63a2ce3cf1b37bc49640c77f6d1c27c6c2d14716f9deec2d14cc551ca",
+      "state": "uploaded",
+      "browser_download_url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.2-beta.1/SHA256SUMS.txt",
+      "independentlyDownloaded": true,
+      "checksumMatchesGitHubDigest": true
+    },
+    {
+      "name": "Titan-0.4.2-macos-arm64-third-party.zip",
+      "size": 2649232,
+      "digest": "sha256:8798f2fe3ebc38f1eb96a21c5389af77915894ebb582bd582c210ac715145824",
+      "state": "uploaded",
+      "browser_download_url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.2-beta.1/Titan-0.4.2-macos-arm64-third-party.zip",
+      "independentlyDownloaded": true,
+      "checksumMatchesGitHubDigest": true
+    },
+    {
+      "name": "Titan-0.4.2-macos-arm64.app.zip",
+      "size": 109671613,
+      "digest": "sha256:262fe6799b6ed80c86ed992beab0ade3851af5f59eabaf5eca1a84a9fb5b55ea",
+      "state": "uploaded",
+      "browser_download_url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.2-beta.1/Titan-0.4.2-macos-arm64.app.zip",
+      "independentlyDownloaded": false,
+      "checksumMatchesGitHubDigest": true
+    },
+    {
+      "name": "Titan-0.4.2-macos-arm64.dmg",
+      "size": 107928984,
+      "digest": "sha256:188408d3a4be99d8e951ef5fd503b40d869a68bafbbde6702dbf5597a0969e93",
+      "state": "uploaded",
+      "browser_download_url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.2-beta.1/Titan-0.4.2-macos-arm64.dmg",
+      "independentlyDownloaded": true,
+      "checksumMatchesGitHubDigest": true
+    },
+    {
+      "name": "Titan-0.4.2-windows-x64-setup.exe",
+      "size": 78122710,
+      "digest": "sha256:9e8fcb61904802b4c4cff902249d0718e1c73e2f5fadbab5f290c674643f40ba",
+      "state": "uploaded",
+      "browser_download_url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.2-beta.1/Titan-0.4.2-windows-x64-setup.exe",
+      "independentlyDownloaded": true,
+      "checksumMatchesGitHubDigest": true
+    },
+    {
+      "name": "Titan-0.4.2-windows-x64-third-party.zip",
+      "size": 2751392,
+      "digest": "sha256:fd76b9dec36227de969930293c5437c9119de99329a35551ee69ed63bd54c5ee",
+      "state": "uploaded",
+      "browser_download_url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.2-beta.1/Titan-0.4.2-windows-x64-third-party.zip",
+      "independentlyDownloaded": true,
+      "checksumMatchesGitHubDigest": true
+    }
+  ],
+  "downloadVerification": {
+    "checkedAt": "2026-11-13T11:39:14.933168+00:00",
+    "macDmgAndWindowsExeDownloaded": true,
+    "bothPlatformNoticeZipsDownloaded": true,
+    "allDownloadedChecksumsMatch": true,
+    "allPublishedDigestsMatchChecksumFile": true,
+    "macAppZipDigestCheckedAgainstGitHubOnly": true
+  },
+  "downloadedMacDmg": {
+    "platform": "macos-arm64",
+    "version": "0.4.2",
+    "issuer": "https://121.40.43.188",
+    "versionManifestsAgree": true,
+    "nativeVersion": "0.4.2",
+    "embeddedIssuerFound": true,
+    "nativeBinarySHA256": "2d5b476e303c17f1d2f93a894867ed3fab158bdb113631565dfceb49434eaaf7",
+    "scope": "Static artifact check; native login and credential-store acceptance are separate.",
+    "downloadedDmgMountedReadOnly": true,
+    "strictSignatureVerified": true,
+    "matchesCINativeBinary": true
+  },
+  "noticeInventoryCounts": {
+    "macos-arm64": 818,
+    "windows-x64": 821
+  },
+  "limitations": {
+    "macOSNotarized": false,
+    "windowsCommerciallySigned": false,
+    "windowsInteractiveInstallationAndLoginVerified": false,
+    "realScientificAccuracyVerified": false,
+    "selfServiceMailFlowsConnected": false,
+    "installedLocalAppReplacedByThisReleaseTask": false
+  }
+}

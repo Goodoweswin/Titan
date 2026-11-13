@@ -11,7 +11,7 @@
 
 ## 下载与安装
 
-当前公开版本为 **[0.4.1 测试版](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.1-beta.3)**，包含课题侧栏、WB／免疫荧光结果对接、独立统计与绘图。
+当前公开版本为 **[0.4.2 beta.1](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.2-beta.1)**，包含管理员开通的账户登录、账户中栏、活动日历与统一菜单，并保留课题侧栏、WB／免疫荧光结果对接和独立统计与绘图。自助注册、验证／找回邮件、Pilotus 合并及科研数据云同步尚未接通。
 
 | 系统 | 下载文件 | 安装方式 |
 | --- | --- | --- |
@@ -76,7 +76,7 @@ mkdir -p artifacts
 cargo metadata --manifest-path src-tauri/Cargo.toml --format-version 1 > artifacts/cargo-metadata.json
 .venv/bin/python scripts/collect_notices.py
 .venv/bin/python packaging/build_engine.py
-npm run desktop:build
+TITAN_ACCOUNTS_ISSUER=https://121.40.43.188 npm run desktop:build
 ```
 
 安装包位于 `src-tauri/target/release/bundle/`。使用 `scripts/verify_release.py` 可在独立副本和受限 PATH 下验证打包引擎；它不自动验证原生窗口操作。CI 在 Windows x64 和 macOS arm64 原生环境构建；版本标签 `v*` 触发双平台预发布流程。
@@ -84,7 +84,7 @@ npm run desktop:build
 ## 文档与参与
 
 - [贡献指南](CONTRIBUTING.md) · [问题反馈](https://github.com/Goodoweswin/Titan/issues) · [安全报告](SECURITY.md)
-- [版本注册表](docs/releases/INDEX.md) · [更新日志](CHANGELOG.md) · [本版发布说明](docs/releases/v0.4.1-beta.3.md) · [待办与验证重点](docs/ROADMAP.md)
+- [版本注册表](docs/releases/INDEX.md) · [更新日志](CHANGELOG.md) · [本版发布说明](docs/releases/v0.4.2-beta.1.md) · [待办与验证重点](docs/ROADMAP.md)
 - [原生验收清单](docs/NATIVE_ACCEPTANCE.md) · [验证记录索引](docs/checkpoints.md)
 - [第三方许可](docs/THIRD_PARTY_NOTICES.md) · [研究资料与独立参考实现](wb_research/README.md)
 - 历史设计、实施计划和检查点保留于 `docs/`，其中部分内容描述早期版本，不代表当前已实现或已验证的能力。

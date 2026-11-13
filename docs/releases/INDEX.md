@@ -2,16 +2,13 @@
 
 公开发布审计日期 **2026-11-13（Asia/Shanghai）**。本表登记公开发布、本机构建和安装事件。按 Git 标签或表中的构建编号识别具体版本。多个构建可以显示同一个应用版本号，例如 `0.4.0`。功能变更见 [CHANGELOG](../../CHANGELOG.md)。
 
-## 正在准备
-
-`v0.4.2-beta.1`（显示版本 `0.4.2`）正在构建和验证，尚不作为已公开产物登记。[发布说明](v0.4.2-beta.1.md)列明管理员登录已接通及邮件功能尚未开放的边界；两平台的实际附件和校验结果将在发布完成后登记。
-
 ## 公开发布
 
 以下为 GitHub 当前公开的测试版，均有 macOS Apple Silicon 和 Windows x64 附件。发布日按北京时间登记。安装包、`SHA256SUMS.txt` 和许可附件可从对应发布页取得。
 
 | 发布标签 | 发布日 | 标签对应提交 | 发布验证与校验记录 |
 | --- | --- | --- | --- |
+| **[v0.4.2-beta.1](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.2-beta.1)** | 2026-11-13 | `0ab0e5a` | Mac／Windows 原生构建及发布成功，DMG／EXE 实际下载 SHA-256 校验通过；下载 DMG 内的原生程序与 CI 一致，签名验证通过。[验证报告](v0.4.2-beta.1-verification.json) |
 | **[v0.4.1-beta.3](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.1-beta.3)** | 2026-11-07 | `a13b349` | [验证报告](v0.4.1-beta.3-verification.json) |
 | [v0.4.0-beta.3](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.0-beta.3) | 2026-11-07 | `80d552c` | [验证报告](v0.4.0-beta.3-verification.json) |
 | [v0.3.4-beta.1](https://github.com/Goodoweswin/Titan/releases/tag/v0.3.4-beta.1) | 2026-11-02 | `5af3814` | [验证报告](v0.3.4-beta.1-verification.json) |
@@ -34,11 +31,11 @@
 
 ## 本机构建
 
-这些编号用于注册表。以下本机记录的目标平台均为 macOS arm64。整合构建显示 `0.4.1`，历史构建显示 `0.4.0`。
+这些编号用于注册表。以下本机记录的目标平台均为 macOS arm64，具体显示版本与安装状态以各条记录为准。
 
 | 构建编号 | 源码与基础版本 | 主要范围 | 验收及分发状态 |
 | --- | --- | --- | --- |
-| `local-20261113-release-042` | `93fe85e` · 显示版本 `0.4.2` | 账户／菜单整合版本及双平台发行配置 | 本地 Mac App／DMG、实际打包引擎保存与导出、版本／issuer／签名和许可清单检查通过；未替换本机安装。GitHub 双平台发布仍在进行。[本地验证记录](v0.4.2-beta.1-local-verification.json) |
+| `local-20261113-release-042` | `93fe85e` · 显示版本 `0.4.2` | 账户／菜单整合版本及双平台发行配置 | 本地 Mac App／DMG、实际打包引擎保存与导出、版本／issuer／签名和许可清单检查通过；未替换本机安装。GitHub 双平台已公开发布，见上方 `v0.4.2-beta.1`。[本地验证记录](v0.4.2-beta.1-local-verification.json) |
 | `local-20261113-context-menu` | `codex/unified-context-menu` · `7d748b9` · 账户整合基线 `5ce46de` · 显示版本 `0.4.1` | 项目、分析、图表与导出的统一右键／省略号菜单；统计明确排除／恢复 | 已安装 `/Applications/Titan.app`；旧应用和项目库已备份。140 项前端、106 项完整浏览器、346 项 Python 检查及本机打包通过；账户服务、Windows／Linux 原生测试和 Windows 安装包构建通过。合成原生验收覆盖菜单、取消、键盘、数值、撤销和快照只读；系统访问确认后，最终安装版已核对旧 WB、IF、关联统计、冻结图和来源只读菜单；登录状态保留，结束时恢复首页。[验证记录](local-20261113-context-menu-verification.json) |
 | `local-20261112-account-activity` | 账户工作区 · `e4538ee` · 显示版本 `0.4.1` | 账户中栏、正方形活动格、每日／每周／累计总量；保留统计 PNG/PDF 导出 | 曾安装并启动 `/Applications/Titan.app`。签名、主程序哈希、打包 WB 保存／重开和统计 PNG/PDF 导出通过；原生窗口核对账户中栏及三种活动视图，旧应用和数据已备份。[本机验证报告](local-20261112-account-activity-verification.json) |
 | `local-20261112-sidebar-appearance` | `codex/sidebar-system-appearance` · `b274098` · 基础 `v0.4.1-beta.3` | 左栏、搜索框、选中行及项目菜单跟随系统明暗外观 | 曾安装至 `/Applications/Titan.app`。GitHub 完整 84 项浏览器、88 项前端、346 项 Python 检查及 Mac 构建通过；原生窗口已核对日间浅色左栏。用户确认系统访问后，旧项目及未确认的 TIFF 选页窗口已恢复。[本机验证报告](local-20261112-sidebar-appearance-verification.json) |
