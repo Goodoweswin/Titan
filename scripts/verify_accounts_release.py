@@ -4,6 +4,7 @@ This is a static artifact check, not a substitute for native login acceptance.
 """
 
 import argparse
+import ast
 import hashlib
 import json
 from pathlib import Path
@@ -29,11 +30,18 @@ def main():
         parser.error("Issuer must be an exact HTTPS origin without a trailing slash")
 
     root = Path(__file__).resolve().parents[1]
-    package = json.loads((root / "package.json").read_text())
-    lock = json.loads((root / "package-lock.json").read_text())
-    tauri = json.loads((root / "src-tauri/tauri.conf.json").read_text())
-    cargo = tomllib.loads((root / "src-tauri/Cargo.toml").read_text())
-    cargo_lock = tomllib.loads((root / "src-tauri/Cargo.lock").read_text())
+    package = json.loads((root / "package.json").read_text(encoding="utf-8"))
+    lock = json.loads((root / "package-lock.json").read_text(encoding="utf-8"))
+    tauri = json.loads((root / "src-tauri/tauri.conf.json").read_text(encoding="utf-8"))
+    cargo = tomllib.loads((root / "src-tauri/Cargo.toml").read_text(encoding="utf-8"))
+    cargo_lock = tomllib.loads((root / "src-tauri/Cargo.lock").read_text(encoding="utf-8"))
+    engine_init = ast.parse((root / "backend/titan_wb/__init__.py").read_text(encoding="utf-8"))
+    engine_version = next(
+        ast.literal_eval(node.value)
+        for node in engine_init.body
+        if isinstance(node, ast.Assign)
+        and any(isinstance(target, ast.Name) and target.id == "__version__" for target in node.targets)
+    )
     versions = {
         "package": package["version"],
         "packageLock": lock["version"],
@@ -41,6 +49,7 @@ def main():
         "tauri": tauri["version"],
         "cargo": cargo["package"]["version"],
         "cargoLock": next(p["version"] for p in cargo_lock["package"] if p["name"] == "titan-wb"),
+        "scientificEngine": engine_version,
     }
     if len(set(versions.values())) != 1:
         parser.error("Release version manifests disagree")
@@ -66,7 +75,7 @@ def main():
         "scope": "Static artifact check; native login and credential-store acceptance are separate.",
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, indent=2) + "\n")
+    args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(report))
 
 

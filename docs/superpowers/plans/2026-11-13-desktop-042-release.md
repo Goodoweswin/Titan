@@ -31,8 +31,8 @@
 ## Tasks
 
 - [x] Integrate current remote main without modifying other checkouts; merge `c330d73`.
-- [x] Bump the five version manifests, set the release issuer, and add a native-artifact verification report plus Rust tests to both platform jobs. Add release notes and a pending registry entry.
-- [ ] Run frontend/science/native/account suites and a local Mac package build; verify embedded issuer, signature and versions. Obtain one read-only reviewer assessment and address material findings.
+- [x] Bump the desktop manifests and scientific-engine version, set the release issuer, and add a native-artifact verification report plus Rust tests to both platform jobs. Add release notes and a pending registry entry.
+- [x] Run frontend/science/native/account suites and a local Mac package build; verify embedded issuer, signature and versions. Obtain one read-only reviewer assessment and address material findings.
 - [ ] Publish the reviewed source and immutable tag. Follow both Actions builds through completion, resolve failures without force-moving released tags, and verify actual release assets/checksums.
 - [ ] Record the final source/workflow/assets evidence and report the two download links.
 
@@ -43,3 +43,7 @@
 - GitHub main already contains the account implementation and latest menu work. The account-only branch differs by one mail-preparation documentation commit; both are retained.
 - The connector supports repository inspection but not publishing tags. Existing Git authentication has the necessary repository/workflow access; native Git pushes and the repository's Actions publisher perform publication.
 - Release metadata changes do not need tests that merely mirror field assignments. Existing suites and an actual native-binary issuer/version/hash report validate the resulting artifacts.
+- Independent review of `ef2c409..6d3c525`: no Critical/Important/Minor findings. Interactive Windows acceptance and real scientific validity remain explicitly outside the beta's automated evidence; live managed HTTPS health is checked separately, and final downloaded asset integrity is still required.
+- Actual bundled-engine verification found the retained `0.4.1` engine version after the desktop bump (canonical RED: packaged health and source-version assertion). Include the engine version in the source-manifest guard, set it to `0.4.2`, rebuild the sidecar and packages, and require full scientific tests plus packaged health/export/signature verification before push.
+- Final corrective verification is GREEN: scientific source suite 346 +5 subtests, rebuilt sidecar, actual copied Mac bundle health/version/save/reopen/export/Excel/signature checks, native issuer/0.4.2 metadata, and notice inventory equality. Frontend140, Rust47 +2ignored, accounts191 and browser106 were also green; the engine follow-up changed version metadata and the release guard only.
+- Local metadata collection initially raced the first package build. A completed sequential metadata/notices collection and subsequent rebundle produced an identical bundled notice inventory (818 records); CI already runs those commands sequentially.
