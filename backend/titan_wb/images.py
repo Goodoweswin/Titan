@@ -120,12 +120,33 @@ def display_metadata(path,index):
     return meta
 
 
-def preview(a):
-    lo,hi=np.percentile(a,[0.5,99.5]);hi=max(float(hi),float(lo)+1)
-    gray=np.uint8(np.clip((a.astype(float)-lo)/(hi-lo),0,1)*255)
+def preview(a,brightness=0,contrast=0):
+    lo,hi=np.percentile(a,[0.5,99.5])
+    unit=a.astype(float)
+    unit-=lo
+    unit/=max(float(hi-lo),1)
+    if brightness or contrast:
+        unit+=brightness/100-.5
+        unit*=2**(contrast/50)
+        unit+=.5
+    np.clip(unit,0,1,out=unit)
+    unit*=255
+    gray=unit.astype(np.uint8)
     im=Image.fromarray(gray);im.thumbnail((1600,1200))
     buf=io.BytesIO();im.save(buf,format='PNG')
     return 'data:image/png;base64,'+base64.b64encode(buf.getvalue()).decode()
+
+
+def display_preview(asset,brightness,contrast):
+    if any(type(value) not in (int,float) or not -100<=value<=100 for value in (brightness,contrast)):
+        raise ValueError('亮度与对比度范围为 -100 至 100')
+    # The canvas applies the same visual inversion as the default preview.
+    # Keep the brightness direction consistent with what the user sees.
+    if asset.get('display_inverted'):
+        brightness=-brightness
+    pixels=read_pixels(asset)
+    key=('wb-display',asset['sha256'],asset.get('page_index',0),asset.get('rotation_degrees',0),brightness,contrast)
+    return CACHE.get_value(key,lambda:preview(pixels,brightness,contrast))
 
 
 def preview_image_page(path,page_index,expected_sha256=None):

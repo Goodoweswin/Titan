@@ -1,12 +1,30 @@
 import type {ImageAsset,Project,Rect} from './types'
 
 export interface WbSource extends ImageAsset {display_range:[number,number];source_width?:number|null;source_height?:number|null}
-export interface WbRow {id:string;protein:string;source:WbSource;crop:Rect;confirmed:boolean;expected_mw:string;markers:{text:string;y:number}[];layout_id?:string}
+export type WbOffset=[number,number]
+export interface WbRow {id:string;protein:string;source:WbSource;crop:Rect;confirmed:boolean;expected_mw:string;markers:{text:string;y:number}[];layout_id?:string;offset_mm?:WbOffset}
 export interface WbLabel {text:string;x:number}
 export interface WbSettings {width_mm:number;image_width_mm:number;font_pt:number;gap_mm:number;dpi:300|600}
 export interface WbDocument {schema_version:1;id:string;project_id:string;name:string;version:string|null;updated_at?:string;settings:WbSettings;rows:WbRow[];labels:WbLabel[];synthetic?:boolean}
 export interface WbEntry {id:string;name:string;version:string;updated_at:string}
-export interface WbPreview {png:string;width_mm:number;height_mm:number;layout:{rows:{id:string;effective_dpi:number}[]}}
+export interface WbPreviewRow {
+ id:string;effective_dpi:number
+ x_pt:number;y_pt:number;width_pt:number;height_pt:number;png:string
+ offset_mm:WbOffset;offset_bounds_mm:[WbOffset,WbOffset]
+}
+export interface WbPreviewText {text:string;x:number;y:number;anchor:'start'|'middle';row_id?:string;font_pt?:number}
+export interface WbPreview {png:string;width_mm:number;height_mm:number;layout:{rows:WbPreviewRow[];texts:WbPreviewText[];font_pt:number}}
+export const wbPointsPerMm=72/25.4
+export function boundWbOffset(row:WbPreviewRow,[x,y]:WbOffset):WbOffset{
+ const [[minX,maxX],[minY,maxY]]=row.offset_bounds_mm
+ return [
+  Math.min(maxX,Math.max(minX,x)),
+  Math.min(maxY,Math.max(minY,y)),
+ ]
+}
+export function snapWbOffset(row:WbPreviewRow,[x,y]:WbOffset):WbOffset{
+ return boundWbOffset(row,[Math.round(x*10)/10,Math.round(y*10)/10])
+}
 export const defaultWbSettings:WbSettings={width_mm:85,image_width_mm:0,font_pt:8,gap_mm:3,dpi:300}
 export function resetWbStyle(document:WbDocument):WbDocument{return {...document,settings:{...defaultWbSettings}}}
 export function rebindWbSources(document:WbDocument,project:Project,previousPath?:string):WbDocument{

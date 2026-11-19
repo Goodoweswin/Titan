@@ -58,6 +58,61 @@ def test_crop_pixels_layout_svg_text_and_dpi_share_one_definition(tmp_path):
     with pytest.raises(ValueError,match='存在'):export_document(p,d,str(output))
 
 
+def test_row_offsets_move_strip_and_annotations_through_save_and_export(tmp_path):
+    from titan_wb.wb_render import MM
+    p,d,s=fixture(tmp_path)
+    d['labels']=[dict(text='Control',x=.5)]
+    d['rows'][0]['markers']=[dict(text='65',y=22)]
+    baseline=preview_document(p,d)
+    d['rows'][0]['offset_mm']=[1.2,-.7]
+    saved=save_document(p,d,s)
+    reopened=load_document(p,saved['id'])
+    assert reopened['rows'][0]['offset_mm']==[1.2,-.7]
+    assert reopened['rows'][0]['crop']==[10,20,110,30]
+    moved=preview_document(p,reopened)
+    row=moved['layout']['rows'][0]
+    original=baseline['layout']['rows'][0]
+    assert row['x_pt']-original['x_pt']==pytest.approx(1.2*MM)
+    assert row['y_pt']-original['y_pt']==pytest.approx(-.7*MM)
+    for before,after in zip(baseline['layout']['texts'],moved['layout']['texts']):
+        if before['text']=='Control':
+            assert after==before
+        else:
+            assert after['x']-before['x']==pytest.approx(1.2*MM)
+            assert after['y']-before['y']==pytest.approx(-.7*MM)
+    output=tmp_path/'moved-export'
+    export_document(p,reopened,str(output))
+    svg=ET.parse(output/'figure.svg').getroot()
+    exported=svg.find('.//{http://www.w3.org/2000/svg}image')
+    assert float(exported.get('x'))==pytest.approx(row['x_pt'],abs=.001)
+    assert float(exported.get('y'))==pytest.approx(row['y_pt'],abs=.001)
+    assert (output/'figure.png').read_bytes()==base64.b64decode(moved['png'].split(',')[1])
+
+
+def test_extreme_position_keeps_edge_marker_inside_sheet(tmp_path):
+    from titan_wb.wb_render import MM, font
+    p,d,_=fixture(tmp_path)
+    d['settings'].update(font_pt=18,gap_mm=12)
+    d['rows'][0]['markers']=[dict(text='65',y=30)]
+    d['rows'][0]['offset_mm']=[0,300]
+    result=preview_document(p,d)
+    marker=next(t for t in result['layout']['texts'] if t['text']=='65 kDa')
+    bottom=font(18*4).getbbox(marker['text'],anchor='ls')[3]/4
+    assert marker['y']+bottom<=result['height_mm']*MM
+
+
+def test_first_row_position_preserves_space_for_top_labels(tmp_path):
+    from titan_wb.wb_render import font
+    p,d,_=fixture(tmp_path)
+    d['settings']['gap_mm']=6
+    d['labels']=[dict(text='Group 1',x=.5)]
+    d['rows'][0]['offset_mm']=[0,-300]
+    layout=preview_document(p,d)['layout']
+    label=next(t for t in layout['texts'] if t['text']=='Group 1')
+    bottom=font(8*4).getbbox(label['text'],anchor='ms')[3]/4
+    assert layout['rows'][0]['y_pt']>=label['y']+bottom
+
+
 def test_save_without_analysis_preserves_old_sources_copy_and_versions(tmp_path):
     p,d,s=fixture(tmp_path);before=copy.deepcopy(p);saved=save_document(p,d,s)
     assert p==before and len(list_documents(p))==1

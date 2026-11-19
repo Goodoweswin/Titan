@@ -1,6 +1,7 @@
 """Physical WB layout shared by raster preview and portable editable SVG."""
 import base64
 import io
+import math
 from pathlib import Path
 from xml.sax.saxutils import escape, quoteattr
 import numpy as np
@@ -76,20 +77,39 @@ def render(document):
             raise ValueError('顶部标签过长，请缩短文字或增大组图宽度')
         texts.append(dict(text=label['text'], x=x + label['x'] * image_width, y=pad + size, anchor='middle'))
     full_images = {}
+    edge_margin=.5*MM
+    vertical_room=min(pad-edge_margin,gap/2)
+    label_bottom=max((t['y']+measure.getbbox(t['text'],anchor='ms')[3]/4 for t in texts),default=0)
     for row in document['rows']:
         source = row['source']; key = (source['sha256'], source.get('page_index', 0), source.get('rotation_degrees', 0),
                                       tuple(source['display_range']), source.get('display_inverted', False))
         if key not in full_images: full_images[key] = display_pixels(source)
         a, b, c, d = row['crop']; crop = Image.fromarray(full_images[key][b:d, a:c])
         height = image_width * (d - b) / (c - a)
-        rows.append(dict(id=row['id'], x_pt=x, y_pt=y, width_pt=image_width, height_pt=height,
-                         effective_dpi=(c-a)/(image_width/72), png=data_url(png_bytes(crop))))
-        texts.append(dict(text=row['protein'], x=pad, y=y + height/2 + size*.35, anchor='start'))
+        row_texts=[dict(text=row['protein'], x=pad, y=y + height/2 + size*.35, anchor='start')]
         if row['expected_mw']:
-            texts.append(dict(text=row['expected_mw']+' kDa', x=x+image_width+2*MM, y=y+height/2+size*.35, anchor='start'))
+            row_texts.append(dict(text=row['expected_mw']+' kDa', x=x+image_width+2*MM, y=y+height/2+size*.35, anchor='start'))
         for marker in row['markers']:
             my = y + (marker['y'] - b) / (d-b) * height
-            texts.append(dict(text=marker['text']+' kDa', x=x+image_width+2*MM, y=my+size*.35, anchor='start'))
+            row_texts.append(dict(text=marker['text']+' kDa', x=x+image_width+2*MM, y=my+size*.35, anchor='start'))
+        ink=[(t,measure.getbbox(t['text'],anchor='ls')) for t in row_texts]
+        left_edge=min([x]+[t['x']+box[0]/4 for t,box in ink])
+        right_edge=max([x+image_width]+[t['x']+box[2]/4 for t,box in ink])
+        top_edge=min([y]+[t['y']+box[1]/4 for t,box in ink])
+        bottom_edge=max([y+height]+[t['y']+box[3]/4 for t,box in ink])
+        top_limit=max(y-vertical_room,label_bottom+edge_margin) if not rows else y-vertical_room
+        bounds=[
+            [min(0,math.ceil((edge_margin-left_edge)/MM*10)/10),
+             max(0,math.floor((width-edge_margin-right_edge)/MM*10)/10)],
+            [min(0,math.ceil((top_limit-top_edge)/MM*10)/10),
+             max(0,math.floor((y+height+vertical_room-bottom_edge)/MM*10)/10)],
+        ]
+        offset=[min(hi,max(lo,value)) for value,(lo,hi) in zip(row.get('offset_mm',[0,0]),bounds)]
+        dx,dy=(value*MM for value in offset)
+        rows.append(dict(id=row['id'], x_pt=x+dx, y_pt=y+dy, width_pt=image_width, height_pt=height,
+                         effective_dpi=(c-a)/(image_width/72), png=data_url(png_bytes(crop)),
+                         offset_mm=offset, offset_bounds_mm=bounds))
+        texts.extend(dict(t,x=t['x']+dx,y=t['y']+dy,row_id=row['id']) for t in row_texts)
         y += height + gap
     height = y - gap + pad
     if document.get('synthetic'):
@@ -112,4 +132,4 @@ def render(document):
         svg.append(f'<text x="{text["x"]:g}" y="{text["y"]:g}" text-anchor="{text["anchor"]}" font-family="Noto Sans SC, Arial, sans-serif" font-size="{size:g}" fill="black">{escape(text["text"])}</text>')
     svg.append('</svg>')
     return dict(png=png_bytes(canvas,dpi),svg='\n'.join(svg),width_mm=width/MM,height_mm=height/MM,
-                layout=dict(rows=rows,texts=texts),width=pxw,height=pxh)
+                layout=dict(rows=rows,texts=texts,font_pt=size),width=pxw,height=pxh)

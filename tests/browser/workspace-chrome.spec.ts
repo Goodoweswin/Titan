@@ -121,7 +121,7 @@ test('WB empty state has one centered creation action and saved documents remain
  await expect(page.getByLabel('蛋白名称',{exact:true})).toHaveValue('AKT')
  await page.setViewportSize({width:390,height:844})
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true)
- await expect(page.getByRole('img',{name:'WB 组图预览',exact:true})).toBeVisible()
+ await expect(page.getByRole('group',{name:'WB 组图预览',exact:true})).toBeVisible()
  await page.screenshot({path:'artifacts/neutral-workspace/wb-editor-390.png',fullPage:true})
 })
 

@@ -59,6 +59,9 @@ def dispatch(request):
     if command=='preview_image_page':
         from .images import preview_image_page
         return preview_image_page(payload['path'],payload['page_index'],payload.get('expected_sha256'))
+    if command=='wb_display_preview':
+        from .images import display_preview
+        return display_preview(payload['asset'],payload['brightness'],payload['contrast'])
     if command=='library_list':
         from .library import library_list
         return library_list(session)

@@ -74,6 +74,9 @@ def _validated(project, document, confirmed=False):
     ids=[]
     for row in rows:
         ids.append(_id(row.get('id')));_text(row.get('protein'),'蛋白名',80);_text(row.get('expected_mw'),'预期分子量',30)
+        offset=row.get('offset_mm',[0,0])
+        if not isinstance(offset,list) or len(offset)!=2:raise ValueError('组图位置需包含 X 和 Y 偏移')
+        for value in offset:_number(value,-300,300)
         source=row.get('source',{})
         if not isinstance(source,dict):raise ValueError('缺少原图来源')
         path=Path(source.get('path','')).resolve();root=Path(project['project_path']).resolve() if project.get('project_path') else None

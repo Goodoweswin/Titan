@@ -1,25 +1,40 @@
-import {useEffect,useRef,useState} from 'react'
+import {useEffect,useMemo,useRef,useState} from 'react'
 import {save,confirm} from '@tauri-apps/plugin-dialog'
 import {ArrowDown,ArrowUp,Check,Download,Plus,RotateCcw,Save,Trash2,Undo2,Redo2} from 'lucide-react'
 import {callEngine} from './bridge'
 import type {LibraryExportReceipt,Project,Rect} from './types'
-import {proposedLabels,resetWbStyle,rebindWbSources,type WbDocument,type WbEntry,type WbPreview,type WbRow,type WbSettings} from './wb-figure'
+import {boundWbOffset,proposedLabels,resetWbStyle,rebindWbSources,snapWbOffset,type WbDocument,type WbEntry,type WbOffset,type WbPreview,type WbPreviewRow,type WbRow,type WbSettings} from './wb-figure'
 import WbCropEditor from './WbCropEditor'
+import WbFigureSheet,{type WbRowMove} from './WbFigureSheet'
 import './wb-figure.css'
 import {sameProjectContext} from './project-library-state'
 
 export interface WbHistory {canUndo:boolean;canRedo:boolean;undo:()=>void;redo:()=>void;discard:()=>void}
 interface Props {project:Project;initialDocument:WbDocument|null;onDocument:(value:{id:string;version:string}|null)=>void;onSaved:()=>void;onExported:(receipt:LibraryExportReceipt)=>void;externalBusy:boolean;onBusy:(busy:boolean)=>void;onBeforeSave:()=>Promise<Project>;onDraft:(dirty:boolean)=>void;onHistory:(history:WbHistory|null)=>void}
+function PositionField({label,value,range,disabled,onCommit}:{label:string;value:number;range:WbOffset;disabled:boolean;onCommit:(value:number)=>void}){
+ const [draft,setDraft]=useState<string|null>(null)
+ return <label>{label}<input type="number" min={range[0]} max={range[1]} step="0.1" aria-label={label}
+  value={draft??value} disabled={disabled} onChange={event=>setDraft(event.target.value)}
+  onBlur={()=>{if(draft?.trim()&&Number.isFinite(Number(draft)))onCommit(Number(draft));setDraft(null)}}
+  onKeyDown={event=>{if(event.key==='Enter'){event.preventDefault();event.currentTarget.blur()}else if(event.key==='Escape'){setDraft(null)}}}/>
+ </label>
+}
 export default function WbFigureEditor({project,initialDocument,onDocument,onSaved,onExported,externalBusy,onBusy,onBeforeSave,onDraft,onHistory}:Props){
  const [doc,setDoc]=useState<WbDocument|null>(initialDocument),[entries,setEntries]=useState<WbEntry[]>([]),[templates,setTemplates]=useState<WbRow[]>([])
  const [selected,setSelected]=useState(initialDocument?.rows[0]?.id??''),[sourceId,setSourceId]=useState(''),[preview,setPreview]=useState<WbPreview|null>(null),[sourcePng,setSourcePng]=useState('')
+ const [move,setMove]=useState<WbRowMove|null>(null)
+ const [previewEpoch,setPreviewEpoch]=useState(0)
  const [error,setError]=useState(''),[message,setMessage]=useState(''),[warning,setWarning]=useState(''),[busy,setBusy]=useState(false),[rendering,setRendering]=useState(false)
  const [past,setPast]=useState<WbDocument[]>([]),[future,setFuture]=useState<WbDocument[]>([])
  const baseline=useRef(initialDocument?JSON.stringify(initialDocument):''),value=useRef(doc),generation=useRef(0),alive=useRef(true);value.current=doc
  const previousPath=useRef(project.project_path)
  const context=useRef(project);context.current=project
  const row=doc?.rows.find(r=>r.id===selected),readonly=!!project.read_only,dirty=!!doc&&JSON.stringify(doc)!==baseline.current
+ const placement=preview?.layout.rows.find(item=>item.id===selected)
+ const offset=placement&&row?(move?.rowId===row.id?move.offset:boundWbOffset(placement,row.offset_mm??[0,0])):null
  const unavailable=busy||externalBusy,blocked=readonly||unavailable
+ // Placement is applied locally to this geometry. It does not require decoding the crops again.
+ const layoutInput=useMemo(()=>doc&&JSON.stringify({...doc,rows:doc.rows.map(({offset_mm,...row})=>row)}),[doc])
  useEffect(()=>{alive.current=true;return()=>{alive.current=false;generation.current++;onDraft(false);onHistory(null);onBusy(false)}},[])
  useEffect(()=>{onBusy(busy)},[busy])
  useEffect(()=>{onDraft(dirty)},[dirty])
@@ -39,19 +54,34 @@ export default function WbFigureEditor({project,initialDocument,onDocument,onSav
   return()=>{live=false}
  },[project.project_path,project.images.map(a=>a.id+':'+a.path).join('|')])
  useEffect(()=>{
-  let live=true;setPreview(null);setRendering(!!doc?.rows.length)
-  if(!doc?.rows.length){setRendering(false);return}
-  const timer=setTimeout(()=>callEngine<WbPreview>('wb_preview',{project,document:doc}).then(data=>{if(live){setPreview(data);setError('')}}).catch(e=>{if(live)setError(String(e))}).finally(()=>{if(live)setRendering(false)}),180)
+  let live=true
+  const document:WbDocument|null=layoutInput?JSON.parse(layoutInput):null
+  setRendering(!!document?.rows.length)
+  if(!document?.rows.length){setPreview(null);return}
+  const timer=setTimeout(()=>callEngine<WbPreview>('wb_preview',{project,document}).then(data=>{if(live){setPreview(data);setError('')}}).catch(e=>{if(live){setPreview(null);setError(String(e))}}).finally(()=>{if(live)setRendering(false)}),180)
   return()=>{live=false;clearTimeout(timer)}
- },[doc,project.project_path])
+ },[layoutInput,project.project_path,previewEpoch])
  useEffect(()=>{
   let live=true;setSourcePng('')
   if(row)callEngine<{png:string}>('wb_source_preview',{project,source:row.source}).then(data=>{if(live)setSourcePng(data.png)}).catch(e=>{if(live)setError(String(e))})
   return()=>{live=false}
  },[row?.id,row?.source.path])
- function accept(next:WbDocument,saved=false){generation.current++;value.current=next;setDoc(next);setSelected(next.rows[0]?.id??'');setPast([]);setFuture([]);setWarning('');setMessage('');setError('');baseline.current=saved?JSON.stringify(next):'';onDraft(!saved);onDocument(saved&&next.version?{id:next.id,version:next.version}:null)}
+ function accept(next:WbDocument,saved=false){generation.current++;value.current=next;setPreview(null);setPreviewEpoch(epoch=>epoch+1);setMove(null);setDoc(next);setSelected(next.rows[0]?.id??'');setPast([]);setFuture([]);setWarning('');setMessage('');setError('');baseline.current=saved?JSON.stringify(next):'';onDraft(!saved);onDocument(saved&&next.version?{id:next.id,version:next.version}:null)}
  function change(edit:(d:WbDocument)=>void){const current=value.current;if(!current||blocked)return;const next=structuredClone(current);edit(next);setPast(v=>[...v.slice(-39),current]);setFuture([]);value.current=next;setDoc(next);setMessage('');onDraft(JSON.stringify(next)!==baseline.current)}
  function editRow(edit:(r:WbRow)=>void){change(d=>{const r=d.rows.find(r=>r.id===selected);if(r)edit(r)})}
+ function currentOffset(geometry:WbPreviewRow){
+  const current=value.current?.rows.find(row=>row.id===geometry.id)
+  return boundWbOffset(geometry,current?.offset_mm??[0,0])
+ }
+ function placeRow(id:string,next:WbOffset){
+  const geometry=preview?.layout.rows.find(item=>item.id===id)
+  const current=value.current?.rows.find(row=>row.id===id)
+  if(!geometry||!current||rendering||blocked)return
+  const position=snapWbOffset(geometry,next)
+  const previous=currentOffset(geometry)
+  if(position[0]===previous[0]&&position[1]===previous[1])return
+  change(d=>{d.rows.find(row=>row.id===id)!.offset_mm=position})
+ }
  function restore(redo=false){if(blocked)return;const stack=redo?future:past,snapshot=stack.at(-1),current=value.current;if(!snapshot||!current)return;const next={...snapshot,version:current.version,updated_at:current.updated_at};if(redo){setFuture(stack.slice(0,-1));setPast(v=>[...v,current])}else{setPast(stack.slice(0,-1));setFuture(v=>[...v,current])}value.current=next;setDoc(next);setMessage('');setSelected(id=>next.rows.some(r=>r.id===id)?id:next.rows[0]?.id??'');onDraft(JSON.stringify(next)!==baseline.current)}
  function restoreBaseline(){
   if(baseline.current){accept(JSON.parse(baseline.current),true);return}
@@ -73,10 +103,16 @@ export default function WbFigureEditor({project,initialDocument,onDocument,onSav
   {!doc&&project.images.length>0&&<div className="wb-empty"><h3>创建第一张条带组图</h3><p>从已有原图裁剪条带，添加蛋白、分子量和实验条件。</p><button className="btn primary" disabled={blocked} onClick={create}><Plus size={15}/>新建组图</button></div>}
   {error&&<p role="alert" className="error-text wb-alert">{error}</p>}{message&&<p role="status" className="wb-message">{message}</p>}{warning&&<p className="hint wb-alert">{warning}</p>}
   {doc&&<><div className="wb-toolbar"><label>组图名称<input aria-label="组图名称" maxLength={120} value={doc.name} disabled={blocked} onChange={e=>change(d=>{d.name=e.target.value})}/></label><span className="wb-save-state">{dirty?'未保存修改':'已保存'}</span><div className="wb-toolbar-actions"><button className="icon-btn" aria-label="撤销组图修改" disabled={blocked||!past.length} onClick={()=>restore()}><Undo2 size={16}/></button><button className="icon-btn" aria-label="重做组图修改" disabled={blocked||!future.length} onClick={()=>restore(true)}><Redo2 size={16}/></button><button className="btn secondary" disabled={blocked||!doc.rows.length} onClick={persist}><Save size={15}/>保存组图</button><button className="btn primary" disabled={unavailable||!preview||rendering||doc.rows.some(r=>!r.confirmed)} onClick={exportFigure}><Download size={15}/>导出组图</button></div></div>
-  <div className="wb-columns"><div className="wb-main"><div className="wb-sheet-area"><div className="wb-sheet-meta"><span>{doc.settings.width_mm} mm 宽</span><span>{doc.settings.dpi} DPI</span></div><div className="wb-sheet" aria-busy={rendering}>{preview?<img src={preview.png} alt="WB 组图预览"/>:<p className="hint">{rendering?'正在生成预览…':doc.rows.length?'调整右侧设置以生成预览。':'添加一行原图开始排版。'}</p>}</div><p className="wb-resolution">{preview?`${preview.width_mm.toFixed(1)} × ${preview.height_mm.toFixed(1)} mm；最低原图分辨率 ${Math.floor(Math.min(...preview.layout.rows.map(r=>r.effective_dpi)))} DPI`:'图像保持原始比例'}{doc.rows.some(r=>!r.confirmed)&&' · 请逐行确认裁剪后保存或导出'}</p></div>
+  <div className="wb-columns"><div className="wb-main"><div className="wb-sheet-area"><div className="wb-sheet-meta"><span>{doc.settings.width_mm} mm 宽</span><span>{doc.settings.dpi} DPI</span></div><div className="wb-sheet" aria-busy={rendering}>{preview?<WbFigureSheet preview={preview} rows={doc.rows} selected={selected} move={move} disabled={blocked||rendering} currentOffset={currentOffset} onSelect={setSelected} onMove={setMove} onCommit={placeRow}/>:<p className="hint">{rendering?'正在生成预览…':doc.rows.length?'调整右侧设置以生成预览。':'添加一行原图开始排版。'}</p>}</div><p className="wb-resolution">{preview?`${preview.width_mm.toFixed(1)} × ${preview.height_mm.toFixed(1)} mm；最低原图分辨率 ${Math.floor(Math.min(...preview.layout.rows.map(r=>r.effective_dpi)))} DPI`:'图像保持原始比例'}{doc.rows.some(r=>!r.confirmed)&&' · 请逐行确认裁剪后保存或导出'}</p></div>
    {row&&<div className="wb-source"><div className="wb-source-heading"><div><h3>原图裁剪</h3><p title={row.source.name}>{row.source.name}</p></div><span className={row.confirmed?'wb-confirmed':'wb-pending'}>{row.confirmed?'已确认':'待确认'}</span></div><WbCropEditor key={row.id} row={row} png={sourcePng} disabled={blocked} onCrop={crop=>editRow(r=>{r.crop=crop;r.confirmed=false})}/><p className="hint">在原图上拖动框选整行区域，或在右侧输入像素坐标。</p><button className="btn secondary" disabled={blocked||!sourcePng} onClick={()=>editRow(r=>{r.confirmed=true})}><Check size={15}/>确认本行裁剪</button></div>}
   </div><aside className="wb-inspector" aria-label="组图设置"><section><h3>蛋白行</h3><div className="wb-row-list">{doc.rows.map((r,i)=><button key={r.id} className={selected===r.id?'selected':''} onClick={()=>setSelected(r.id)}><span>{r.protein||`蛋白 ${i+1}`}</span><small>{r.confirmed?'已确认':'待裁剪'}</small></button>)}</div><div className="wb-add-row"><select aria-label="添加行的原图" disabled={blocked} value={sourceId} onChange={e=>setSourceId(e.target.value)}>{templates.map(r=><option key={r.source.id} value={r.source.id}>{r.source.name}</option>)}</select><button className="icon-btn" aria-label="添加蛋白行" disabled={blocked||!sourceId||doc.rows.length>=40} onClick={addRow}><Plus size={16}/></button></div></section>
-   {row&&<section><div className="wb-section-heading"><h3>当前蛋白</h3><div><button className="icon-btn" aria-label="蛋白行上移" disabled={blocked||doc.rows[0].id===row.id} onClick={()=>moveRow(-1)}><ArrowUp size={15}/></button><button className="icon-btn" aria-label="蛋白行下移" disabled={blocked||doc.rows.at(-1)?.id===row.id} onClick={()=>moveRow(1)}><ArrowDown size={15}/></button><button className="icon-btn" aria-label="移除蛋白行" disabled={blocked} onClick={()=>{const next=doc.rows.find(r=>r.id!==selected);change(d=>{d.rows=d.rows.filter(r=>r.id!==selected)});setSelected(next?.id??'')}}><Trash2 size={15}/></button></div></div><label>蛋白名称<input aria-label="蛋白名称" maxLength={80} disabled={blocked} value={row.protein} onChange={e=>editRow(r=>{r.protein=e.target.value})}/></label><label>预期分子量 / kDa<input aria-label="预期分子量 kDa" maxLength={30} disabled={blocked} value={row.expected_mw} placeholder="手动填写，可留空" onChange={e=>editRow(r=>{r.expected_mw=e.target.value})}/></label><div className="wb-crop-inputs">{(['X0','Y0','X1','Y1'] as const).map((label,i)=><label key={label}>{label}<input aria-label={`裁剪 ${label}`} type="number" step="1" min="0" max={i%2?row.source.height:row.source.width} value={row.crop[i]} disabled={blocked} onChange={e=>editRow(r=>{r.crop[i]=Number(e.target.value);r.confirmed=false})}/></label>)}</div><details className="wb-markers"><summary>Marker 标注（原图位置）</summary><p className="hint">按实际 marker 填写，Y 为校正后原图像素坐标。</p>{row.markers.map((m,i)=><div className="wb-marker-row" key={i}><input aria-label={`Marker ${i+1} 分子量`} value={m.text} maxLength={30} disabled={blocked} onChange={e=>editRow(r=>{r.markers[i].text=e.target.value})}/><input aria-label={`Marker ${i+1} Y`} type="number" value={m.y} disabled={blocked} onChange={e=>editRow(r=>{r.markers[i].y=Number(e.target.value)})}/><button className="icon-btn" aria-label={`移除 Marker ${i+1}`} disabled={blocked} onClick={()=>editRow(r=>{r.markers.splice(i,1)})}><Trash2 size={14}/></button></div>)}<button className="text-btn" disabled={blocked||row.markers.length>=20} onClick={()=>editRow(r=>{r.markers.push({text:'',y:(r.crop[1]+r.crop[3])/2})})}>添加 Marker 标注</button></details></section>}
+   {row&&<section><div className="wb-section-heading"><h3>当前蛋白</h3><div><button className="icon-btn" aria-label="蛋白行上移" disabled={blocked||doc.rows[0].id===row.id} onClick={()=>moveRow(-1)}><ArrowUp size={15}/></button><button className="icon-btn" aria-label="蛋白行下移" disabled={blocked||doc.rows.at(-1)?.id===row.id} onClick={()=>moveRow(1)}><ArrowDown size={15}/></button><button className="icon-btn" aria-label="移除蛋白行" disabled={blocked} onClick={()=>{const next=doc.rows.find(r=>r.id!==selected);change(d=>{d.rows=d.rows.filter(r=>r.id!==selected)});setSelected(next?.id??'')}}><Trash2 size={15}/></button></div></div><label>蛋白名称<input aria-label="蛋白名称" maxLength={80} disabled={blocked} value={row.protein} onChange={e=>editRow(r=>{r.protein=e.target.value})}/></label><label>预期分子量 / kDa<input aria-label="预期分子量 kDa" maxLength={30} disabled={blocked} value={row.expected_mw} placeholder="手动填写，可留空" onChange={e=>editRow(r=>{r.expected_mw=e.target.value})}/></label>{placement&&offset&&<div className="wb-position" key={row.id}>
+    <div className="wb-position-inputs">
+     <PositionField label="X 偏移（mm）" value={offset[0]} range={placement.offset_bounds_mm[0]} disabled={blocked||rendering} onCommit={x=>placeRow(row.id,[x,offset[1]])}/>
+     <PositionField label="Y 偏移（mm）" value={offset[1]} range={placement.offset_bounds_mm[1]} disabled={blocked||rendering} onCommit={y=>placeRow(row.id,[offset[0],y])}/>
+    </div>
+    <p className="hint">相对自动排版的位置。回车应用，也可拖动整行。</p>
+   </div>}<div className="wb-crop-inputs">{(['X0','Y0','X1','Y1'] as const).map((label,i)=><label key={label}>{label}<input aria-label={`裁剪 ${label}`} type="number" step="1" min="0" max={i%2?row.source.height:row.source.width} value={row.crop[i]} disabled={blocked} onChange={e=>editRow(r=>{r.crop[i]=Number(e.target.value);r.confirmed=false})}/></label>)}</div><details className="wb-markers"><summary>Marker 标注（原图位置）</summary><p className="hint">按实际 marker 填写，Y 为校正后原图像素坐标。</p>{row.markers.map((m,i)=><div className="wb-marker-row" key={i}><input aria-label={`Marker ${i+1} 分子量`} value={m.text} maxLength={30} disabled={blocked} onChange={e=>editRow(r=>{r.markers[i].text=e.target.value})}/><input aria-label={`Marker ${i+1} Y`} type="number" value={m.y} disabled={blocked} onChange={e=>editRow(r=>{r.markers[i].y=Number(e.target.value)})}/><button className="icon-btn" aria-label={`移除 Marker ${i+1}`} disabled={blocked} onClick={()=>editRow(r=>{r.markers.splice(i,1)})}><Trash2 size={14}/></button></div>)}<button className="text-btn" disabled={blocked||row.markers.length>=20} onClick={()=>editRow(r=>{r.markers.push({text:'',y:(r.crop[1]+r.crop[3])/2})})}>添加 Marker 标注</button></details></section>}
    <section><h3>顶部标签</h3>{doc.labels.map((label,i)=><div className="wb-label-row" key={i}><input aria-label={`顶部标签 ${i+1}`} maxLength={80} value={label.text} disabled={blocked} onChange={e=>change(d=>{d.labels[i].text=e.target.value})}/><label>位置 %<input aria-label={`顶部标签位置 ${i+1}`} type="number" min="0" max="100" value={Math.round(label.x*1000)/10} disabled={blocked} onChange={e=>change(d=>{d.labels[i].x=Number(e.target.value)/100})}/></label><button className="icon-btn" aria-label={`移除顶部标签 ${i+1}`} disabled={blocked} onClick={()=>change(d=>{d.labels.splice(i,1)})}><Trash2 size={14}/></button></div>)}<button className="text-btn" disabled={blocked||doc.labels.length>=50} onClick={()=>change(d=>{d.labels.push({text:'',x:doc.labels.length?Math.min(.95,doc.labels.at(-1)!.x+.15):.15})})}>添加顶部标签</button></section>
    <section><div className="wb-section-heading"><h3>版式</h3><button className="text-btn" disabled={blocked} onClick={()=>change(d=>{d.settings=resetWbStyle(d).settings})}><RotateCcw size={13}/>恢复默认</button></div><div className="wb-layout-inputs">{([['width_mm','组图宽度 mm',40,300],['image_width_mm','图像区宽度 mm（0 自动）',0,280],['font_pt','字号 pt',5,24],['gap_mm','行间距 mm',1,20]] as const).map(([key,label,min,max])=><label key={key}>{label}<input aria-label={label} type="number" min={min} max={max} step="0.5" value={doc.settings[key]} disabled={blocked} onChange={e=>setSettings(key,Number(e.target.value))}/></label>)}<label>导出分辨率<select aria-label="组图 DPI" disabled={blocked} value={doc.settings.dpi} onChange={e=>setSettings('dpi',Number(e.target.value) as 300|600)}><option value="300">300 DPI</option><option value="600">600 DPI</option></select></label></div><p className="hint">提高导出 DPI 不会增加原图细节。SVG 的文字可继续编辑。</p></section>
   </aside></div></>}
