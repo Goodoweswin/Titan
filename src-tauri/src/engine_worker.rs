@@ -1,5 +1,5 @@
 use serde_json::{json, Value};
-use std::{ffi::OsString, path::PathBuf, process::Stdio, sync::atomic::{AtomicU64,Ordering}, time::Duration};
+use std::{ffi::OsString, path::PathBuf, process::Stdio, sync::atomic::{AtomicBool,AtomicU64,Ordering}, time::Duration};
 use tokio::{io::{AsyncBufReadExt,AsyncWriteExt,BufReader},process::{Child,ChildStdin,ChildStdout},sync::{Mutex,Semaphore}};
 
 const LIMIT:usize=20*1024*1024;
@@ -7,10 +7,11 @@ struct Process { child:Child,input:ChildStdin,output:BufReader<ChildStdout> }
 pub struct EngineWorker {
     program:PathBuf,args:Vec<OsString>,process:Mutex<Option<Process>>,
     slots:Semaphore,next_id:AtomicU64,timeout:Duration,
+    updating:AtomicBool,
 }
 impl EngineWorker {
     pub fn new(program:PathBuf,args:Vec<OsString>)->Self {
-        Self{program,args,process:Mutex::new(None),slots:Semaphore::new(32),next_id:AtomicU64::new(1),timeout:Duration::from_secs(60)}
+        Self{program,args,process:Mutex::new(None),slots:Semaphore::new(32),next_id:AtomicU64::new(1),timeout:Duration::from_secs(60),updating:AtomicBool::new(false)}
     }
     pub async fn request(&self,mut request:Value)->Result<Value,String>{
         let _slot=self.slots.try_acquire().map_err(|_|"等待中的操作太多，请稍后再试".to_string())?;
@@ -20,6 +21,7 @@ impl EngineWorker {
             _=>self.timeout,
         };
         let mut guard=self.process.lock().await;
+        if self.updating.load(Ordering::Acquire){return Err("正在安装 Titan 更新".into())}
         if guard.is_none(){
             let mut child=tokio::process::Command::new(&self.program);
             child.args(&self.args).arg("--stdio-server").stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::inherit()).kill_on_drop(true);
@@ -54,6 +56,14 @@ impl EngineWorker {
     }
     pub async fn shutdown(&self){
         if let Some(mut p)=self.process.lock().await.take(){let _=p.child.kill().await;let _=p.child.wait().await;}
+    }
+    pub async fn pause_for_update(&self) {
+        // Windows installers need the bundled engine executable to be closed.
+        self.updating.store(true, Ordering::Release);
+        self.shutdown().await;
+    }
+    pub fn resume_after_update(&self) {
+        self.updating.store(false, Ordering::Release);
     }
 }
 async fn read_frame(reader:&mut BufReader<ChildStdout>)->Result<Vec<u8>,String>{

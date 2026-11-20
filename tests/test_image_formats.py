@@ -59,3 +59,62 @@ def test_lzw_miniswhite_preserves_encoded_pixels(tmp_path,dtype,values):
  with path.open('r+b') as f:f.seek(offset);f.write(struct.pack(order+'H',0))
  np.testing.assert_array_equal(decode(path),a)
  assert import_image(new_project('compressed'),str(path))['images'][0]['display_inverted']
+
+def test_png_with_equal_rgb_channels_preserves_encoded_values(tmp_path):
+ path=tmp_path/'gray-rgb.png'
+ expected=np.array([[0,27,255]],dtype=np.uint8)
+ Image.fromarray(np.repeat(expected[...,None],3,axis=2)).save(path)
+ np.testing.assert_array_equal(decode(path),expected)
+ assert inspect_image(path)['pages'][0]['dtype']=='uint8'
+
+def test_png_with_equal_16bit_rgb_channels_preserves_encoded_values(tmp_path):
+ import imagecodecs
+ path=tmp_path/'gray-rgba16.png'
+ expected=np.array([[1234,54321]],dtype=np.uint16)
+ rgba=np.full((1,2,4),65535,dtype=np.uint16)
+ rgba[...,:3]=expected[...,None]
+ path.write_bytes(imagecodecs.png_encode(rgba))
+ result=decode(path)
+ assert result.dtype==np.uint16
+ np.testing.assert_array_equal(result,expected)
+
+
+def test_single_channel_png_keeps_original_values_with_transparency_hint(tmp_path):
+ path=tmp_path/'gray-transparency.png'
+ expected=np.array([[1234,54321]],dtype=np.uint16)
+ Image.fromarray(expected).save(path,transparency=1234)
+ with Image.open(path) as image:
+  assert image.info['transparency']==1234
+ np.testing.assert_array_equal(decode(path),expected)
+ assert inspect_image(path)['pages'][0]['dtype']=='uint16'
+
+def test_changing_file_during_decode_cannot_cache_pixels_for_old_hash(tmp_path,monkeypatch):
+ from titan_wb import images
+ path=tmp_path/'changing.tif'
+ tifffile.imwrite(path,np.array([[11101,11102]],np.uint16))
+ original=images.decode
+ digest=images.file_hash(path)
+ def replace_then_decode(path,page_index):
+  tifffile.imwrite(path,np.array([[22201,22202]],np.uint16))
+  return original(path,page_index)
+ monkeypatch.setattr(images,'decode',replace_then_decode)
+ with pytest.raises(ValueError,match='读取期间已改变'):
+  images.verified_pixels(path,0,digest)
+
+def test_tiff_over_old_file_cap_imports_without_rescaling(tmp_path):
+ path=tmp_path/'large.tif'
+ # One uncompressed 24 MP float32 page exceeds the old 50 MiB file limit.
+ pixels=np.zeros((4000,6000),dtype=np.float32)
+ pixels[3,5]=123.25
+ tifffile.imwrite(path,pixels,photometric='minisblack')
+ assert path.stat().st_size>50*1024**2
+ result=import_image(new_project('large'),str(path))
+ assert (result['images'][0]['width'],result['images'][0]['height'])==(6000,4000)
+ assert decode(path)[3,5]==123.25
+
+@pytest.mark.parametrize('pixel', [(40,41,40,255),(40,40,40,200)])
+def test_png_does_not_silently_drop_color_or_transparency(tmp_path,pixel):
+ path=tmp_path/'ambiguous.png'
+ Image.new('RGBA',(2,2),pixel).save(path)
+ with pytest.raises(ValueError):
+  decode(path)

@@ -51,7 +51,10 @@ def load(path,session):
 def save(p,path,expected,session):
     validate(p);_portable_project(p);root=Path(path).expanduser().resolve()
     if root.suffix!='.titanstats':raise ValueError('项目目录名需以 .titanstats 结尾')
-    root.mkdir(parents=True,exist_ok=True)
+    if expected is None:
+        root.mkdir(parents=True,exist_ok=True)
+    elif not (root / 'project.json').is_file():
+        raise ValueError('已保存的分析文件已移除，请从项目库恢复或另存副本')
     with operation_lock(root,'.save.lock'):
         check_lock(root,session);manifest=root/'project.json'
         if manifest.exists():
@@ -66,6 +69,7 @@ def save(p,path,expected,session):
                         new=next((d for d in p['datasets'] if d['id']==old['id']),None)
                         if new and any(new.get(k)!=old.get(k) for k in ['rows','source','groups']):raise ValueError('来源表不可修改数值，请更新来源或复制为独立表')
             (root/'backups').mkdir(exist_ok=True);shutil.copy2(manifest,root/'backups/previous.json')
+        elif expected is not None:raise ValueError('已保存的分析文件已移除，请从项目库恢复或另存副本')
         elif any(f.name not in ['.save.lock','.writer.lock'] for f in root.iterdir()):raise ValueError('请选择空目录，避免覆盖已有文件')
         data=copy.deepcopy(p)
         for k in ['project_path','saved_revision']:data.pop(k,None)

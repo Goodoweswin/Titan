@@ -158,7 +158,7 @@ test('crop dragging, markers and document switching keep independent drafts',asy
 test('saving an unsaved experiment also saves its WB figure on the first attempt',async({page})=>{
  await page.goto('/?integration=1')
  const created=await rpc(page,'library_create',{name:'first-save-path'}),destination=created.project.project_path+'-manual.titanwb'
- await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await page.getByRole('button',{name:'教程',exact:true}).click();await page.getByRole('button',{name:'退出引导',exact:true}).click()
  await page.getByRole('button',{name:'WB 组图',exact:true}).click()
  await page.getByRole('button',{name:'新建组图',exact:true}).first().click()
  await page.getByLabel('蛋白名称',{exact:true}).fill('Initial save')

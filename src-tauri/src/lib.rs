@@ -22,6 +22,29 @@ async fn engine(mut request:Value,session:tauri::State<'_,Session>,worker:tauri:
     worker.request(request).await
 }
 
+#[tauri::command]
+fn update_configuration(app: tauri::AppHandle) -> Value {
+    let config = app.config().plugins.0.get("updater");
+    let enabled = config.is_some_and(|config| {
+        config["pubkey"].as_str().is_some_and(|key| !key.trim().is_empty()) &&
+            config["endpoints"].as_array().is_some_and(|endpoints| !endpoints.is_empty())
+    });
+    // Enable Windows once the installer can recover from a blocked launch.
+    let supported = cfg!(target_os = "macos");
+    json!({"enabled": enabled && supported, "supported": supported, "version": app.package_info().version.to_string()})
+}
+
+#[tauri::command]
+async fn pause_engine_for_update(worker: tauri::State<'_, EngineWorker>) -> Result<(), String> {
+    worker.pause_for_update().await;
+    Ok(())
+}
+
+#[tauri::command]
+fn resume_engine_after_update(worker: tauri::State<'_, EngineWorker>) {
+    worker.resume_after_update();
+}
+
 // Shared startup boundary: account availability must not gate construction of
 // the scientific session/worker. Only a proven duplicate owner returns Err.
 struct StartupState { auth:auth::Auth, session:Session, worker:EngineWorker }
@@ -61,7 +84,10 @@ pub fn run(){
         app.manage(startup.session);
         app.manage(startup.worker);Ok(())
       })
-      .plugin(tauri_plugin_dialog::init()).invoke_handler(tauri::generate_handler![auth::auth_status, auth::auth_login, auth::auth_cancel, auth::auth_logout, auth::auth_update_profile, auth::auth_sessions, auth::auth_revoke_session, auth::auth_revoke_all, engine, if_volume::if_volume_read, library_files::library_open_file])
+      .plugin(tauri_plugin_dialog::init())
+      .plugin(tauri_plugin_updater::Builder::new().build())
+      .plugin(tauri_plugin_process::init())
+      .invoke_handler(tauri::generate_handler![auth::auth_status, auth::auth_login, auth::auth_cancel, auth::auth_logout, auth::auth_update_profile, auth::auth_sessions, auth::auth_revoke_session, auth::auth_revoke_all, engine, if_volume::if_volume_read, library_files::library_open_file, update_configuration, pause_engine_for_update, resume_engine_after_update])
       .build(tauri::generate_context!()).expect("Titan WB启动失败")
       .run(|app,event|{if matches!(event,tauri::RunEvent::Exit){if let Some(worker) = app.try_state::<EngineWorker>() { tauri::async_runtime::block_on(worker.shutdown()); }}});
 }

@@ -5,27 +5,66 @@ import {tmpdir} from 'node:os'
 import path from 'node:path'
 import {execFileSync} from 'node:child_process'
 
-let root:string,source:string
+let root:string,source:string,paired:string,damaged:string,grayPng:string
 test.beforeAll(()=>{
  root=mkdtempSync(path.join(tmpdir(),'titan-pages-'));source=path.join(root,'多页.tif')
+ paired=path.join(root,'自动位深.tif');grayPng=path.join(root,'灰度RGB.png')
+ damaged=path.join(root,'默认页损坏.tif')
  execFileSync(path.resolve('.venv/bin/python'),['-c',`import sys,numpy as np,tifffile
 with tifffile.TiffWriter(sys.argv[1]) as t:
  t.write(np.zeros((20,30),dtype=np.uint8),photometric='palette',colormap=np.vstack([np.arange(256,dtype=np.uint16)*256,np.zeros(256,dtype=np.uint16),np.zeros(256,dtype=np.uint16)]))
  a=np.full((24,32),12345,dtype=np.uint16);a[4:8,4:8]=54321
  t.write(a,photometric='minisblack')
- t.write(np.ones((24,32),dtype=np.uint16),photometric='minisblack')`,source])
+ t.write(np.ones((24,32),dtype=np.uint16),photometric='minisblack')
+with tifffile.TiffWriter(sys.argv[2]) as t:
+ t.write(np.ones((24,32),dtype=np.uint8),photometric='minisblack')
+ t.write(np.full((24,32),12345,dtype=np.uint16),photometric='minisblack')
+from PIL import Image
+Image.new('RGB',(32,24),(45,45,45)).save(sys.argv[3])
+import struct
+from pathlib import Path
+with tifffile.TiffFile(sys.argv[2]) as t:
+ tag=t.pages[1].tags['StripOffsets']
+ offset,order=tag.valueoffset,t.byteorder
+ raw=bytearray(Path(sys.argv[2]).read_bytes())
+struct.pack_into(order+'I',raw,offset,len(raw)+50)
+Path(sys.argv[4]).write_bytes(raw)`,source,paired,grayPng,damaged])
 })
 test.afterAll(()=>rmSync(root,{recursive:true,force:true}))
-async function start(page:any){
+async function start(page:any,input=source){
  await page.goto('/?integration=1')
  await createAnalysis(page,'wb')
  // Only the native file picker is replaced; inspection, preview and import use Python.
  await page.evaluate((file:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async(command:string)=>{
   if(command==='plugin:dialog|open')return [file]
   throw new Error(`Unexpected native command: ${command}`)
- }}},source)
+ }}},input)
  await page.getByRole('button',{name:'导入图像',exact:true}).click()
 }
+
+test('automatically uses the 16 bit page of a matching 8/16 bit pair',async({page})=>{
+ await start(page,paired)
+ await expect(page.getByLabel('当前图像')).toContainText('自动位深.tif · 第 2 页')
+ await expect(page.getByLabel('当前图像').locator('option')).toHaveCount(1)
+ await expect(page.getByRole('dialog',{name:'选择 TIFF 页面'})).toBeHidden()
+ await expect(page.getByText('32 × 24 px · uint16',{exact:true})).toBeVisible()
+})
+
+test('imports a PNG saved as equal RGB channels',async({page})=>{
+ await start(page,grayPng)
+ await expect(page.getByLabel('当前图像')).toContainText('灰度RGB.png')
+ await expect(page.getByRole('dialog',{name:'选择 TIFF 页面'})).toBeHidden()
+ await expect(page.getByText('32 × 24 px · uint8',{exact:true})).toBeVisible()
+})
+
+test('offers the readable TIFF page if the preferred 16 bit page cannot be decoded',async({page})=>{
+ await start(page,damaged)
+ const picker=page.getByRole('dialog',{name:'选择 TIFF 页面'})
+ await expect(picker.getByRole('checkbox',{name:'导入第 2 页',exact:true})).toBeDisabled()
+ await picker.getByRole('checkbox',{name:'导入第 1 页',exact:true}).check()
+ await picker.getByRole('button',{name:'导入所选页面',exact:true}).click()
+ await expect(page.getByLabel('当前图像')).toContainText('默认页损坏.tif · 第 1 页')
+})
 test('choose raw grayscale pages from a mixed multipage TIFF',async({page})=>{
  await start(page)
  const dialog=page.getByRole('dialog',{name:'选择 TIFF 页面'})

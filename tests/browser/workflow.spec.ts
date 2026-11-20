@@ -1,9 +1,10 @@
+import {openSyntheticWbFixture} from './wb-fixture'
 import {test,expect} from '@playwright/test'
 test('synthetic workflow uses actual Python and preserves invalidation',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))
  await page.goto('/?integration=1')
  await expect(page.getByText('本地引擎就绪')).toBeVisible()
- await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await openSyntheticWbFixture(page)
  await expect(page.getByText('纯合成示例 · 非实验数据')).toBeVisible()
  await expect(page.getByLabel('原图条带工作台')).toBeVisible()
  await page.screenshot({path:'artifacts/checkpoints/workspace.png',fullPage:true})
@@ -22,7 +23,7 @@ test('synthetic workflow uses actual Python and preserves invalidation',async({p
  expect(errors).toEqual([])
 })
 test('drawing at a zoomed view is persisted in original pixels',async({page})=>{
- await page.goto('/?integration=1');await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await page.goto('/?integration=1');await openSyntheticWbFixture(page)
  const svg=page.getByLabel('原图条带工作台');await expect(svg).toBeVisible()
  await page.getByRole('button',{name:'放大',exact:true}).click()
  await page.getByRole('button',{name:'画条带框',exact:true}).click()
@@ -35,7 +36,7 @@ test('drawing at a zoomed view is persisted in original pixels',async({page})=>{
  await expect(page.getByRole('heading',{name:'条带区域 24'})).toBeVisible()
 })
 test('a delayed review never overwrites a new edit',async({page})=>{
- await page.goto('/?integration=1');await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await page.goto('/?integration=1');await openSyntheticWbFixture(page)
  await expect(page.getByLabel('原图条带工作台')).toBeVisible()
  let release!:()=>void;const gate=new Promise<void>(resolve=>release=resolve)
  let entered!:()=>void;const started=new Promise<void>(resolve=>entered=resolve)
@@ -52,7 +53,7 @@ test('a delayed review never overwrites a new edit',async({page})=>{
 })
 
 test('rename retains results and comparison edits preserve image review',async({page})=>{
- await page.goto('/?integration=1');await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await page.goto('/?integration=1');await openSyntheticWbFixture(page)
  await page.getByRole('button',{name:'开始定量',exact:true}).click()
  await expect(page.getByText('相对信号分布')).toBeVisible()
  await page.getByLabel('实验名称').fill('改名后保留结果')
@@ -66,7 +67,7 @@ test('rename retains results and comparison edits preserve image review',async({
  await expect(page.getByText('95% CI：',{exact:false})).toBeVisible()
 })
 test('quality issues and plotted data navigate to source ROI',async({page})=>{
- await page.goto('/?integration=1');await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await page.goto('/?integration=1');await openSyntheticWbFixture(page)
  await page.getByRole('button',{name:'开始定量',exact:true}).click()
  await page.getByRole('button',{name:'查看 TARGET B1 原始条带',exact:true}).click()
  await expect(page.getByRole('heading',{name:'原始条带追溯'})).toBeVisible()
@@ -79,7 +80,7 @@ test('quality issues and plotted data navigate to source ROI',async({page})=>{
  await expect(page.getByText('L12 · 区域编辑',{exact:true})).toBeVisible()
 })
 test('batch copy, sample paste and UI size are usable and undoable',async({page})=>{
- await page.goto('/?integration=1');await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await page.goto('/?integration=1');await openSyntheticWbFixture(page)
  await page.getByRole('button',{name:'选择 L1 TARGET',exact:true}).click()
  await page.getByRole('button',{name:'复制到新泳道',exact:true}).click()
  await expect(page.getByRole('heading',{name:'条带区域 25'})).toBeVisible()
@@ -97,7 +98,7 @@ test('batch copy, sample paste and UI size are usable and undoable',async({page}
 })
 
 test('a late calculation does not override navigation to an issue',async({page})=>{
- await page.goto('/?integration=1');await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await page.goto('/?integration=1');await openSyntheticWbFixture(page)
  await page.getByRole('button',{name:'开始定量',exact:true}).click()
  await expect(page.getByText('相对信号分布')).toBeVisible()
  let release!:()=>void;const gate=new Promise<void>(resolve=>release=resolve)
@@ -113,11 +114,11 @@ test('a late calculation does not override navigation to an issue',async({page})
 
 test('read-only projects allow inspection but prevent all editing paths',async({page})=>{
  await page.route('**/test-engine',async route=>{
-  if(route.request().postDataJSON().command!=='demo'){await route.continue();return}
+  if(route.request().postDataJSON().command!=='open_project'){await route.continue();return}
   const response=await route.fetch(),body=await response.json();body.data.read_only=true
   await route.fulfill({response,json:body})
  })
- await page.goto('/?integration=1');await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await page.goto('/?integration=1');await openSyntheticWbFixture(page)
  await page.getByRole('button',{name:'选择 L1 TARGET',exact:true}).click()
  await expect(page.getByRole('button',{name:'复制到新泳道',exact:true})).toBeDisabled()
  await expect(page.getByRole('button',{name:'画条带框',exact:true})).toBeDisabled()
@@ -130,7 +131,7 @@ test('read-only projects allow inspection but prevent all editing paths',async({
 })
 
 test('keyboard nudging is reversible and inspector selection returns to the top',async({page})=>{
- await page.goto('/?integration=1');await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await page.goto('/?integration=1');await openSyntheticWbFixture(page)
  await page.getByRole('button',{name:'选择 L1 TARGET',exact:true}).click()
  const svg=page.getByLabel('原图条带工作台')
  await svg.focus();await page.keyboard.press('ArrowRight')
@@ -150,14 +151,14 @@ test('keyboard nudging is reversible and inspector selection returns to the top'
 })
 
 test('result table reference warnings locate the reference rather than the target',async({page})=>{
- await page.goto('/?integration=1');await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await page.goto('/?integration=1');await openSyntheticWbFixture(page)
  await page.getByRole('button',{name:'开始定量',exact:true}).click()
  await page.getByRole('button',{name:'参考：线性范围未验证',exact:true}).first().click()
  await expect(page.locator('.navigator-roi.selected button')).toHaveAccessibleName('选择 L1 Loading control')
 })
 
 test('unchecking the last batch item leaves no editable selection',async({page})=>{
- await page.goto('/?integration=1');await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await page.goto('/?integration=1');await openSyntheticWbFixture(page)
  const item=page.getByRole('checkbox',{name:'批选 L1 TARGET',exact:true})
  await item.check();await item.uncheck()
  await expect(page.locator('.image-context')).toContainText('0 已选')
@@ -182,7 +183,7 @@ test('retained rename results match recomputation and remain exportable by the r
 })
 
 test('profile follows selection and never shows a stale response',async({page})=>{
- await page.goto('/?integration=1');await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await page.goto('/?integration=1');await openSyntheticWbFixture(page)
  await page.getByRole('button',{name:'选择 L1 TARGET',exact:true}).click()
  await expect(page.getByLabel('泳道强度曲线')).toBeVisible()
  await expect(page.getByTestId('profile-measurement')).toContainText('扣背景积分')
@@ -207,7 +208,7 @@ test('profile follows selection and never shows a stale response',async({page})=
 })
 
 test('export previews the actual render and invalidates changed settings',async({page})=>{
- await page.goto('/?integration=1');await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await page.goto('/?integration=1');await openSyntheticWbFixture(page)
  await page.getByRole('button',{name:'开始定量',exact:true}).click()
  await page.getByRole('button',{name:'导出结果',exact:true}).click()
  const dialog=page.getByRole('dialog',{name:'导出预览'})
@@ -228,7 +229,7 @@ test('export previews the actual render and invalidates changed settings',async(
 })
 
 test('candidate preview requires acceptance and is cancelled by edits',async({page})=>{
- await page.goto('/?integration=1');await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await page.goto('/?integration=1');await openSyntheticWbFixture(page)
  await page.getByLabel('蛋白 / 测量名称',{exact:true}).fill('NEW')
  const count=page.getByRole('heading',{name:'条带区域 24',exact:true})
  await expect(count).toBeVisible()
@@ -254,13 +255,13 @@ test('candidate preview requires acceptance and is cancelled by edits',async({pa
 
 test('negative profile keeps the background baseline inside the visible chart',async({page})=>{
  await page.route('**/test-engine',async route=>{
-  if(route.request().postDataJSON().command==='demo'){
+  if(route.request().postDataJSON().command==='open_project'){
    const response=await route.fetch(),body=await response.json()
    body.data.rois[0].backgrounds=[[480,0,500,10]]
    await route.fulfill({json:body})
   }else await route.continue()
  })
- await page.goto('/?integration=1');await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await page.goto('/?integration=1');await openSyntheticWbFixture(page)
  await page.getByRole('button',{name:'选择 L1 TARGET',exact:true}).click()
  await expect(page.getByTestId('profile-measurement')).toContainText('-')
  const baseline=page.locator('.profile-chart line[stroke-dasharray]')

@@ -20,8 +20,8 @@ class ProjectsTests(unittest.TestCase):
   p=import_image(new_project('测试'),str(self.image))
   a=p['images'][0];self.assertEqual(read_pixels(a)[0,0],12345)
   self.assertTrue(a['preview'].startswith('data:image/png;base64,'))
- def test_rgb_and_multipage_are_explicitly_rejected(self):
-  rgb=self.root/'rgb.png';Image.new('RGB',(5,5)).save(rgb)
+ def test_color_png_and_unselected_multipage_are_explicitly_rejected(self):
+  rgb=self.root/'rgb.png';Image.new('RGB',(5,5),(255,0,0)).save(rgb)
   with self.assertRaises(ValueError):import_image(new_project('t'),str(rgb))
   stack=self.root/'stack.tif';Image.new('L',(5,5)).save(stack,save_all=True,append_images=[Image.new('L',(5,5))])
   with self.assertRaises(ValueError):import_image(new_project('t'),str(stack))

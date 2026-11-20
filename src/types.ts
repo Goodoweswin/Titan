@@ -1,3 +1,4 @@
+import type {WbExampleCase} from './WbReferenceCase'
 export type Rect=[number,number,number,number]
 export interface ImageAsset{rotation_degrees?:number;source_image_id?:string;source_name?:string;id:string;name:string;path:string;sha256:string;page_index?:number;page_count?:number;display_inverted?:boolean;photometric?:string;gray_lut?:number[];width:number;height:number;dtype:string;preview:string;polarity:'bright'|'dark';ceiling:number|null;exposure:string;linear_validated:boolean}
 export interface ImageInspection{name:string;sha256:string;page_count:number;pages:{page_index:number;width:number;height:number;dtype:string;error:string|null;display_inverted?:boolean}[]}
@@ -5,7 +6,7 @@ export interface Sample{id:string;name?:string;bio_id:string;group:string;pair_i
 export interface Lane{id:string;membrane_id:string;sample_id:string;technical_id:string}
 export interface ROI{id:string;image_id:string;lane_id:string;analyte:string;role:'target'|'reference';rect:Rect;backgrounds:Rect[];reference_id:string|null;reviewed_revision:number|null;lane_layout_id?:string;band_set_id?:string}
 export interface ComparisonSpec{id:string;family_id:string;group_a:string;group_b:string;test:'descriptive'|'welch'|'paired';scale:'raw'|'log2'}
-export interface Project{id:string;demo?:boolean;name:string;schema_version:2;revision:number;lane_layouts:LaneLayout[];band_sets:BandSet[];figure_settings?:FigureSettings;plot_settings?:PlotSettings;upgrade_from?:string;images:ImageAsset[];samples:Sample[];lanes:Lane[];rois:ROI[];settings:{design_confirmed?:boolean;control_group:string;normalization_mode:'within'|'ibc';ibc_by_membrane:Record<string,Record<string,string>>;analysis_blocks:{id:string;membrane_ids:string[];pooled_reference_id:string;merge_same_sample:boolean}[];comparisons:ComparisonSpec[];multigroup_comparisons?:MultiGroupSpec[]};saved_revision?:number;project_path?:string;read_only?:boolean}
+export interface Project{id:string;demo?:boolean;synthetic?:boolean;example_case?:WbExampleCase;name:string;schema_version:2;revision:number;lane_layouts:LaneLayout[];band_sets:BandSet[];figure_settings?:FigureSettings;plot_settings?:PlotSettings;upgrade_from?:string;images:ImageAsset[];samples:Sample[];lanes:Lane[];rois:ROI[];settings:{design_confirmed?:boolean;control_group:string;normalization_mode:'within'|'ibc';ibc_by_membrane:Record<string,Record<string,string>>;analysis_blocks:{id:string;membrane_ids:string[];pooled_reference_id:string;merge_same_sample:boolean}[];comparisons:ComparisonSpec[];multigroup_comparisons?:MultiGroupSpec[]};saved_revision?:number;project_path?:string;read_only?:boolean}
 export interface Measurement{id:string;image_id:string;lane_id:string;analyte:string;role:string;area_px:number;raw_sum:number;background_mean:number;corrected_sum:number;clipped_fraction:number|null;flags:string[]}
 export interface Normalized{id:string;sample_id:string;bio_id:string;pair_id:string;group:string;membrane_id:string;analyte:string;normalized:number|null;bridged:number|null;flags:string[];kind:string}
 export interface BioValue{sample_id:string;bio_id:string;pair_id:string;group:string;analyte:string;membrane_id:string;analysis_block:string;value:number;n_technical:number;fold:number|null;flags:string[]}
@@ -35,7 +36,7 @@ export interface FigureGroup{key:string;label:string;color:string;border:string;
 export interface FigureData{unit:'lane'|'biological';value_mode:string;error:string;notes:string[];group_registry?:{key:string;label:string;color:string}[];panels:{key:string;analyte:string;analysis_block:string;groups:FigureGroup[];comparisons:MultiGroupComparison[];warnings:string[];limits:number[]}[]}
 
 export interface FigureDocumentMetadata{id:string;name:string;current_version:string;selected_version:string;source_revision:number;source_signature:string;source_stale:boolean;created_at:string;updated_at:string;kind:FigureSettings['kind'];panel_key:string;default_key?:string|null;export_origin?:{path:string;png_sha256:string}|null;versions:{version_id:string;source_revision:number;created_at:string;name:string}[]}
-export interface LibraryEntry{module?:'wb'|'if'|'stats';collection_id?:string|null;resume?:LibraryResume;entry_id:string;project_id:string;name:string;path:string;last_opened:string;created_at:string;available:boolean;revision?:number;error?:string;figure_error?:string;artifacts?:LibraryArtifact[];figures:FigureDocumentMetadata[]}
+export interface LibraryEntry{module?:'wb'|'if'|'stats';collection_id?:string|null;resume?:LibraryResume;entry_id:string;project_id:string;name:string;path:string;last_opened:string;created_at:string;available:boolean;managed?:boolean;revision?:number;error?:string;figure_error?:string;artifacts?:LibraryArtifact[];figures:FigureDocumentMetadata[]}
 export interface FrozenFigure{document:FigureDocumentMetadata;project:Project;result:AnalysisResult;figure_settings:FigureSettings;settings:PlotSettings;png:string}
 
 export interface LibraryMaterial { id:string; name:string; size:number; sha256:string; added_at:string }
@@ -82,4 +83,4 @@ export interface LibraryExportReceipt {
  library_export_error?:string
 }
 
-export interface CloseActions{prepare:()=>Promise<boolean>;finish:()=>Promise<void>}
+export interface CloseActions{prepare:(forUpdate?:boolean)=>Promise<boolean>;finish:()=>Promise<void>}

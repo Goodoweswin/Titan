@@ -56,8 +56,26 @@ def _project(path):
     return root,p
 
 
-def _public(entry):
+def managed_analysis_path(root, entry):
+    suffix = {'wb': '.titanwb', 'if': '.titanif', 'stats': '.titanstats'}.get(entry.get('module', 'wb'))
+    if not suffix:
+        return None
+    path = Path(entry['path'])
+    identifier = entry['project_id']
+    projects = root / 'Projects'
+    if re.fullmatch(r'[0-9a-f]{32}', identifier) and path == projects / (identifier + suffix):
+        return path
+    # Imported project packages keep analysis folders separate from their exported files.
+    parent = path.parent.parent
+    if (parent.parent == projects and re.fullmatch(r'bundle-[0-9a-f]{32}', parent.name)
+            and path.parent.name == 'Analyses' and path.suffix == suffix and re.fullmatch(r'[0-9]+', path.stem)):
+        return path
+    return None
+
+
+def _public(entry, library_root_path):
     row=dict(entry,module=entry.get('module','wb'),available=True,figures=[],collection_id=entry.get('collection_id'))
+    row['managed'] = managed_analysis_path(library_root_path, entry) is not None
     row['artifacts'] = [_output_state(artifact) for artifact in entry.get('exports', [])]
     try:
         root,p=_project(entry['path'])
@@ -98,8 +116,8 @@ def _public(entry):
     return row
 
 
-def _rows(data):
-    rows = [_public(row) for row in sorted(data['entries'], key=lambda row: row['last_opened'], reverse=True)]
+def _rows(data, root):
+    rows = [_public(row, root) for row in sorted(data['entries'], key=lambda row: row['last_opened'], reverse=True)]
     owners = {}
     for row in rows:
         for artifact in row['artifacts']:
@@ -121,19 +139,25 @@ def _rows(data):
 
 
 def library_list(session):
-    return _rows(_index(library_root(session)))
+    from .library_trash import settled_index
+    root = library_root(session)
+    return _rows(settled_index(root), root)
 
 
 def library_workspace(session):
-    data = _index(library_root(session))
-    return dict(projects=data['projects'], entries=_rows(data))
+    from .library_trash import settled_index
+    root = library_root(session)
+    data = settled_index(root)
+    return dict(projects=data['projects'], entries=_rows(data, root))
 
 
 @contextmanager
 def _edit_index(session):
+    from .library_trash import recover_pending_move
     root = library_root(session)
     with operation_lock(root, '.index.lock'):
         data = _index(root)
+        recover_pending_move(root, data)
         yield data
         atomic_json(root / 'index.json', data)
 
@@ -245,7 +269,9 @@ def _registered_entry(data, folder, manifest, entry_id):
 
 def library_check_path(path, entry_id, session):
     folder, manifest = _project(path)
-    _registered_entry(_index(library_root(session)), folder, manifest, entry_id)
+    root = library_root(session)
+    _check_not_in_trash(root, folder)
+    _registered_entry(_index(root), folder, manifest, entry_id)
     return str(folder)
 
 
@@ -311,11 +337,18 @@ def _register(data, folder, manifest, *, entry_id=None, source_entry_id=None, to
 
 
 def library_register(path, session, entry_id=None, *, source_entry_id=None, touch_opened=True):
-    folder, manifest = _project(path)
+    root = library_root(session)
     with _edit_index(session) as data:
+        folder, manifest = _project(path)
+        _check_not_in_trash(root, folder)
         entry = _register(data, folder, manifest, entry_id=entry_id,
                           source_entry_id=source_entry_id, touch_opened=touch_opened)
-    return _public(entry)
+    return _public(entry, root)
+
+
+def _check_not_in_trash(root, folder):
+    if folder.is_relative_to(root / 'Trash'):
+        raise ValueError('请先从「最近删除」恢复此分析')
 
 
 def create_managed_analysis(project, suffix, save, session, *, collection_id=None, new_collection_name=None):
@@ -339,7 +372,7 @@ def create_managed_analysis(project, suffix, save, session, *, collection_id=Non
         if created:
             shutil.rmtree(path)
         raise
-    return dict(project=saved, entry=_public(entry))
+    return dict(project=saved, entry=_public(entry, root))
 
 
 def copy_registered_analysis(project, destination, suffix, save, session):

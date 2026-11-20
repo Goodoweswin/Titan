@@ -8,11 +8,13 @@ from PIL import Image
 from .models import revised
 from .image_cache import CACHE
 
-MAX_BYTES=50*1024*1024
+MAX_BYTES=256*1024*1024
 MAX_PIXELS=25_000_000
 
 
-def file_hash(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+def file_hash(path):
+    with Path(path).open('rb') as stream:
+        return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
 def read_source_pixels(asset):
@@ -33,13 +35,22 @@ def cached_pixels(path,index,digest):
         import tifffile
         with tifffile.TiffFile(path) as t:index=checked_page_index(index,len(t.pages))
     else:index=checked_page_index(index,1)
-    return CACHE.get_pixels((digest,index),lambda:decode(path,index))
+    return verified_pixels(path,index,digest)
+
+
+def verified_pixels(path,index,digest):
+    def load():
+        pixels=decode(path,index)
+        if file_hash(path)!=digest:
+            raise ValueError('原图在读取期间已改变，请重新导入')
+        return pixels
+    return CACHE.get_pixels((digest,index),load)
 
 
 def checked_path(path):
     path=Path(path)
     if path.suffix.lower() not in ['.tif','.tiff','.png']:raise ValueError('仅支持原始灰度TIFF/PNG')
-    if path.stat().st_size>MAX_BYTES:raise ValueError('单文件超过50 MiB上限')
+    if path.stat().st_size>MAX_BYTES:raise ValueError(f'文件超过 WB 单文件 {MAX_BYTES // 1024**2} MiB 上限')
     return path
 
 
@@ -52,7 +63,8 @@ def checked_page_index(index,count):
 
 
 def validate_tiff_page(page):
-    if len(page.shape)!=2 or not 0<page.shape[0]*page.shape[1]<=MAX_PIXELS:raise ValueError('请使用单通道且不超过2500万像素的图像')
+    if len(page.shape)!=2:raise ValueError('此页不是单通道灰度图')
+    if not 0<page.imagewidth*page.imagelength<=MAX_PIXELS:raise ValueError('此页超过 WB 单页 2500 万像素上限')
     photo=int(page.photometric)
     if photo==3:
         lut=page.colormap
@@ -62,7 +74,7 @@ def validate_tiff_page(page):
 
 
 def inspect_image(path):
-    path=checked_path(path);pages=[]
+    path=checked_path(path);pages=[];digest=file_hash(path)
     if path.suffix.lower() in ['.tif','.tiff']:
         import tifffile
         with tifffile.TiffFile(path) as t:
@@ -73,9 +85,41 @@ def inspect_image(path):
                 inverted=int(page.photometric)==0 or (int(page.photometric)==3 and error is None and bool(page.colormap[0,0]>page.colormap[0,-1]))
                 pages.append(dict(page_index=index,width=page.imagewidth,height=page.imagelength,dtype=str(page.dtype),error=error,display_inverted=inverted))
     else:
-        a=decode(path)
+        a=verified_pixels(path,0,digest)
         pages.append(dict(page_index=0,width=a.shape[1],height=a.shape[0],dtype=str(a.dtype),error=None))
-    return dict(name=path.name,sha256=file_hash(path),page_count=len(pages),pages=pages)
+    return dict(name=path.name,sha256=digest,page_count=len(pages),pages=pages)
+
+
+def png_pixels(path):
+    with path.open('rb') as stream:
+        header=stream.read(26)
+        stream.seek(0)
+        with Image.open(stream) as image:
+            if image.format!='PNG' or len(header)!=26:raise ValueError('文件不是有效的 PNG')
+            if getattr(image,'n_frames',1)!=1:raise ValueError('请将动画 PNG 导出为单张原始灰度图')
+            if image.width*image.height>MAX_PIXELS:raise ValueError('图像超过 WB 单页 2500 万像素上限')
+            # Preserve the encoded values of single-channel gray PNGs, including
+            # older images with a display-only transparency hint.
+            if image.mode in ('L','I','I;16','I;16B','I;16L'):
+                return np.array(image)
+            # Pillow reduces 16-bit multichannel PNGs to 8 bit on load.
+            if header[24]==16:
+                import imagecodecs
+                stream.seek(0)
+                pixels=imagecodecs.png_decode(stream.read())
+                if pixels.dtype!=np.uint16:raise ValueError('此 PNG 无法保留原始 16 位数值')
+            elif image.mode in ('RGB','RGBA','LA','P'):
+                pixels=np.asarray(image.convert('RGBA'))
+            else:
+                raise ValueError('此 PNG 格式不支持，请导出单通道灰度图')
+    if pixels.ndim==2:return pixels
+    channels=pixels.shape[2]
+    if channels in (2,4) and not np.all(pixels[...,-1]==np.iinfo(pixels.dtype).max):
+        raise ValueError('此 PNG 含透明像素，请使用不透明的原始灰度图')
+    gray=pixels[...,0]
+    if channels in (3,4) and not (np.array_equal(gray,pixels[...,1]) and np.array_equal(gray,pixels[...,2])):
+        raise ValueError('此 PNG 含颜色，请导出单个检测通道')
+    return gray.copy()
 
 
 def decode(path,page_index=None):
@@ -98,10 +142,7 @@ def decode(path,page_index=None):
                 if a.shape!=page.shape or a.dtype.itemsize!=page.dtype.itemsize:raise ValueError('此压缩页无法无损读取，请导出原始灰度 TIFF')
     else:
         checked_page_index(page_index,1)
-        with Image.open(path) as im:
-            if im.mode not in ['L','I','I;16','I;16B','I;16L']:raise ValueError('彩色/调色板图请先明确导出单个检测通道')
-            if im.width*im.height>MAX_PIXELS:raise ValueError('图像超过2500万像素上限')
-            a=np.asarray(im).copy()
+        a=png_pixels(path)
     if a.ndim!=2 or a.size==0 or a.dtype.kind not in 'uif' or not np.isfinite(a).all():raise ValueError('图像不是有限数值的单通道灰度图')
     return a
 
@@ -160,7 +201,7 @@ def import_image(project,path,page_index=None,expected_sha256=None):
     info=inspect_image(path)
     if expected_sha256 is not None and info['sha256']!=expected_sha256:raise ValueError('原图在选择期间已改变，请重新导入')
     index=checked_page_index(page_index,info['page_count'])
-    a=CACHE.get_pixels((info['sha256'],index),lambda:decode(path,index));p=revised(project)
+    a=verified_pixels(path,index,info['sha256']);p=revised(project)
     name=Path(path).name
     if info['page_count']>1:name+=f' · 第 {index+1} 页'
     asset=dict(id=uuid.uuid4().hex,name=name,path=str(Path(path).resolve()),sha256=info['sha256'],

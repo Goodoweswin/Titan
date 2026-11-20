@@ -25,6 +25,8 @@ function locationResources(target:StatsProject,location:AnalysisLocation){
 }
 export interface StatsLibraryActions {
  prepareLeave:()=>Promise<boolean>
+ prepareRemoval:(path:string)=>Promise<boolean>
+ forgetRemoved:(path:string)=>void
  restore:(location:AnalysisLocation)=>Promise<boolean>
  create:(input:AnalysisCreation)=>Promise<boolean>
  demo:()=>Promise<boolean>
@@ -64,7 +66,7 @@ export default function StatsWorkspace({
  const [past,setPast]=useState<StatsProject[]>([]),[future,setFuture]=useState<StatsProject[]>([])
  const flight=useRef<Promise<unknown>|null>(null),epoch=useRef(0),opening=useRef(false)
  const d=p?.datasets.find(d=>d.id===datasetId)??p?.datasets[0],display=frozen?.dataset??d,run=display?(frozen?.run??currentRun(display)):null,style=frozen?.style??d?.style,locked=!!d?.source?.locked
- function assign(next:StatsProject){ref.current=next;setP(next)}
+ function assign(next:StatsProject|null){ref.current=next;setP(next)}
  async function persist(){
   if(flight.current)await flight.current
   const before=ref.current;if(!before||before.revision===before.saved_revision)return
@@ -78,6 +80,12 @@ export default function StatsWorkspace({
   }})
   registerLibrary({
    prepareLeave,
+   prepareRemoval:async path=>ref.current?.project_path!==path||await prepareLeave(),
+   forgetRemoved:path=>{
+    if(ref.current?.project_path===path){
+     assign(null);setDatasetId('');setFrozen(null);setPast([]);setFuture([]);setMessage('')
+    }
+   },
    restore:restoreLocation,
    create:input=>change('stats_new',input,undefined,true),
    demo:()=>change('stats_demo',{},undefined,true),

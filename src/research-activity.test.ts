@@ -26,6 +26,7 @@ describe('local research activity',()=>{
   expect(recordAnalysis(empty,project,{...result,project_id:'other'})).toBe(empty)
   expect(recordAnalysis(empty,Object.assign({...project},{synthetic:true}),result)).toBe(empty)
   expect(recordAnalysis(empty,Object.assign({...project},{demo:true}),result)).toBe(empty)
+  expect(recordAnalysis(empty,Object.assign({...project},{example_case:{id:'legacy-teaching-case'}}),result)).toBe(empty)
   result.measurements=result.measurements.map(row=>({...row,corrected_sum:NaN}))
   expect(recordAnalysis(empty,project,result)).toBe(empty)
  })

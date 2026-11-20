@@ -4,6 +4,7 @@ import {useActionMenu,type ActionMenuItem} from './ActionMenu'
 import {ChevronRight,Ellipsis,Folder,FileBarChart2,FlaskConical,Search,Images,Plus,Pin} from 'lucide-react'
 import type {LibraryArtifact,LibraryCollection,LibraryEntry} from './types'
 import type {LibraryDialog} from './LibraryCreateDialog'
+import {analysisDeleteLabel} from './LibraryCreateDialog'
 
 export type LibraryView='workspace'|'results'|'wb'
 interface Props {
@@ -28,7 +29,8 @@ interface Props {
 
 export default function ProjectLibrary({entries,projects,selectedProjectId,onProject,onOpenBundle,activeEntry,activeFigure,error,busy,onOpen,onRelocate,onRetry,onDialog,onOpenFile,onPin,onArtifact,onReveal}:Props){
  const [query,setQuery]=useState('')
- const [expanded,setExpanded]=useState<string[]>(['unassigned'])
+ const [expanded,setExpanded]=useState<string[]>([])
+ const [recentExpanded,setRecentExpanded]=useState(true)
  const {openMenu,closeMenu,activeId}=useActionMenu()
  // Resume updates leave actions valid; opening an analysis reads its latest entry.
  const stateKey=JSON.stringify([entries.map(({last_opened:_last,resume:_resume,...entry})=>entry),projects,selectedProjectId,activeEntry?.entry_id,activeFigure,busy])
@@ -85,6 +87,7 @@ export default function ProjectLibrary({entries,projects,selectedProjectId,onPro
    item('move','移到项目',()=>onDialog({kind:'move',entry})),
    ...(entry.collection_id?[item('detach','移出项目',()=>onDialog({kind:'detach',entry}))]:[]),
    item('reveal','在文件管理器中显示',()=>onReveal(entry),!entry.available),
+   item('delete',analysisDeleteLabel(entry),()=>onDialog({kind:'deleteAnalysis',entry})),
    ...(entry.figure_error?[item('error',entry.figure_error,()=>{},true)]:[])]
   const id='entry-'+entry.entry_id,label='分析菜单 '+entry.name
   return <div key={entry.entry_id} className={selected?'library-root library-analysis active':'library-root library-analysis'} {...rowMenu(id,label,items)}>
@@ -115,17 +118,11 @@ export default function ProjectLibrary({entries,projects,selectedProjectId,onPro
    </button>{popup(id,label,items)}
   </div>
  }
- function collectionRows(id:string,name:string,rows:LibraryEntry[],collection?:LibraryCollection){
-  const shown=rows.filter(entry=>matches(name)||matches(entry.name)||entry.figures.some(figure=>matches(figure.name))||entry.artifacts?.some(artifact=>matches(artifact.title)))
+ function matchingEntries(name:string,rows:LibraryEntry[]){
+  return rows.filter(entry=>matches(name)||matches(entry.name)||entry.figures.some(figure=>matches(figure.name))||entry.artifacts?.some(artifact=>matches(artifact.title)))
    .sort((a,b)=>(b.created_at??'').localeCompare(a.created_at??'')||a.entry_id.localeCompare(b.entry_id))
-  if(q&&!matches(name)&&!shown.length)return null
-  const open=!!q||expanded.includes(id)
-  const selected=selectedProjectId===id||(!open&&rows.some(entry=>entry.entry_id===active?.entry_id))
-  const projectItems=collection?[item('open','打开项目',()=>onProject(id)),
-   item('new','新建分析',()=>onDialog({kind:'choose',collectionId:id})),
-   item('rename','重命名',()=>onDialog({kind:'rename',project:collection})),
-   item('pin',collection.pinned?'取消置顶':'置顶',()=>onPin(collection)),
-   item('remove','移出项目列表',()=>onDialog({kind:'remove',project:collection}))]:[]
+ }
+ function analysisList(name:string,shown:LibraryEntry[]){
   const outputs=shown.flatMap(entry=>(entry.artifacts??[])
    .filter(artifact=>matches(name)||matches(entry.name)||matches(artifact.title))
    .map(artifact=>({entry,artifact})))
@@ -134,34 +131,49 @@ export default function ProjectLibrary({entries,projects,selectedProjectId,onPro
    !outputs.some(({entry:owner,artifact})=>owner.entry_id===entry.entry_id&&
       artifact.document_id===figure.id&&artifact.kind==='result_export')
   ).map(figure=>({entry,figure})))
+  return <>
+   {shown.length>0?shown.map(analysisRow):<p className="hint library-empty">暂无分析</p>}
+   {(figures.length>0||outputs.length>0)&&<><p className="library-section-label">图表与导出</p>
+    <div className="library-children library-artifacts">{figures.map(({entry,figure})=>artifactRow(entry,{
+     id:figure.id,entry_id:entry.entry_id,kind:'wb_plot',title:figure.name,available:entry.available,
+     source_revision:figure.source_revision,document_id:figure.id,version_id:figure.selected_version,
+    },true))}{outputs.map(({entry,artifact})=>artifactRow(entry,artifact))}</div>
+   </>}
+  </>
+ }
+ function collectionRows(id:string,name:string,rows:LibraryEntry[],collection:LibraryCollection){
+  const shown=matchingEntries(name,rows)
+  if(q&&!matches(name)&&!shown.length)return null
+  const open=!!q||expanded.includes(id)
+  const selected=selectedProjectId===id||(!open&&rows.some(entry=>entry.entry_id===active?.entry_id))
+  const label='项目菜单 '+name
+  const projectItems=[item('open','打开项目',()=>onProject(id)),
+   item('new','新建分析',()=>onDialog({kind:'choose',collectionId:id})),
+   item('rename','重命名',()=>onDialog({kind:'rename',project:collection})),
+   item('pin',collection.pinned?'取消置顶':'置顶',()=>onPin(collection)),
+   item('remove','删除项目',()=>onDialog({kind:'remove',project:collection}))]
   return <section key={id} className="library-collection" aria-label={name}>
-   <div className={selected?'library-root active':'library-root'} {...(collection?rowMenu(id,'项目菜单 '+name,projectItems):{})}>
-    {collection?<><button className="library-chevron" aria-label={`${open?'收起':'展开'}项目 ${name}`} aria-expanded={open}
+   <div className={selected?'library-root active':'library-root'} {...rowMenu(id,label,projectItems)}>
+    <button className="library-chevron" aria-label={`${open?'收起':'展开'}项目 ${name}`} aria-expanded={open}
      onClick={()=>setExpanded(previous=>toggle(previous,id))}><ChevronRight size={13} className={open?'expanded':''}/></button>
-     <button className="library-title" title={name} aria-label={`打开项目 ${name}`} aria-current={selectedProjectId===id?'page':undefined}
-      disabled={busy} onClick={()=>onProject(id)}><Folder size={15}/><span>{name}</span>{collection.pinned&&<Pin size={12}/>}</button></>:
-     <button className="library-title library-section-toggle" aria-expanded={open} onClick={()=>setExpanded(previous=>toggle(previous,id))}>
-      <ChevronRight size={13} className={open?'expanded':''}/><span>{name}</span>
-     </button>}
-    {collection&&popup(id,'项目菜单 '+name,projectItems)}
+    <button className="library-title" title={name} aria-label={`打开项目 ${name}`} aria-current={selectedProjectId===id?'page':undefined}
+     disabled={busy} onClick={()=>onProject(id)}><Folder size={15}/><span>{name}</span>{collection.pinned&&<Pin size={12}/>}</button>
+    {popup(id,label,projectItems)}
    </div>
-   {open&&<div className="library-collection-body">
-    {shown.length>0?shown.map(analysisRow):<p className="hint library-empty">暂无分析</p>}
-    {(figures.length>0||outputs.length>0)&&<><p className="library-section-label">图表与导出</p>
-     <div className="library-children library-artifacts">{figures.map(({entry,figure})=>artifactRow(entry,{
-      id:figure.id,entry_id:entry.entry_id,kind:'wb_plot',title:figure.name,available:entry.available,
-      source_revision:figure.source_revision,document_id:figure.id,version_id:figure.selected_version,
-     },true))}{outputs.map(({entry,artifact})=>artifactRow(entry,artifact))}</div>
-    </>}
-   </div>}
+   {open&&<div className="library-collection-body">{analysisList(name,shown)}</div>}
   </section>
  }
+ const recentName='最近'
+ const projectIds=new Set(projects.map(project=>project.id))
+ const recentEntries=matchingEntries(recentName,entries.filter(entry=>!entry.collection_id||!projectIds.has(entry.collection_id)))
+ const recentOpen=!!q||recentExpanded
  const createItems=[item('project','新建项目',()=>onDialog({kind:'collection'}),false,false),
   ...(['wb','if','stats'] as const).map(kind=>item(kind,kind==='wb'?'新建 WB 分析':kind==='if'?'新建 IF 分析':'新建统计分析',()=>onDialog({kind}),false,false)),
-  item('open','打开已有分析',onOpenFile,false,false),item('bundle','打开项目包',onOpenBundle,false,false)]
+  item('open','打开已有分析',onOpenFile,false,false),item('bundle','打开项目包',onOpenBundle,false,false),
+  item('trash','最近删除',()=>onDialog({kind:'trash'}),false,false)]
  return <nav className="project-library" aria-label="实验项目库">
   <label className="library-search"><Search size={14}/><input aria-label="搜索项目或图表" placeholder="搜索项目或图表" value={query} onChange={event=>setQuery(event.target.value)}/></label>
-  <div className="library-heading"><span>项目</span><div className="library-popup-anchor">
+  <div className="library-heading"><span id="titan-library-projects">项目</span><div className="library-popup-anchor">
    <button type="button" className="icon-btn library-menu-button" aria-label="新建或打开" title="新建或打开" data-action-menu-trigger="create" aria-haspopup="menu" aria-expanded={activeId==='create'} disabled={busy}
     onKeyDown={event=>keyboardMenu(event,'create','新建或打开',createItems)}
     onClick={event=>{if(activeId==='create')closeMenu();else{const box=event.currentTarget.getBoundingClientRect();showMenu('create','新建或打开',createItems,event.currentTarget,{x:box.left,y:box.bottom+4})}}}><Plus size={18}/></button>
@@ -169,8 +181,14 @@ export default function ProjectLibrary({entries,projects,selectedProjectId,onPro
   <div className="library-scroll">
   {error&&<div className="library-error" role="alert"><p>项目列表暂不可用：{error}</p><button onClick={onRetry}>重试</button></div>}
   {!entries.length&&!projects.length&&!error&&<p className="hint library-empty">使用「＋」创建项目或分析。</p>}
-  {groups.map(({id,name,entries,collection})=>collectionRows(id,name,entries,collection))}
-  {collectionRows('unassigned','独立分析',entries.filter(entry=>!projects.some(collection=>collection.id===entry.collection_id)))}
+  <section aria-labelledby="titan-library-projects">
+   {groups.map(({id,name,entries,collection})=>collectionRows(id,name,entries,collection))}
+  </section>
+  {(!q||matches(recentName)||recentEntries.length>0)&&<section className="library-recent" aria-label={recentName}>
+   <button type="button" className="library-heading library-recent-toggle" aria-expanded={recentOpen}
+    onClick={()=>setRecentExpanded(previous=>!previous)}><span>{recentName}</span><ChevronRight size={13} className={recentOpen?'expanded':''}/></button>
+   {recentOpen&&analysisList(recentName,recentEntries)}
+  </section>}
   </div>
  </nav>
 }

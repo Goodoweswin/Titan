@@ -6,7 +6,7 @@ function bounds(r:Rect,width:number,height:number){return r.every(Number.isInteg
 export function newLane(p:Project,membrane='M1'){
  let n=1;while(p.lanes.some(l=>l.id===`L${n}`)||p.samples.some(s=>s.id===`S${n}`||s.bio_id===`B${n}`))n++
  const lane={id:`L${n}`,sample_id:`S${n}`,membrane_id:membrane,technical_id:'1'}
- p.samples.push({id:lane.sample_id,bio_id:`B${n}`,group:p.settings.control_group,pair_id:'',kind:'biological',pool_id:''});p.lanes.push(lane)
+ p.samples.push({id:lane.sample_id,bio_id:p.example_case?'未提供':`B${n}`,group:p.example_case?'未提供':p.settings.control_group,pair_id:'',kind:'biological',pool_id:'',...(p.example_case?{name:`示范泳道 ${n}`}:{})});p.lanes.push(lane)
  return lane
 }
 export function batchROIs(p:Project,ids:string[],action:BatchAction){

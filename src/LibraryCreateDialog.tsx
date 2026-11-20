@@ -14,6 +14,12 @@ export type LibraryDialog =
  | {kind:'rename';project:LibraryCollection}
  | {kind:'move'|'detach';entry:LibraryEntry}
  | {kind:'remove';project:LibraryCollection}
+ | {kind:'deleteAnalysis';entry:LibraryEntry}
+ | {kind:'trash'}
+
+export function analysisDeleteLabel(entry:LibraryEntry){
+ return entry.managed&&entry.available?'删除分析':'从项目库移除'
+}
 
 export const creationLabels:Record<CreationKind,string>={
  collection:'新建项目',
@@ -23,7 +29,7 @@ export const creationLabels:Record<CreationKind,string>={
 }
 
 export default function LibraryCreateDialog({mode,projects,onClose,onSubmit,onSelectKind}:{
- mode:LibraryDialog
+ mode:Exclude<LibraryDialog,{kind:'trash'}>
  projects:LibraryCollection[]
  onClose:()=>void
  onSelectKind:(kind:Exclude<CreationKind,'collection'>,collectionId?:string|null)=>void
@@ -40,8 +46,9 @@ export default function LibraryCreateDialog({mode,projects,onClose,onSubmit,onSe
  const creating=mode.kind==='wb'||mode.kind==='if'||mode.kind==='stats'
  const needsName=creating||mode.kind==='collection'||mode.kind==='rename'
  const needsProject=creating||mode.kind==='move'
- const title=mode.kind==='rename'?'重命名项目':mode.kind==='move'?'移到项目':mode.kind==='detach'?'移出项目':mode.kind==='remove'?'移出项目列表':mode.kind==='choose'?'新建分析':creationLabels[mode.kind]
- const action=mode.kind==='rename'?'保存':mode.kind==='move'?'移动':mode.kind==='remove'||mode.kind==='detach'?'移出':'创建'
+ const title=mode.kind==='rename'?'重命名项目':mode.kind==='move'?'移到项目':mode.kind==='detach'?'移出项目':mode.kind==='remove'?'删除项目':mode.kind==='deleteAnalysis'?analysisDeleteLabel(mode.entry):mode.kind==='choose'?'新建分析':creationLabels[mode.kind]
+ const action=mode.kind==='rename'?'保存':mode.kind==='move'?'移动':mode.kind==='remove'?'删除项目':mode.kind==='deleteAnalysis'?title:mode.kind==='detach'?'移出':'创建'
+ const deleting=mode.kind==='remove'||mode.kind==='deleteAnalysis'
  const valid=(!needsName||!!name.trim())&&(collectionId!=='new'||!!newCollection.trim())
 
  useEffect(()=>{dialog.current?.showModal()},[])
@@ -64,16 +71,19 @@ export default function LibraryCreateDialog({mode,projects,onClose,onSubmit,onSe
    {mode.kind==='choose'&&<div className="analysis-kind-picker">{(['wb','if','stats'] as const).map(kind=><button key={kind} type="button" className="btn secondary" onClick={()=>onSelectKind(kind,mode.collectionId)}>{creationLabels[kind]}</button>)}</div>}
    {needsName&&<label>名称<input autoFocus required maxLength={120} value={name} onChange={event=>setName(event.target.value)}/></label>}
    {needsProject&&<label>归属项目<select autoFocus={!needsName} value={collectionId} onChange={event=>setCollectionId(event.target.value)}>
-    <option value="">独立分析</option>
+    <option value="">不加入项目</option>
     {projects.map(project=><option value={project.id} key={project.id}>{project.name}</option>)}
     {creating&&<option value="new">＋ 新建项目</option>}
    </select></label>}
    {creating&&collectionId==='new'&&<label>新项目名称<input required maxLength={120} value={newCollection} onChange={event=>setNewCollection(event.target.value)}/></label>}
-   {mode.kind==='remove'&&<p>「{mode.project.name}」中的分析会回到「独立分析」。分析文件和资料副本会保留在此电脑。</p>}
-   {mode.kind==='detach'&&<p>「{mode.entry.name}」将移到「独立分析」。分析文件和图表会保留。</p>}
+   {mode.kind==='remove'&&<p>「{mode.project.name}」及其资料副本将移到「最近删除」。其中的分析会转到「最近」。</p>}
+   {mode.kind==='deleteAnalysis'&&(mode.entry.managed&&mode.entry.available
+    ?<p>「{mode.entry.name}」的分析文件、原图副本和已保存图表将移到「最近删除」，可随时恢复。外部原图和导出文件保留。</p>
+    :<p>「{mode.entry.name}」的记录将移到「最近删除」。原文件保留在原位置。</p>)}
+   {mode.kind==='detach'&&<p>「{mode.entry.name}」将移到「最近」。分析文件和图表会保留。</p>}
    {error&&<p className="library-error" role="alert">{error}</p>}
-   <footer><button type="button" className="btn secondary" disabled={busy} onClick={onClose}>取消</button>
-    {mode.kind!=='choose'&&<button type="submit" className="btn primary" disabled={busy||!valid}>{busy?'处理中…':action}</button>}</footer>
+   <footer><button type="button" autoFocus={deleting} className="btn secondary" disabled={busy} onClick={onClose}>取消</button>
+    {mode.kind!=='choose'&&<button type="submit" className={deleting?'btn secondary library-delete':'btn primary'} disabled={busy||!valid}>{busy?'处理中…':action}</button>}</footer>
   </form>
  </dialog>
 }

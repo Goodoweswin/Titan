@@ -1,3 +1,4 @@
+import {openSyntheticWbFixture} from './wb-fixture'
 import {test,expect,type Page} from '@playwright/test'
 
 const guest={status:'guest',profile:null,message:null,persistent:false,errorCode:null}
@@ -100,7 +101,7 @@ for(const tool of ['if','stats'] as const)test(`account navigation preserves the
 test('leaving account for another module or library analysis still guards an unsaved WB figure',async({page})=>{
  await page.goto('/?integration=1')
  await createLibraryAnalysis(page,'账户导航离开保护');await page.reload()
- await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await openSyntheticWbFixture(page)
  await page.getByRole('button',{name:'WB 组图',exact:true}).click()
  await page.getByRole('button',{name:'新建组图',exact:true}).click()
  await page.getByLabel('蛋白名称',{exact:true}).fill('保留直到批准离开')
@@ -135,7 +136,7 @@ test('recent account items and sidebar library entries navigate out of account w
 
 test('account center preserves a WB figure draft through return and browsing history',async({page})=>{
  await page.goto('/?integration=1')
- await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await openSyntheticWbFixture(page)
  await page.getByRole('button',{name:'WB 组图',exact:true}).click()
  await page.getByRole('button',{name:'新建组图',exact:true}).click()
  await page.getByLabel('蛋白名称',{exact:true}).fill('未保存的账户导航草稿')
@@ -172,7 +173,7 @@ test('mocked native login stays cancellable across account navigation and ignore
 
 test('mocked native profile, device list and guarded all-device logout remain usable in the center',async({page})=>{
  await nativeFixture(page);await page.goto('/?integration=1')
- await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await openSyntheticWbFixture(page)
  await page.getByRole('button',{name:'WB 组图',exact:true}).click()
  await page.getByRole('button',{name:'新建组图',exact:true}).click()
  await page.getByLabel('蛋白名称',{exact:true}).fill('昵称编辑不得改变组图')

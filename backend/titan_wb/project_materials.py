@@ -49,14 +49,18 @@ def _portable_name(name):
     return name
 
 
-def material_path(root, collection_id, material):
-    """Find a material's deterministic storage location, even before it exists."""
-    _validate_material(material)
+def material_collection_path(root, collection_id):
     if not isinstance(collection_id, str) or not collection_id:
         raise ValueError('课题项目标识无效')
     # A hash keeps even legacy project IDs with path separators inside the library.
     collection_key = hashlib.sha256(collection_id.encode('utf-8')).hexdigest()
-    path = Path(root).resolve() / 'Materials' / collection_key / material['id'] / _portable_name(material['name'])
+    return Path(root).resolve() / 'Materials' / collection_key
+
+
+def material_path(root, collection_id, material):
+    """Find a material's deterministic storage location, even before it exists."""
+    _validate_material(material)
+    path = material_collection_path(root, collection_id) / material['id'] / _portable_name(material['name'])
     try:
         if path.resolve() != path:
             raise ValueError('项目资料目录或文件已变化')

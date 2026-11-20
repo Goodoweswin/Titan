@@ -1,3 +1,4 @@
+import {openSyntheticWbFixture} from './wb-fixture'
 import {test,expect} from '@playwright/test'
 
 const browsing=(page:any)=>page.getByRole('navigation',{name:'浏览导航',exact:true})
@@ -82,7 +83,7 @@ test('sidebar and inspector collapse independently and remember user choices',as
 test('a cancelled WB draft leave keeps both the current view and history cursor',async({page})=>{
  await page.goto('/?integration=1')
  await page.getByRole('button',{name:'Western blot',exact:true}).click()
- await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await openSyntheticWbFixture(page)
  await page.getByRole('button',{name:'WB 组图',exact:true}).click()
  await page.getByRole('button',{name:'新建组图',exact:true}).click()
  await page.getByLabel('蛋白名称',{exact:true}).fill('unsaved-label')

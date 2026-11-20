@@ -19,6 +19,8 @@ const VolumeViewer=lazy(()=>import('./VolumeViewer'))
 const fingerprint=(p:IFProject)=>JSON.stringify(p.fields.map(f=>({id:f.id,channels:f.channels.map(c=>({id:c.id,name:c.name,source:c.source})),rois:f.rois,recipe:f.recipe,mask:f.mask,pixel_size_um:f.pixel_size_um,quantitative:f.quantitative,sample_id:f.sample_id,bio_id:f.bio_id,group:f.group,batch_id:f.batch_id})))
 export interface IFLibraryActions {
  prepareLeave:()=>Promise<boolean>
+ prepareRemoval:(path:string)=>Promise<boolean>
+ forgetRemoved:(path:string)=>void
  restore:(location:AnalysisLocation)=>Promise<boolean>
  open:(path:string,view:LibraryView,entryId?:string)=>Promise<boolean>
  create:(input:AnalysisCreation)=>Promise<boolean>
@@ -95,6 +97,8 @@ export default function IFWorkspace({active,volumeAvailable,onStatsSource,regist
  useEffect(()=>{
   registerLibrary({
    prepareLeave,
+   prepareRemoval:async path=>current.current?.project_path!==path||await prepareLeave(),
+   forgetRemoved:path=>{if(current.current?.project_path===path){assign(null);setFieldId('');setMessage('')}},
    restore:restoreLocation,
    open:(path,view,entryId)=>changeProject('if_open',{path,entry_id:entryId},view,true),
    create:input=>changeProject('if_new',input,'workspace',true),
@@ -118,8 +122,8 @@ export default function IFWorkspace({active,volumeAvailable,onStatsSource,regist
   return true
  }
  async function run(operation:string,options:Record<string,unknown>){const input=current.current;if(!input||input.read_only||activeJob.current||busy)return;const generation=epoch.current;setBusy('提交任务');setMessage('');try{const started=await callEngine<IFJob>('if_start_job',{project:input,operation,options});if(generation!==epoch.current||current.current?.id!==input.id){await callEngine('if_cancel_job',{job_id:started.job_id});return}const key={job_id:started.job_id,epoch:generation,project_id:input.id};activeJob.current=key;setJob({...started,completed:0,total:1});setBusy('');const tick=async()=>{if(!canAcceptJob(key.job_id,epoch.current,activeJob.current,current.current))return;try{const status=await callEngine<IFJob>('if_job_status',{job_id:key.job_id});if(!canAcceptJob(key.job_id,epoch.current,activeJob.current,current.current))return;setJob(status);if(status.status==='completed'){const before=current.current!;const accepted=await callEngine<IFProject>('if_accept_job',{project:before,job_id:key.job_id});if(!canAcceptJob(key.job_id,epoch.current,activeJob.current,current.current))return;const latest=current.current!;if(latest.revision!==before.revision){if(fingerprint(latest)!==fingerprint(before))throw new Error('任务完成时分析输入已改变，请重新运行');accepted.fields=accepted.fields.map(f=>{const live=latest.fields.find(v=>v.id===f.id);return live?{...f,channels:live.channels}:f});accepted.figure=latest.figure;accepted.name=latest.name;accepted.revision=Math.max(accepted.revision,latest.revision+1)}assign(accepted);setFieldId(id=>accepted.fields.some(f=>f.id===id)?id:accepted.fields[0]?.id??'');activeJob.current=null;setJob(null);setMessage(status.failures?.length?'部分视野处理失败：'+status.failures.map(f=>`${accepted.fields.find(v=>v.id===f.field_id)?.name??f.field_id}：${f.error}`).join('；'):(operation==='segment'||operation==='edit_mask'?'任务已完成。请复核核标签，然后确认分割。':'任务已完成，结果已应用。'));void library.refresh();return}if(status.status==='failed'||status.status==='cancelled'){activeJob.current=null;setJob(null);setMessage(status.error||status.message||'任务未完成');return}poll.current=setTimeout(tick,350)}catch(e){if(canAcceptJob(key.job_id,epoch.current,activeJob.current,current.current)){activeJob.current=null;setJob(null);setMessage('任务结果未应用：'+e)}}};void tick()}catch(e){setMessage(String(e))}finally{setBusy('')}}
- async function prepareLeave(){
-  if(busy||!await flush())return false
+ async function prepareLeave(forUpdate=false){
+  if(busy||forUpdate&&activeJob.current||!await flush())return false
   await cancel()
   setMessage('')
   return true

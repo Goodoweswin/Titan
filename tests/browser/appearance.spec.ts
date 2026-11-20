@@ -1,3 +1,4 @@
+import {openSyntheticWbFixture} from './wb-fixture'
 import {test,expect,type Locator} from '@playwright/test'
 
 // Check the rendered UI, so a hard-coded light surface in any module is caught.
@@ -93,7 +94,7 @@ test('WB workbench and guide use the shared night surfaces',async({page},testInf
  await page.emulateMedia({colorScheme:'dark'})
  await page.goto('/?integration=1')
  await page.getByRole('button',{name:'Western blot',exact:true}).click()
- await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await openSyntheticWbFixture(page)
  await readableDarkSurface(page.locator('.canvas-toolbar'))
  await readableDarkSurface(page.locator('.workspace-main .image-card'))
  await readableDarkSurface(page.locator('.asset.selected'))

@@ -22,6 +22,55 @@ async function region(page:any,box:number[]){
  await page.getByRole('button',{name:'选择区域',exact:true}).click()
  await page.mouse.move(x(box[0]),y(box[1]));await page.mouse.down();await page.mouse.move(x(box[2]),y(box[3]));await page.mouse.up()
 }
+
+test('the app update guard preserves an unconfirmed WB preview',async({page})=>{
+ await page.goto('/?integration=1')
+ await createAnalysis(page,'wb')
+ const sidebar=page.getByRole('complementary',{name:'Titan 导航'})
+ await expect(sidebar.getByRole('button',{name:/更新/})).toHaveCount(0)
+ await page.evaluate((source:string)=>{
+  const testWindow=window as typeof window & {__TAURI_INTERNALS__?:unknown;updateInvocations?:string[]}
+  const invocations:string[]=[]
+  testWindow.updateInvocations=invocations
+  testWindow.__TAURI_INTERNALS__={
+   transformCallback:()=>1,
+   invoke:async(command:string)=>{
+    invocations.push(command)
+    switch(command){
+     case 'plugin:dialog|open':return [source]
+     case 'update_configuration':return {enabled:true,supported:true,version:'0.4.2'}
+     case 'plugin:updater|check':return {rid:2,currentVersion:'0.4.2',version:'0.4.3',rawJson:{}}
+     case 'plugin:updater|download':return 3
+     case 'plugin:updater|install':
+     case 'pause_engine_for_update':
+     case 'resume_engine_after_update':
+     case 'plugin:process|restart':return
+     default:throw Error(command)
+    }
+   },
+  }
+ },file)
+ await page.getByRole('button',{name:'导入图像',exact:true}).click()
+ await expect(page.getByLabel('当前图像')).toContainText('lanes.tif')
+ await region(page,[20,20,220,50])
+ await page.getByRole('button',{name:'识别泳道',exact:true}).click()
+ await expect(page.getByText('5 条泳道',{exact:true})).toBeVisible()
+ await expect(sidebar.getByRole('button',{name:'更新并重启',exact:true})).toBeVisible()
+ await expect(page.getByRole('dialog',{name:'软件更新'})).toHaveCount(0)
+ await sidebar.getByRole('button',{name:'更新并重启',exact:true}).click()
+ await expect(page.getByRole('alert')).toContainText('请完成当前任务')
+ const invocations=()=>page.evaluate(()=>(window as typeof window & {updateInvocations?:string[]}).updateInvocations)
+ expect(await invocations()).not.toContain('pause_engine_for_update')
+ expect(await invocations()).not.toContain('plugin:updater|install')
+ await page.getByRole('button',{name:'稍后',exact:true}).click()
+ await expect(page.getByText('5 条泳道',{exact:true})).toBeVisible()
+ await page.getByRole('button',{name:'确认内参',exact:true}).click()
+ await expect(page.getByText('内参已确认',{exact:true})).toBeVisible()
+ await sidebar.getByRole('button',{name:'安装更新并重启',exact:true}).click()
+ await expect.poll(invocations).toContain('plugin:process|restart')
+ expect((await invocations())?.filter(command=>command==='plugin:updater|download')).toHaveLength(1)
+})
+
 test('reference first workflow preserves missing target slot and simple three-stage UI',async({page})=>{
  await page.goto('/?integration=1');await createAnalysis(page,'wb')
  await page.evaluate((source:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async(c:string)=>{if(c==='plugin:dialog|open')return [source];throw Error(c)}}},file)

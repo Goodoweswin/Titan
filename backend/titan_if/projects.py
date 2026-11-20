@@ -40,6 +40,8 @@ def _check_revision(root,p,expected):
         disk=json.loads(manifest.read_text(encoding="utf-8"))
         if disk["id"]!=p["id"] or disk["revision"]!=expected:
             raise ValueError("磁盘项目版本已变化，请重新打开后保存")
+    elif expected is not None:
+        raise ValueError("已保存的分析文件已移除，请从项目库恢复或另存副本")
     elif any(x.name not in [".writer.lock",".save.lock"] for x in root.iterdir()):
         raise ValueError("请选择空项目目录")
 
@@ -52,7 +54,10 @@ def save_project(project,path,expected_revision,session):
     previous=Path(project["project_path"]).resolve() if project.get("project_path") else None
     if previous and previous!=root and (root.is_relative_to(previous) or previous.is_relative_to(root)):
         raise ValueError("副本位置不能嵌套于原项目")
-    root.mkdir(parents=True,exist_ok=True)
+    if expected_revision is None:
+        root.mkdir(parents=True,exist_ok=True)
+    elif not (root / "project.json").is_file():
+        raise ValueError("已保存的分析文件已移除，请从项目库恢复或另存副本")
     check_lock(root,session)
     with operation_lock(root,".save.lock"):
         _check_revision(root,project,expected_revision)

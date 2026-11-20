@@ -1,3 +1,4 @@
+import {openSyntheticWbFixture} from './wb-fixture'
 import {createAnalysis} from './library-actions'
 import {test,expect} from '@playwright/test'
 
@@ -126,7 +127,7 @@ test('WB empty state has one centered creation action and saved documents remain
 })
 
 test('analysis and results remain available in the neutral shell',async({page})=>{
- await page.goto('/?integration=1');await page.getByRole('button',{name:'体验合成示例',exact:true}).click()
+ await page.goto('/?integration=1');await openSyntheticWbFixture(page)
  await expect(page.getByRole('button',{name:'开始定量',exact:true})).toBeVisible()
  await page.screenshot({path:'artifacts/neutral-workspace/analysis-1440.png',fullPage:true})
  await page.getByRole('button',{name:'开始定量',exact:true}).click()
@@ -138,7 +139,12 @@ test('analysis and results remain available in the neutral shell',async({page})=
 })
 
 test('an empty WB experiment offers import and readonly users can inspect saved assemblies',async({page})=>{
- await page.goto('/?integration=1');await createAnalysis(page,'wb')
+ const name='最近归类验收 '+Date.now()
+ await page.goto('/?integration=1');await createAnalysis(page,'wb',true,name)
+ const library=page.getByRole('navigation',{name:'实验项目库'})
+ const recent=library.getByRole('region',{name:'最近',exact:true})
+ await expect(recent.getByRole('button',{name:'打开分析 '+name,exact:true})).toHaveAttribute('aria-current','page')
+ await expect(library.getByRole('region',{name:'项目',exact:true}).getByRole('button',{name:'打开分析 '+name,exact:true})).toHaveCount(0)
  await page.getByRole('button',{name:'WB 组图',exact:true}).click()
  await expect(page.getByRole('button',{name:'导入图像',exact:true})).toBeEnabled()
  await expect(page.getByRole('button',{name:'新建组图',exact:true})).toHaveCount(0)
@@ -229,7 +235,8 @@ test('opening statistics keeps the same sidebar, filter, and analysis order',asy
  const list=sidebar.getByRole('navigation',{name:'实验项目库'})
  const search=list.getByRole('textbox',{name:'搜索项目或图表'})
  await search.fill(name)
- const labels=list.getByRole('button',{name:new RegExp('^打开分析 '+name)})
+ const recent=list.getByRole('region',{name:'最近',exact:true})
+ const labels=recent.getByRole('button',{name:new RegExp('^打开分析 '+name)})
  await expect(labels).toHaveCount(2)
  const initialOrder=await labels.allTextContents()
  const pane=await sidebar.elementHandle()
@@ -245,14 +252,14 @@ test('opening statistics keeps the same sidebar, filter, and analysis order',asy
  await expect(list.getByRole('button',{name:'打开分析 '+name+' A',exact:true})).toHaveAttribute('aria-current','page')
  await page.screenshot({path:'artifacts/neutral-workspace/stable-sidebar-stats.png',animations:'disabled'})
  await search.clear()
- const independent=list.getByRole('button',{name:'独立分析',exact:true})
- await independent.click()
- await expect(independent).toHaveAttribute('aria-expanded','false')
+ const recentToggle=recent.getByRole('button',{name:'最近',exact:true})
+ await recentToggle.click()
+ await expect(recentToggle).toHaveAttribute('aria-expanded','false')
  await sidebar.getByRole('button',{name:'Western blot',exact:true}).click()
  await sidebar.getByRole('button',{name:'统计与绘图',exact:true}).click()
  await page.getByRole('button',{name:'继续上次分析',exact:true}).click()
  await expect(page.getByLabel('统计方法')).toBeVisible()
- await expect(independent).toHaveAttribute('aria-expanded','false')
+ await expect(recentToggle).toHaveAttribute('aria-expanded','false')
 })
 
 test('project list stays compact when the analysis workspace uses large text',async({page})=>{
@@ -261,12 +268,20 @@ test('project list stays compact when the analysis workspace uses large text',as
  await rpc(page,'library_create_collection',{name})
  await page.reload()
  await page.getByRole('button',{name:'打开分析 '+p.name,exact:true}).click()
- const title=page.locator('#titan-sidebar').getByRole('button',{name:'打开项目 '+name,exact:true})
+ const sidebar=page.locator('#titan-sidebar')
+ const title=sidebar.getByRole('button',{name:'打开项目 '+name,exact:true})
  const size=()=>title.evaluate(el=>parseFloat(getComputedStyle(el).fontSize))
  const before=await size()
  const workbench=await page.getByLabel('实验名称').evaluate(el=>parseFloat(getComputedStyle(el).fontSize))
  await page.getByLabel('显示字号').selectOption('large')
  await expect.poll(size).toBe(before)
  expect(await size()).toBeLessThanOrEqual(14)
+ const typography=(el:Element)=>{
+  const {fontFamily,fontSize,fontWeight,color}=getComputedStyle(el)
+  return {fontFamily,fontSize,fontWeight,color}
+ }
+ const projectsLabel=sidebar.getByText('项目',{exact:true})
+ const recentLabel=sidebar.getByRole('button',{name:'最近',exact:true}).getByText('最近',{exact:true})
+ expect(await recentLabel.evaluate(typography)).toEqual(await projectsLabel.evaluate(typography))
  expect(await page.getByLabel('实验名称').evaluate(el=>parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThan(workbench)
 })

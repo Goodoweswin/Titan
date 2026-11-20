@@ -47,6 +47,9 @@ def dispatch(request):
     if command=='demo':
         from .demo import make_demo
         return make_demo()
+    if command=='reference_case':
+        from .reference_case import make_reference_case
+        return make_reference_case(payload.get('mode','annotated'))
     if command=='import_image':
         from .images import import_image
         return import_image(payload['project'],payload['path'],payload.get('page_index'),payload.get('expected_sha256'))
@@ -77,6 +80,18 @@ def dispatch(request):
     if command=='library_workspace':
         from .library import library_workspace
         return library_workspace(session)
+    if command == 'library_trash_analysis':
+        from .library_trash import library_trash_analysis
+        return library_trash_analysis(payload['entry_id'], payload['path'], session, move_files=payload.get('move_files', True))
+    if command in ('library_trash', 'library_trash_collection', 'library_restore_deleted'):
+        from . import library_trash
+        operations = {
+            'library_trash': (library_trash.library_trash, ()),
+            'library_trash_collection': (library_trash.library_trash_collection, ('id',)),
+            'library_restore_deleted': (library_trash.library_restore_deleted, ('id',)),
+        }
+        operation, keys = operations[command]
+        return operation(*(payload[key] for key in keys), session)
     if command in ('library_create_collection','library_update_collection','library_remove_collection',
                    'library_assign','library_set_resume'):
         from . import library

@@ -3,6 +3,15 @@ import {Check} from 'lucide-react'
 import {callEngine} from './bridge'
 import type {ImageInspection} from './types'
 
+export function automaticImagePage(info:ImageInspection){
+ const usable=info.pages.filter(page=>!page.error)
+ if(usable.length===1)return usable[0]
+ if(usable.length!==2||info.page_count!==2)return undefined
+ const preview=usable.find(page=>page.dtype==='uint8')
+ const original=usable.find(page=>page.dtype==='uint16')
+ if(preview&&original&&preview.width===original.width&&preview.height===original.height)return original
+}
+
 export default function ImagePagePicker({path,info,onChoose}:{path:string;info:ImageInspection;onChoose:(pages:number[]|null)=>void}){
  const dialog=useRef<HTMLDialogElement>(null)
  const [selected,setSelected]=useState<number[]>([])
@@ -20,7 +29,7 @@ export default function ImagePagePicker({path,info,onChoose}:{path:string;info:I
  },[path,info.sha256,active,page.error])
  return <dialog ref={dialog} className="export-dialog image-pages-dialog" aria-labelledby="image-pages-title" onCancel={e=>{e.preventDefault();onChoose(null)}}>
   <div className="card-heading"><div><h2 id="image-pages-title">选择 TIFF 页面</h2><p className="hint">{info.name} · 共 {info.page_count} 页</p></div><button className="btn secondary" onClick={()=>onChoose(null)}>跳过此文件</button></div>
-  <p>点击页面卡片选中或取消，同时查看预览。每页独立导入，保留原始位深和页码。</p>
+  <p>此文件有多个可定量的页面。请按采集记录选择曝光或通道，每页独立导入。</p>
   <div className="image-pages-layout"><div><button className="text-btn" onClick={()=>setSelected(info.pages.filter(p=>!p.error).map(p=>p.page_index))}>全选可用页</button><div className="image-pages-list">{info.pages.map(p=>{
    const checked=selected.includes(p.page_index)
    return <button key={p.page_index} type="button" role="checkbox" aria-label={`导入第 ${p.page_index+1} 页`}

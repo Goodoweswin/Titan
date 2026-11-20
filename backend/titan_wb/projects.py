@@ -44,8 +44,11 @@ def save_project(project,path,expected_revision,session):
     if root.suffix!='.titanwb':raise ValueError('项目目录名需以.titanwb结尾')
     previous=Path(project['project_path']).resolve() if project.get('project_path') else None
     if previous and previous!=root and (root.is_relative_to(previous) or previous.is_relative_to(root)):raise ValueError('副本位置不能与原项目内部嵌套')
-    root.mkdir(parents=True,exist_ok=True)
     manifest=root/'project.json'
+    if expected_revision is None:
+        root.mkdir(parents=True,exist_ok=True)
+    elif not manifest.is_file():
+        raise ValueError('已保存的分析文件已移除，请从项目库恢复或另存副本')
     if manifest.exists():
         disk=json.loads(manifest.read_text(encoding='utf-8'))
         if disk['id']!=project['id'] or disk['revision']!=expected_revision:raise ValueError('磁盘项目版本已变化，拒绝覆盖；请重新打开')
@@ -55,6 +58,8 @@ def save_project(project,path,expected_revision,session):
     if manifest.exists():
         disk=json.loads(manifest.read_text(encoding='utf-8'))
         if disk['id']!=project['id'] or disk['revision']!=expected_revision:raise ValueError('磁盘项目版本已变化，拒绝覆盖；请重新打开')
+    elif expected_revision is not None:
+        raise ValueError('已保存的分析文件已移除，请从项目库恢复或另存副本')
     p=copy.deepcopy(project)
     (root/'originals').mkdir(exist_ok=True)
     for a in p['images']:

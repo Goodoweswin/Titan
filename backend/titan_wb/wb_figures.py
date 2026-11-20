@@ -1,5 +1,6 @@
 """Independent, versioned WB assemblies. No quantitative result is required."""
 import copy
+import io
 import json
 import math
 import os
@@ -56,7 +57,8 @@ def new_document(project):
         rows=[dict(id=uuid.uuid4().hex,protein='',source=copy.deepcopy(source),crop=[0,0,source['width'],source['height']],
                    confirmed=False,expected_mw='',markers=[]) for source in sources.values()]
     return dict(schema_version=1,id=uuid.uuid4().hex,project_id=project['id'],name='WB 条带组图',version=None,
-                settings=DEFAULTS.copy(),rows=rows,labels=[],synthetic=bool(project.get('demo') or project.get('synthetic')))
+                settings=DEFAULTS.copy(),rows=rows,labels=[],synthetic=bool(project.get('demo') or project.get('synthetic')),
+                example_case=copy.deepcopy(project.get('example_case')))
 
 
 def _validated(project, document, confirmed=False):
@@ -66,6 +68,7 @@ def _validated(project, document, confirmed=False):
     _id(d.get('id'));_text(d.get('name'),'组图名称')
     if not d['name'].strip():raise ValueError('请输入组图名称')
     d['synthetic']=bool(d.get('synthetic') or project.get('synthetic') or project.get('demo'))
+    d['example_case']=copy.deepcopy(project.get('example_case') or d.get('example_case'))
     settings=d.get('settings',{})
     for key,lo,hi in [('width_mm',40,300),('image_width_mm',0,280),('font_pt',5,24),('gap_mm',1,20)]:_number(settings.get(key),lo,hi)
     if type(settings.get('dpi')) is not int or settings['dpi'] not in (300,600):raise ValueError('请选择300或600 DPI')
@@ -187,6 +190,9 @@ def export_document(project, document, destination):
     dest.parent.mkdir(parents=True,exist_ok=True);stage=Path(tempfile.mkdtemp(prefix='.wb-export-',dir=dest.parent))
     try:
         (stage/'figure.png').write_bytes(output['png']);(stage/'figure.svg').write_text(output['svg'],encoding='utf-8')
+        with Image.open(io.BytesIO(output['png'])) as raster:
+            raster.convert('RGB').save(stage/'figure.pdf',format='PDF',resolution=d['settings']['dpi'],
+                                       title=d['name'],author='Titan WB')
         for row in d['rows']:row['source']['path']=Path(row['source']['path']).name
         atomic_json(stage/'source.json',dict(document=d,width_mm=output['width_mm'],height_mm=output['height_mm'],
                     coordinate_system='half-open pixels after clockwise rotation, origin at top left',software='Titan WB',

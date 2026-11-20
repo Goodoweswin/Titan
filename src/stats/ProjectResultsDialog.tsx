@@ -45,7 +45,7 @@ export default function ProjectResultsDialog({entries,projects,initialPath,initi
      {c.missing>0&&<p className="library-error">存在缺失样本值；不会补零或将未完成视野当作完整样本。</p>}</>}
    </article>)}</div>
    {currentName&&<label>保存到<select aria-label="结果读取目标" value={append?'current':'new'} disabled={disabled} onChange={e=>setAppend(e.target.value==='current')}><option value="current">添加到：{currentName}</option><option value="new">新建统计分析</option></select></label>}
-   {!append&&<label>归属项目<select value={collectionId} disabled={disabled} onChange={e=>setCollectionId(e.target.value)}><option value="">独立分析</option>{projects.map(project=><option key={project.id} value={project.id}>{project.name}</option>)}</select></label>}
+   {!append&&<label>归属项目<select value={collectionId} disabled={disabled} onChange={e=>setCollectionId(e.target.value)}><option value="">不加入项目</option>{projects.map(project=><option key={project.id} value={project.id}>{project.name}</option>)}</select></label>}
    <label className="stats-confirm"><input type="checkbox" aria-label="确认来源统计单位" checked={confirmed} disabled={disabled||!keys.length} onChange={e=>setConfirmed(e.target.checked)}/>我已核对指标、分组、有效样本数与缺失情况；每个数值代表一个生物学样本。</label>
   </>}
   <footer><button className="btn secondary" disabled={busy} onClick={onClose}>取消</button><button className="btn primary" disabled={disabled||!catalog||!keys.length||!confirmed} onClick={async()=>{try{await onImport(catalog!,keys,append,collectionId||null)}catch(e){setError(String(e));setConfirmed(false)}}}>读取所选结果</button></footer>

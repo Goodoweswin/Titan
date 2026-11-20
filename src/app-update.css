@@ -1,0 +1,27 @@
+.update-trigger .update-icon {
+ display:grid;
+ place-items:center;
+ width:18px;
+ height:18px;
+ flex:none;
+ background:var(--accent-soft);
+ color:var(--accent);
+ border-radius:50%;
+}
+.app-update-dialog .update-status {
+ margin-top:10px;
+ color:var(--ink);
+}
+.app-update-dialog .update-notes {
+ margin-top:12px;
+ white-space:pre-wrap;
+ overflow-wrap:anywhere;
+ max-height:12rem;
+ overflow:auto;
+}
+.app-update-dialog progress {
+ display:block;
+ width:100%;
+ margin-top:10px;
+ accent-color:var(--accent);
+}

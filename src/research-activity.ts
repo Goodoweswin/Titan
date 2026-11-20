@@ -21,7 +21,7 @@ export function parseActivity(raw:string):ResearchActivity {
 }
 /** Count completed measurements once per project/image/ROI identity, not per recomputation. */
 export function recordAnalysis(activity:ResearchActivity,project:Project,result:AnalysisResult,now=new Date()):ResearchActivity {
- if((project as Project&{demo?:boolean;synthetic?:boolean}).demo||(project as Project&{synthetic?:boolean}).synthetic||result.project_id!==project.id||result.input_revision!==project.revision)return activity
+ if(project.example_case||(project as Project&{demo?:boolean;synthetic?:boolean}).demo||(project as Project&{synthetic?:boolean}).synthetic||result.project_id!==project.id||result.input_revision!==project.revision)return activity
  const images={...activity.images},bands={...activity.bands},day=localDay(now)
  let changed=false
  for(const measurement of result.measurements){

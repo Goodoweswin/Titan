@@ -112,8 +112,13 @@ def render(document):
         texts.extend(dict(t,x=t['x']+dx,y=t['y']+dy,row_id=row['id']) for t in row_texts)
         y += height + gap
     height = y - gap + pad
-    if document.get('synthetic'):
-        texts.append(dict(text='合成示例 · 非实验数据', x=pad, y=height+size, anchor='start')); height += size*2
+    caption = '合成示例 · 非实验数据' if document.get('synthetic') else '真实图像操作示范' if document.get('example_case') else ''
+    if caption:
+        # Mandatory provenance must remain visible even on the narrowest sheet.
+        caption_size = min(size, (width-2*pad-1) / text_width(caption) * size)
+        caption_size = max(.25, np.floor(caption_size*4)/4)
+        texts.append(dict(text=caption, x=pad, y=height+caption_size, anchor='start',font_pt=float(caption_size)))
+        height += caption_size*2
     dpi = settings['dpi']; scale = dpi/72
     pxw, pxh = round(width*scale), round(height*scale)
     if not rows or pxw < 1 or pxh < 1 or pxw * pxh > 20_000_000:
@@ -128,8 +133,10 @@ def render(document):
         canvas.paste(crop.resize((max(1,x1-x0),max(1,y1-y0)),Image.Resampling.LANCZOS),(x0,y0))
         svg.append(f'<image x="{row["x_pt"]:g}" y="{row["y_pt"]:g}" width="{row["width_pt"]:g}" height="{row["height_pt"]:g}" href={quoteattr(row["png"])} preserveAspectRatio="none"/>')
     for text in texts:
-        draw.text((text['x']*scale,text['y']*scale),text['text'],font=face,fill='black',anchor='ms' if text['anchor']=='middle' else 'ls')
-        svg.append(f'<text x="{text["x"]:g}" y="{text["y"]:g}" text-anchor="{text["anchor"]}" font-family="Noto Sans SC, Arial, sans-serif" font-size="{size:g}" fill="black">{escape(text["text"])}</text>')
+        text_size=text.get('font_pt',size)
+        text_face=face if text_size==size else font(text_size*scale)
+        draw.text((text['x']*scale,text['y']*scale),text['text'],font=text_face,fill='black',anchor='ms' if text['anchor']=='middle' else 'ls')
+        svg.append(f'<text x="{text["x"]:g}" y="{text["y"]:g}" text-anchor="{text["anchor"]}" font-family="Noto Sans SC, Arial, sans-serif" font-size="{text_size:g}" fill="black">{escape(text["text"])}</text>')
     svg.append('</svg>')
     return dict(png=png_bytes(canvas,dpi),svg='\n'.join(svg),width_mm=width/MM,height_mm=height/MM,
                 layout=dict(rows=rows,texts=texts,font_pt=size),width=pxw,height=pxh)

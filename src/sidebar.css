@@ -53,9 +53,12 @@
 .app-shell .sidebar .library-search input::placeholder { color:var(--muted); }
 .sidebar .library-heading,
 .sidebar .library-section-label,
-.sidebar .library-section-toggle,
 .sidebar-tools > p { color:var(--muted); font-size:var(--text-xs); }
 .sidebar .library-heading { min-height:29px; padding:0 4px 3px 8px; }
+.sidebar .library-recent { margin-top:8px; }
+.sidebar .library-recent-toggle { width:100%; border-radius:6px; }
+.sidebar .library-recent-toggle:hover { background:var(--sidebar-hover); }
+.sidebar .library-recent-toggle:focus-visible { outline-offset:-2px; }
 .sidebar .library-root { min-height:31px; gap:2px; }
 .sidebar .library-chevron { padding:6px 2px 6px 4px; }
 .sidebar .library-title { gap:7px; min-height:31px; padding:4px; font-weight:400; }
@@ -63,7 +66,6 @@
 .sidebar .library-collection-body { padding-left:18px; }
 .sidebar .library-analysis .library-title { padding-inline:8px 3px; }
 .sidebar .library-analysis .library-title small { color:var(--muted); }
-.sidebar .library-section-toggle { padding-left:4px; }
 .sidebar .library-artifacts { margin-left:0; padding-left:0; }
 .sidebar .library-artifacts button small { color:var(--muted); }
 .app-shell .sidebar .nav:hover:not(:disabled),
