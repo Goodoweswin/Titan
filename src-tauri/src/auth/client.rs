@@ -8,7 +8,7 @@ use super::{
 use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
-    time::Duration,
+    time::{Duration, Instant},
 };
 use tokio::sync::{watch, Mutex as AsyncMutex};
 
@@ -39,14 +39,25 @@ impl Auth {
     ) -> Result<Self, &'static str> {
         Ok(match config {
             Ok(Some(config)) => {
-                let store = match OsStore::new(root, application, &config.issuer_string()) {
-                    Ok(store) => Arc::new(store),
-                    Err("account_owner_busy") => return Err("account_owner_busy"),
-                    Err(_) => {
-                        return Ok(Self::disabled(
-                            "unavailable",
-                            Some("account_owner_unavailable"),
-                        ))
+                let issuer = config.issuer_string();
+                let deadline = Instant::now() + Duration::from_secs(2);
+                let store = loop {
+                    match OsStore::new(root.clone(), application, &issuer) {
+                        Ok(store) => break Arc::new(store),
+                        // LaunchServices can start the updated app before the old
+                        // process has returned its file lock.
+                        Err("account_owner_busy")
+                            if cfg!(target_os = "macos") && Instant::now() < deadline =>
+                        {
+                            std::thread::sleep(Duration::from_millis(50));
+                        }
+                        Err("account_owner_busy") => return Err("account_owner_busy"),
+                        Err(_) => {
+                            return Ok(Self::disabled(
+                                "unavailable",
+                                Some("account_owner_unavailable"),
+                            ))
+                        }
                     }
                 };
                 match Network::new(config) {
@@ -1757,6 +1768,21 @@ mod startup_tests {
             Err("account_owner_busy")
         ));
         drop(first);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn account_startup_recovers_when_the_relaunch_owner_exits() {
+        let root = std::env::temp_dir().join(format!("titan-relaunch-{}", uuid::Uuid::new_v4()));
+        let owner = Auth::from_config(root.clone(), "com.titan.startup-test", config()).unwrap();
+        let exiting = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(200));
+            drop(owner);
+        });
+        let successor = Auth::from_config(root.clone(), "com.titan.startup-test", config());
+        exiting.join().unwrap();
+        drop(successor.unwrap_or_else(|_| panic!("new Titan was rejected during relaunch")));
         std::fs::remove_dir_all(root).unwrap();
     }
 }

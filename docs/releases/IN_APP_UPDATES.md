@@ -8,34 +8,13 @@
 
 在发布环境使用 Tauri CLI 生成更新签名密钥。将公钥嵌入构建配置，只在签名构建步骤通过 `TAURI_SIGNING_PRIVATE_KEY` 和 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` 提供私钥及密码。同一渠道的安装包使用同一公钥。macOS Developer ID 签名和公证是独立的发布配置。旧版本的系统文件访问授权是否延续，取决于系统识别到的代码签名身份。[Tauri 更新文档](https://v2.tauri.app/plugin/updater/) · [Apple 代码签名要求](https://developer.apple.com/documentation/technotes/tn3127-inside-code-signing-requirements/)
 
-给现有 Mac 发布构建追加 `--config <更新配置文件>`。以下值需替换成发布渠道的 HTTPS 地址和 `.pub` 文件内容。普通本地构建使用空的更新配置，启动时跳过联网检查。
+正式 Mac 构建通过 [Beta 配置](../../src-tauri/tauri.beta.conf.json)嵌入公钥和检测地址。普通本地构建使用基础配置，启动时跳过联网检查。检测地址是 `updates` 分支根目录中的 `beta.json`。[Beta 清单](https://raw.githubusercontent.com/Goodoweswin/Titan/updates/beta.json)
 
-```json
-{
-  "bundle": { "createUpdaterArtifacts": true },
-  "plugins": {
-    "updater": {
-      "pubkey": "<.pub 文件内容>",
-      "endpoints": ["https://updates.example.com/titan/beta.json"],
-      "requireSignedVersion": true
-    }
-  }
-}
-```
+1. 更新应用版本和对应的发行说明。从验收过的提交推送 `v<应用版本>-beta.<序号>` 标签。每次应用内更新都需要递增应用版本。
+2. [Release workflow](../../.github/workflows/release.yml) 构建 Windows x64 安装包及 Mac Apple Silicon 安装包。Mac 同时生成签名的 `.app.tar.gz` 及 `.sig`。Tauri 将应用版本写入签名，发布流程核对归档及签名中的版本。
+3. Release workflow 从草稿重新下载核对附件和 SHA-256，公开预发行版并确认 Mac 更新包可下载，再通过正常快进提交将 `beta.json` 指向该包。如果构建已成功但发布作业中断，用 `gh run rerun <run-id> --failed` 使用同一次构建的产物重试。已激活版本的签名与地址只能原样重试。
 
-保持生产构建的应用标识和安装方式。把 Mac 的 `.app.tar.gz` 及对应的 `.sig` 随版本一起发布。Tauri 构建会将应用版本写入签名，需要让清单的 `version` 与产物的实际版本一致。每次推送更新递增应用的语义版本。公开发布标签可以包含 `-beta` 后缀，清单中的值以客户端二进制的版本为准。
-
-在确认更新附件可下载后，再发布固定地址上的 Beta 清单。`signature` 填 `.sig` 的内容，下载 URL 指向该版本的固定资源地址。GitHub 的 latest 接口会跳过预发布，Beta 渠道需要独立地址。[GitHub Releases API](https://docs.github.com/en/rest/releases/releases#get-the-latest-release)
-
-```json
-{
-  "version": "0.4.4",
-  "notes": "这里显示本次更新内容。",
-  "platforms": {
-    "darwin-aarch64": { "url": "https://example.com/Titan.app.tar.gz", "signature": "<Mac .sig 内容>" }
-  }
-}
-```
+如果需要停止推送有问题的版本，可以用 `updates` 分支中的先前已验证清单暂停提供该更新。已经升级的应用会保留当前版本。后续修复用更高版本重新发布。
 
 公开启用前，用发布配置完成一次从已安装旧版到新版的原生操作，核对旧版启动时显示更新入口、错误签名被拒绝、一键更新和稍后安装，以及重启后可打开已保存的数据。新版启动后，更新入口应隐藏。
 

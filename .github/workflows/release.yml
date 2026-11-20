@@ -7,6 +7,7 @@ permissions:
   contents: read
 jobs:
   build:
+    if: github.repository == 'Goodoweswin/Titan'
     strategy:
       fail-fast: false
       matrix:
@@ -62,7 +63,7 @@ jobs:
           New-Item -ItemType Directory -Force dist-release | Out-Null
           Copy-Item 'src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*-setup.exe' 'dist-release/Titan-${{ env.APP_VERSION }}-windows-x64-setup.exe'
           .venv/Scripts/python.exe scripts/package_notices.py dist-release/Titan-${{ env.APP_VERSION }}-windows-x64-third-party.zip
-      - name: macOS build and bundled verification
+      - name: Prepare macOS dependencies and engine
         if: runner.os == 'macOS'
         run: |
           python -m venv .venv
@@ -74,8 +75,20 @@ jobs:
           cargo metadata --manifest-path src-tauri/Cargo.toml --format-version 1 > artifacts/cargo-metadata.json
           .venv/bin/python scripts/collect_notices.py
           .venv/bin/python packaging/build_engine.py
-          npm run desktop:build -- --target aarch64-apple-darwin --bundles app,dmg
+      - name: Build signed macOS installer and update archive
+        if: runner.os == 'macOS'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          test -n "$TAURI_SIGNING_PRIVATE_KEY"
+          test -n "$TAURI_SIGNING_PRIVATE_KEY_PASSWORD"
+          npm run desktop:build -- --target aarch64-apple-darwin --bundles app,dmg --config src-tauri/tauri.beta.conf.json
+      - name: Verify macOS bundle and collect release assets
+        if: runner.os == 'macOS'
+        run: |
           cargo test --manifest-path src-tauri/Cargo.toml --locked --lib
+          test "$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Titan.app/Contents/Info.plist)" = "$APP_VERSION"
           .venv/bin/python scripts/verify_accounts_release.py --binary 'src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Titan.app/Contents/MacOS/titan-wb' --issuer "$TITAN_ACCOUNTS_ISSUER" --platform macos-arm64 --output artifacts/accounts-release-verification.json
           .venv/bin/python scripts/verify_release.py --app 'src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Titan.app' --output artifacts/release-verification
           ENGINE='src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Titan.app/Contents/Resources/engine/wb-engine/wb-engine'
@@ -88,6 +101,9 @@ jobs:
           .venv/bin/python scripts/verify_stats_sources.py "$ENGINE" > artifacts/stats-sources-verification.json
           cp src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg dist-release/Titan-${{ env.APP_VERSION }}-macos-arm64.dmg
           ditto -c -k --sequesterRsrc --keepParent 'src-tauri/target/aarch64-apple-darwin/release/bundle/macos/Titan.app' dist-release/Titan-${{ env.APP_VERSION }}-macos-arm64.app.zip
+          mac_bundle=src-tauri/target/aarch64-apple-darwin/release/bundle/macos
+          cp "$mac_bundle/Titan.app.tar.gz" "dist-release/Titan-$APP_VERSION-macos-arm64.app.tar.gz"
+          cp "$mac_bundle/Titan.app.tar.gz.sig" "dist-release/Titan-$APP_VERSION-macos-arm64.app.tar.gz.sig"
           .venv/bin/python scripts/package_notices.py dist-release/Titan-${{ env.APP_VERSION }}-macos-arm64-third-party.zip
       - uses: actions/upload-artifact@v4
         if: always()
@@ -111,6 +127,9 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+    concurrency:
+      group: titan-beta-publish
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -118,11 +137,58 @@ jobs:
           pattern: release-*
           path: dist-release
           merge-multiple: true
-      - name: Checksums and prerelease
+      - name: Prepare and validate the Beta update manifest
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y minisign
+          previous=()
+          if git ls-remote --exit-code origin refs/heads/updates >/dev/null; then
+            git fetch --no-tags origin refs/heads/updates
+            git show FETCH_HEAD:beta.json > "$RUNNER_TEMP/previous-beta.json"
+            previous=(--previous "$RUNNER_TEMP/previous-beta.json")
+            echo "FEED_BASE=$(git rev-parse FETCH_HEAD)" >> "$GITHUB_ENV"
+          else
+            test "$?" -eq 2
+          fi
+          python scripts/prepare_beta_update.py --release-dir dist-release \
+            --version "$(node -p 'require("./package.json").version')" --tag "$GITHUB_REF_NAME" \
+            --config src-tauri/tauri.beta.conf.json --notes "docs/releases/$GITHUB_REF_NAME.md" \
+            "${previous[@]}" --output "$RUNNER_TEMP/beta.json"
+      - name: Publish the prerelease and verify the downloadable assets
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cd dist-release
-          sha256sum * > SHA256SUMS.txt
-          cd ..
-          gh release create "$GITHUB_REF_NAME" dist-release/* --prerelease --title "Titan $GITHUB_REF_NAME" --notes-file "docs/releases/$GITHUB_REF_NAME.md"
+          (cd dist-release && sha256sum * > SHA256SUMS.txt)
+          if draft=$(gh release view "$GITHUB_REF_NAME" --json isDraft --jq .isDraft); then
+            if [ "$draft" = true ]; then
+              gh release upload "$GITHUB_REF_NAME" dist-release/* --clobber
+            fi
+          else
+            gh release create "$GITHUB_REF_NAME" dist-release/* --verify-tag --draft --prerelease \
+              --title "Titan $GITHUB_REF_NAME" --notes-file "docs/releases/$GITHUB_REF_NAME.md"
+            draft=true
+          fi
+          download_dir=$(mktemp -d)
+          gh release download "$GITHUB_REF_NAME" --dir "$download_dir"
+          diff <(cd dist-release && ls -1) <(cd "$download_dir" && ls -1)
+          cmp dist-release/SHA256SUMS.txt "$download_dir/SHA256SUMS.txt"
+          (cd "$download_dir" && sha256sum -c SHA256SUMS.txt)
+          if [ "$draft" = true ]; then
+            gh release edit "$GITHUB_REF_NAME" --draft=false --prerelease --latest=false
+          fi
+          archive_url=$(python -c 'import json, sys; print(json.load(open(sys.argv[1]))["platforms"]["darwin-aarch64"]["url"])' "$RUNNER_TEMP/beta.json")
+          curl --fail --silent --show-error --location --head "$archive_url" > /dev/null
+      - name: Advance the public Beta update feed
+        run: |
+          if [ -n "${FEED_BASE:-}" ]; then
+            git switch --detach "$FEED_BASE"
+          else
+            git switch --orphan updates
+          fi
+          cp "$RUNNER_TEMP/beta.json" beta.json
+          git add beta.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com commit -m "Publish Titan Beta update $GITHUB_REF_NAME"
+          git push origin HEAD:refs/heads/updates
