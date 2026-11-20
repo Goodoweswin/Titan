@@ -33,14 +33,15 @@ const server = createServer((request, response) => {
 
 async function until(action, description, timeout = 90_000) {
  const deadline = Date.now() + timeout
+ let lastError
  do {
   try {
    const result = await action()
    if (result) return result
-  } catch { /* The process or WebView can be between startup stages. */ }
+  } catch (error) { lastError = error }
   await delay(500)
  } while (Date.now() < deadline)
- throw Error(`Timed out waiting for ${description}`)
+ throw Error(`Timed out waiting for ${description}`,{cause:lastError})
 }
 
 async function connect() {
@@ -56,8 +57,13 @@ async function connect() {
 }
 
 const config = page => page.evaluate(() => window.__TAURI_INTERNALS__.invoke('update_configuration'))
-const powershell = command => execFileSync('powershell.exe', ['-NoProfile','-Command',command],
- {encoding:'utf8', timeout:15_000, windowsHide:true}).trim()
+function powershell(command) {
+ const encoded = Buffer.from(`$ErrorActionPreference = 'Stop'\n${command}\nexit 0`, 'utf16le').toString('base64')
+ return execFileSync('powershell.exe', ['-NoProfile','-NonInteractive','-EncodedCommand',encoded],
+  {encoding:'utf8', timeout:15_000, windowsHide:true}).trim()
+}
+const productVersion = () => powershell(`(Get-Item -LiteralPath '${executableLiteral}').VersionInfo.ProductVersion`)
+ .split('.').slice(0,3).join('.')
 const launch = () => spawn(executable, [], {
  env:{...process.env, WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS:
   `--remote-debugging-port=${webviewPort} --remote-debugging-address=127.0.0.1`},
@@ -92,11 +98,11 @@ try {
  sendValidPackage = true
  await page.getByRole('dialog',{name:'软件更新',exact:true}).getByRole('button',{name:'重试更新',exact:true}).click()
  await until(() => old.exitCode === 0, 'old Titan to exit for NSIS', 120_000)
- await until(() => !browser.isConnected() || page.isClosed(), 'previous Titan WebView to close')
+ console.log('Old Titan exited for the installer')
+ await until(() => productVersion() === version, 'NSIS to replace the installed executable', 120_000)
+ console.log(`NSIS installed Titan ${version}`)
  const replacementPid = await until(() => Number(powershell(`${appProcesses} | Where-Object MainWindowHandle -ne 0 | Select-Object -First 1 -ExpandProperty Id`)), 'NSIS to relaunch Titan and show its window')
  assert.notEqual(replacementPid,old.pid)
- const installedVersion = powershell(`(Get-Item -LiteralPath '${executableLiteral}').VersionInfo.ProductVersion`)
- assert.equal(installedVersion.split('.').slice(0,3).join('.'),version)
  console.log(`NSIS automatically relaunched Titan ${version} with PID ${replacementPid}`)
 
  // NSIS may start the new app without inheriting the old debugging environment.
@@ -118,7 +124,8 @@ try {
 } finally {
  if (old.exitCode === null) old.kill()
  if (upgraded) await upgraded.close().catch(() => {})
- powershell(`${appProcesses} | Stop-Process -ErrorAction SilentlyContinue`)
+ try { powershell(`${appProcesses} | Stop-Process -ErrorAction SilentlyContinue`) }
+ catch (error) { console.warn('Could not stop the isolated test process:', error.message) }
  server.closeAllConnections()
  await new Promise(resolve => server.close(resolve))
 }
