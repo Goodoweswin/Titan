@@ -1,0 +1,10 @@
+{
+  "version": "0.4.4",
+  "notes": "# Titan v0.4.4-beta.1\n\n- Mac Apple Silicon 首次接入 Beta 应用内更新。手动安装此版后，发现新版时可在左下角点「更新并重启」。\n- WB 导入默认读取 TIFF 第 1 页，保留 TIFF 和灰度 PNG 原始位深。亮度和对比度移到右侧。\n- WB 分析页内新增合成样例分步教程。WB 组图支持 PDF 导出。\n- 未归入项目的分析和图表集中在「最近」。项目及分析可以删除和恢复。\n\nWindows x64 通过本页的 NSIS 安装包更新。发布附件提供 SHA-256 校验值。",
+  "platforms": {
+    "darwin-aarch64": {
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.4-beta.1/Titan-0.4.4-macos-arm64.app.tar.gz",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSYkI4MTBtT0JIVEdvM1ptMkdFRng3ckt4MTVyVVQwK0JrdUNCbWRIOEFiWVlMb0lza1k2VUVTb0czVCthSGZaUkUrSnZrclVNcDJzSFJxRlpVN2w4Tzc0ZUgyMmJEOWc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MTg1NTk3CWZpbGU6VGl0YW4uYXBwLnRhci5negl2ZXJzaW9uOjAuNC40ClZJVDR0TmZMM2dqZmE1MjJSdGhwU3RkWDVlZm90RFQ5ZmJEeUVabGg3YmJtSUV6US92YnpvenN5WEhPNlpSb3N0TlFjWFhQbXhtVit2UE1rNkZwMUNRPT0K"
+    }
+  }
+}
