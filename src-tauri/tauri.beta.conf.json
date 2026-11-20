@@ -8,7 +8,8 @@
       "endpoints": [
         "https://raw.githubusercontent.com/Goodoweswin/Titan/updates/beta.json"
       ],
-      "requireSignedVersion": true
+      "requireSignedVersion": true,
+      "windows": {"installMode": "quiet"}
     }
   }
 }

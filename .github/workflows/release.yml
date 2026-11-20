@@ -97,15 +97,13 @@ jobs:
           npm run tauri -- signer sign --private-key-path $key --app-version $env:APP_VERSION $candidate
           if ($LASTEXITCODE -ne 0) { throw 'Test package signing failed' }
           $config = Join-Path $qa 'starter.json'
-          @{
-            version = '0.0.1'
-            plugins = @{updater = @{
-              pubkey = (Get-Content -Raw ($key + '.pub')).Trim()
-              endpoints = @('http://127.0.0.1:18451/beta.json')
-              dangerousInsecureTransportProtocol = $true
-              requireSignedVersion = $true
-            }}
-          } | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8NoBOM $config
+          $starterConfig = Get-Content -Raw 'src-tauri/tauri.beta.conf.json' | ConvertFrom-Json -AsHashtable
+          $starterConfig['version'] = '0.0.1'
+          $starterConfig.bundle.createUpdaterArtifacts = $false
+          $starterConfig.plugins.updater.pubkey = (Get-Content -Raw ($key + '.pub')).Trim()
+          $starterConfig.plugins.updater.endpoints = @('http://127.0.0.1:18451/beta.json')
+          $starterConfig.plugins.updater['dangerousInsecureTransportProtocol'] = $true
+          $starterConfig | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8NoBOM $config
           npm run desktop:build -- --target x86_64-pc-windows-msvc --bundles nsis --config $config
           if ($LASTEXITCODE -ne 0) { throw 'Updater starter build failed' }
           $starter = Get-ChildItem 'src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*_0.0.1_*-setup.exe'
