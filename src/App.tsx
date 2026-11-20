@@ -191,7 +191,9 @@ export default function App(){
  const [tab,setTab]=useState<'workspace'|'samples'|'results'|'wb'>('workspace')
  const homeVisible=!project||screen.kind!=='analysis'||module!=='wb'
  const [activeSetId,setActiveSetId]=useState('')
- const guided=!!project&&!(project as any).demo
+ const [legacyWb,setLegacyWb]=useState(false)
+ const guided=!!project&&!project.demo&&!legacyWb
+ const canSwitchWbEditor=!!project?.band_sets.length&&(legacyWb||project.rois.some(roi=>!roi.band_set_id))
  const navigation=useRef(0)
  async function navigate(next:typeof tab,discardApproved=false){if(!discardApproved&&!await canLeaveFigure())return;navigation.current++;frozenRef.current=null;setFrozen(null);figurePreview.current=null;setInitialStrip(null);setActiveStrip(null);setTab(next)}
  async function goWbStage(next:typeof tab,fromTutorial=false){
@@ -202,6 +204,15 @@ export default function App(){
    if(next==='samples'&&!base.band_sets.some(g=>g.id===activeSetId&&g.role==='target'))setActiveSetId(base.band_sets.find(g=>g.role==='target')?.id??'')
   }
   await navigate(next,true)
+ }
+ async function switchWbEditor(){
+  const base=current.current
+  if(!await canLeaveFigure())return
+  if(guided&&canvasHistory?.dirty&&!await ask('当前图像有未确认的修改。放弃并切换工作台？'))return
+  if(current.current!==base)return
+  setLegacyWb(guided)
+  setActiveSetId(base?.band_sets.find(g=>g.role==='reference')?.id??'')
+  await navigate('workspace',true)
  }
  const [busy,setBusy]=useState(''),[message,setMessage]=useState(''),[connected,setConnected]=useState(false)
  const [recoveryPath,setRecoveryPath]=useState('')
@@ -258,6 +269,7 @@ export default function App(){
  async function activateProject(p:Project){
   const old=current.current;choosePages(null);figurePreview.current=null;frozenRef.current=null;setFrozen(null);setShowExport(false);setCandidates(null)
   if(old?.project_path&&old.project_path!==p.project_path)await callEngine('release_project',{path:old.project_path}).catch(()=>{})
+  setLegacyWb(!p.band_sets.length&&p.rois.some(roi=>!roi.band_set_id))
   job.current++;setBusy('');setSelection({imageId:p.images[0]?.id??'',roiId:'',ids:[]});assignProject(p);setPast([]);setFuture([]);assignResult(null);setInitialStrip(null);setActiveStrip(null);setTab('workspace');setActiveSetId('');setWorkspaceEpoch(v=>v+1);setMessage('')
  }
  async function switchProject(p:Project){
@@ -947,6 +959,7 @@ export default function App(){
      <button className="icon-btn header-icon" title="撤销" disabled={(!(guided&&tab!=='results'&&canvasHistory?.canUndo)&&(!past.length||(guided&&tab!=='results'&&!!canvasHistory?.dirty)))||project.read_only||!!busy||!!frozen} onClick={()=>historyUndo()}><Undo2 size={16}/></button>
      <button className="icon-btn header-icon" title="重做" disabled={(!(guided&&tab!=='results'&&canvasHistory?.canRedo)&&(!future.length||(guided&&tab!=='results'&&!!canvasHistory?.dirty)))||project.read_only||!!busy||!!frozen} onClick={()=>historyUndo(true)}><Redo2 size={16}/></button>
      {tab!=='results'&&!frozen&&<button className="btn secondary" disabled={!!busy||project.read_only||switching} onClick={()=>importImages().catch(e=>setMessage(String(e)))}><ImagePlus size={15}/>导入图像</button>}
+     {canSwitchWbEditor&&!frozen&&<button className="btn secondary" disabled={!!busy||!!canvasHistory?.busy||switching} onClick={()=>void switchWbEditor().catch(e=>setMessage(String(e)))}>{guided?'旧版条带':'泳道工作台'}</button>}
      {!guided&&<button className={`btn ${tab==='results'?'secondary':'primary'}`} disabled={!!busy||!project.rois.length} onClick={analyze}><Activity size={15}/>开始定量</button>}
      {tab==='results'&&!frozen&&<button className="btn secondary" disabled={!result||!!busy} onClick={sendStats}>发送到统计与绘图</button>}
      {(tab==='results'||frozen)&&<button className="btn primary" disabled={!result||!!busy} onClick={openExport}><ArrowDownToLine size={15}/>导出结果</button>}
@@ -961,7 +974,7 @@ export default function App(){
     {guided&&!frozen&&tab!=='results'&&tab!=='wb'&&project.band_sets.length>0&&<div className="workspace-proteins"><label>当前蛋白<select aria-label="当前蛋白" value={activeSetId||project.band_sets[0].id} onChange={e=>{const g=project.band_sets.find(g=>g.id===e.target.value)!;setActiveSetId(g.id);navigate(g.role==='reference'?'workspace':'samples')}}>{project.band_sets.map(g=><option key={g.id} value={g.id}>{g.analyte} · {g.role==='reference'?'内参':'目标'}</option>)}</select></label></div>}
    </div>
    <section inert={switching} className={`page-content ${tab==='workspace'?'workbench-page':''}`}>{tab==='wb'?<WbFigureEditor key={project.id+':'+workspaceEpoch+':'+(initialStrip?.version??'')} project={project}
-    initialDocument={initialStrip} onStateChange={project.example_case?.mode==='tutorial'?setTutorialFigure:undefined} onDocument={setActiveStrip} onSaved={library.refresh} onExported={receipt=>{reportLibraryExport(receipt);if(current.current?.id===project.id&&current.current.revision===project.revision){const proof=wbExportProof(project,tutorialFigure,receipt);if(proof)setTutorialExport(proof)}}} externalBusy={!!busy||switching} onBusy={working=>{wbBusy.current=working;setWbWorking(working)}} onBeforeSave={prepareWbSave} onDraft={dirty=>{wbDirty.current=dirty}} onHistory={history=>{wbHistory.current=history}}/>:frozen?<FigureDocument key={figureEpoch} figure={frozen} onArchive={archiveFigure} onPreview={onFigurePreview} onUpdate={updateFigureSource} canUpdate={!!result&&result.input_revision===project.revision} onWorkspace={()=>{setActiveSetId(project.band_sets.find(g=>g.role==='reference')?.id??'');navigate('workspace')}} onVersion={openFigureVersion}/>:guided?(tab==='results'?<LaneResults key={figureEpoch} project={project} result={result} onEdit={edit} onReview={review} onLocate={locate} onAnalyze={analyze} onExport={openExport} onArchive={archiveFigure} onPreview={onFigurePreview} figureDocument={figureDocument}/>:<LaneSetup onStateChange={project.example_case?.mode==='tutorial'?setTutorialEditor:undefined} onHistory={setCanvasHistory} key={workspaceEpoch} project={project} stage={tab==='workspace'?'reference':'targets'} activeSetId={activeSetId} onSet={setActiveSetId} onEdit={edit} onImport={()=>importImages().catch(e=>setMessage(String(e)))} onTarget={()=>{setActiveSetId('');navigate('samples')}}/>):<><QualityPanel project={project} result={result} onLocate={locate}/>{tab==='workspace'?<Workspace project={project} onEdit={edit} onDetect={detect} candidates={staged} onCandidates={setCandidates} onAcceptCandidates={acceptCandidates} onReview={review} busy={!!busy} selection={selection} onSelect={setSelection}/>:tab==='samples'?<SampleEditor project={project} onEdit={edit} onReview={review}/>:<Results project={project} result={result} onLocate={locate} onAnalyze={analyze}/>}</>}</section></div>}
+    initialDocument={initialStrip} onStateChange={project.example_case?.mode==='tutorial'?setTutorialFigure:undefined} onDocument={setActiveStrip} onSaved={library.refresh} onExported={receipt=>{reportLibraryExport(receipt);if(current.current?.id===project.id&&current.current.revision===project.revision){const proof=wbExportProof(project,tutorialFigure,receipt);if(proof)setTutorialExport(proof)}}} externalBusy={!!busy||switching} onBusy={working=>{wbBusy.current=working;setWbWorking(working)}} onBeforeSave={prepareWbSave} onDraft={dirty=>{wbDirty.current=dirty}} onHistory={history=>{wbHistory.current=history}}/>:frozen?<FigureDocument key={figureEpoch} figure={frozen} onArchive={archiveFigure} onPreview={onFigurePreview} onUpdate={updateFigureSource} canUpdate={!!result&&result.input_revision===project.revision} onWorkspace={()=>{setActiveSetId(project.band_sets.find(g=>g.role==='reference')?.id??'');navigate('workspace')}} onVersion={openFigureVersion}/>:guided?(tab==='results'?<LaneResults key={figureEpoch} project={project} result={result} onEdit={edit} onReview={review} onLocate={locate} onAnalyze={analyze} onExport={openExport} onArchive={archiveFigure} onPreview={onFigurePreview} figureDocument={figureDocument}/>:<LaneSetup onStateChange={project.example_case?.mode==='tutorial'?setTutorialEditor:undefined} onHistory={setCanvasHistory} onDiscardImageDraft={()=>ask('当前图像有未确认的修改。放弃并切换图像？').catch(error=>{setMessage(String(error));return false})} key={workspaceEpoch} project={project} stage={tab==='workspace'?'reference':'targets'} activeSetId={activeSetId} onSet={setActiveSetId} onEdit={edit} onImport={()=>importImages().catch(e=>setMessage(String(e)))} onTarget={()=>{setActiveSetId('');navigate('samples')}}/>):<><QualityPanel project={project} result={result} onLocate={locate}/>{tab==='workspace'?<Workspace project={project} onEdit={edit} onDetect={detect} candidates={staged} onCandidates={setCandidates} onAcceptCandidates={acceptCandidates} onReview={review} busy={!!busy} selection={selection} onSelect={setSelection}/>:tab==='samples'?<SampleEditor project={project} onEdit={edit} onReview={review}/>:<Results project={project} result={result} onLocate={locate} onAnalyze={analyze}/>}</>}</section></div>}
   {showExport&&exportContext&&<ExportPreview project={exportContext.project} result={exportContext.result} initialSettings={exportContext.settings} initialFigure={exportContext.figure} initialData={exportContext.preview?.figure_data} onClose={()=>setShowExport(false)} onExport={exportResult}/>}{!homeVisible&&<footer className="statusbar"><div className="status-summary">{project&&!homeVisible&&<><span>{project.images.length} 张原始图像</span><span>{project.rois.length} 个条带区域</span><span>{reviewed} 已复核</span>{project.example_case&&!project.synthetic&&<b className="synthetic-label">真实图像案例 · 仅供操作练习</b>}{(project.demo||project.synthetic)&&<b className="synthetic-label">纯合成示例 · 非实验数据</b>}</>}</div><div className="status-system"><span className="connection"><i className={connected?'online':''}/>{connected?'本地引擎就绪':'连接中'}</span>{project&&!homeVisible&&<span className="pixel-note"><ShieldCheck size={12}/>原始像素参与计算</span>}</div></footer>}</div></div>
   <IFWorkspace active={analysisVisible&&module==='if'} volumeAvailable={tool==='if'} onStatsSource={sendIFStats} registerClose={fn=>{ifClose.current=fn}}
    registerLibrary={actions=>{ifLibrary.current=actions}} library={library} libraryBusy={libraryBusy}

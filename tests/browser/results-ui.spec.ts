@@ -4,7 +4,7 @@ async function rpc(page:any,command:string,payload:object={}){
  const response=await page.request.post('/test-engine',{data:{command,payload}}),envelope=await response.json()
  expect(envelope.ok,envelope.error).toBe(true);return envelope.data
 }
-async function openResults(page:any){
+async function openResults(page:any,includeLegacy=false){
  await page.goto('/?integration=1')
  const created=await rpc(page,'library_create',{name:'结果界面验收 '+Date.now()});let p=await rpc(page,'demo')
  delete p.demo;p.synthetic=true;p.id=created.project.id;p.name=created.project.name;p.project_path=created.project.project_path;p.saved_revision=0
@@ -12,11 +12,26 @@ async function openResults(page:any){
  p.lane_layouts=[layout]
  p.band_sets=['reference','target'].map(role=>({id:role,layout_id:layout.id,analyte:role==='target'?'TARGET':'Loading control',role,window:role==='target'?[0,20,520,80]:[0,80,520,140],reference_set_id:role==='target'?'reference':null,assignments:p.lanes.map((l:any)=>({lane_id:l.id,roi_id:p.rois.find((r:any)=>r.lane_id===l.id&&r.role===role).id,status:'accepted'}))}))
  p.rois.forEach((r:any)=>{r.band_set_id=r.role;r.lane_layout_id=layout.id})
+ if(includeLegacy){
+  const {band_set_id,lane_layout_id,...legacy}=p.rois.find((r:any)=>r.role==='target')
+  p.rois.push({...legacy,id:'legacy-extra',analyte:'LEGACY'})
+ }
  p=await rpc(page,'save_project',{project:p,path:p.project_path,expected_revision:0});await rpc(page,'library_register',{path:p.project_path})
  await page.reload();await page.getByRole('button',{name:'打开分析 '+p.name,exact:true}).click()
  await page.getByRole('button',{name:'结果',exact:true}).click()
  return p
 }
+
+test('mixed WB projects can access their linked and legacy workbenches',async({page})=>{
+ const project=await openResults(page,true)
+ await expect(page.getByRole('table',{name:'泳道定量结果',exact:true})).toBeVisible()
+ await page.getByRole('button',{name:'旧版条带',exact:true}).click()
+ await expect(page.getByRole('button',{name:/^选择 L\d+ LEGACY$/})).toBeVisible()
+ await page.getByRole('button',{name:'泳道工作台',exact:true}).click()
+ await expect(page.getByRole('button',{name:'内参',exact:true})).toHaveAttribute('aria-current','page')
+ await expect(page.getByText('内参已确认',{exact:true})).toBeVisible()
+ await expect(page.getByLabel('实验名称',{exact:true})).toHaveValue(project.name)
+})
 
 test('results tabs preserve chart drafts and sample edits while extra columns stay lossless',async({page})=>{
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message))

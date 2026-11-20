@@ -6,7 +6,7 @@ import './wb-image-tabs.css'
 interface Props {
  images: ImageAsset[]
  activeId?: string
- onSelect: (id: string) => void
+ onSelect: (id: string) => void | Promise<boolean>
  disabled?: boolean
  children: ReactNode
 }
@@ -17,6 +17,7 @@ export default function WbImageTabs({images, activeId, onSelect, disabled, child
  const tabId = (imageId: string) => `${id}-tab-${imageId}`
  const strip = useRef<HTMLDivElement>(null)
  const activeTab = useRef<HTMLButtonElement>(null)
+ const selecting = useRef(false)
 
  useLayoutEffect(() => {
   const container = strip.current
@@ -29,6 +30,18 @@ export default function WbImageTabs({images, activeId, onSelect, disabled, child
   else if (tab.right > range.right) container.scrollLeft += tab.right - range.right
  }, [activeId, images.length])
 
+ async function select(imageId: string, focus: boolean) {
+  if (selecting.current) return
+  selecting.current = true
+  try {
+   const changed = await onSelect(imageId)
+   if (changed === false) activeTab.current?.focus({preventScroll: true})
+   else if (focus) strip.current?.ownerDocument.getElementById(tabId(imageId))?.focus({preventScroll: true})
+  } finally {
+   selecting.current = false
+  }
+ }
+
  function switchWithKeyboard(event: KeyboardEvent<HTMLButtonElement>, index: number) {
   if (event.altKey || event.ctrlKey || event.metaKey) return
   let next: number
@@ -39,9 +52,7 @@ export default function WbImageTabs({images, activeId, onSelect, disabled, child
   else return
   event.preventDefault()
   if (index === next) return
-  const imageId = images[next].id
-  onSelect(imageId)
-  event.currentTarget.ownerDocument.getElementById(tabId(imageId))?.focus({preventScroll: true})
+  void select(images[next].id, true)
  }
 
  return <>
@@ -52,7 +63,7 @@ export default function WbImageTabs({images, activeId, onSelect, disabled, child
     return <button type="button" className="wb-image-tab" key={image.id} id={tabId(image.id)}
      ref={selected ? activeTab : undefined} role="tab" aria-selected={selected} aria-controls={panelId}
      aria-label={image.name} title={image.name} disabled={disabled} tabIndex={selected ? 0 : -1}
-     onClick={() => {if (!selected) onSelect(image.id)}} onKeyDown={event => switchWithKeyboard(event, index)}>
+     onClick={() => {if (!selected) void select(image.id, false)}} onKeyDown={event => switchWithKeyboard(event, index)}>
      <span className="wb-image-tab-name">{pageLabel?.[1] ?? image.name}</span>
      {pageLabel && <span className="wb-image-tab-page">{pageLabel[2]}</span>}
     </button>

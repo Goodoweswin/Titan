@@ -523,10 +523,11 @@ dialog.source-dialog::backdrop { background: #24365066; }
 .lane-profile h3 { font-size:1rem; margin:0 0 12px; }
 .lane-profile svg { width:100%; max-height:220px; display:block; }
 .lane-profile text { font-size:12px; fill:#66768d; }
-.lane-advanced { margin-top:22px; border-top:1px solid var(--border); padding-top:14px; }
-.lane-advanced summary { cursor:pointer; color:var(--muted); font-size:.87rem; margin-bottom:14px; }
-.lane-advanced .btn { margin:4px 4px 10px 0; }
-.lane-advanced .btn[aria-pressed=true] { color:var(--accent); background:var(--accent-soft); border-color:var(--accent); }
+.wb-acquisition-dialog { width:min(420px,calc(100vw - 32px)); }
+.wb-acquisition-dialog fieldset { border:0; padding:0; margin:14px 0 0; min-width:0; }
+.wb-acquisition-dialog label { display:grid; gap:6px; margin-bottom:12px; }
+.wb-acquisition-dialog :is(select,input) { width:100%; }
+.lane-canvas-caption .text-btn[aria-pressed=true] { color:var(--accent); background:var(--accent-soft); }
 .lane-results { max-width:1400px; margin:auto; }
 .lane-results td small { display:block; font-size:.72rem; color:var(--muted); max-width:260px; margin-top:5px; }
 .lane-empty { min-height:450px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; color:var(--muted); }

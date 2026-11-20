@@ -35,6 +35,11 @@ async function setup(page:Page){
  await page.getByRole('button',{name:'确认内参',exact:true}).click();await expect(page.getByText('内参已确认',{exact:true})).toBeVisible()
 }
 async function box(page:Page,label:string){return page.getByLabel(label,{exact:true}).evaluate(e=>['x','y','width','height'].map(k=>Number(e.getAttribute(k))))}
+async function dragHandle(page:Page,label:string,dx:number,dy:number){
+ const [x,y,w,h]=await box(page,label)
+ const center=[x+w/2,y+h/2]
+ await drag(page,center,[center[0]+dx,center[1]+dy])
+}
 test('switching to pan keeps the canvas in place at narrow window widths',async({page})=>{
  await setup(page)
  const canvas=page.getByLabel('泳道分析画布')
@@ -55,7 +60,31 @@ test('switching to pan keeps the canvas in place at narrow window widths',async(
  }
 })
 
-test('manual correction can draw a missing peak from the inspector',async({page})=>{
+test('switching WB images asks before discarding a draft and restores the confirmed window',async({page})=>{
+ await setup(page)
+ await page.evaluate((source:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async(command:string)=>{
+  if(command==='plugin:dialog|open')return [source]
+  if(command==='plugin:dialog|message')return (window as any).discardDraft?'Ok':'Cancel'
+  throw Error(command)
+ }}},targetFile)
+ await page.getByRole('button',{name:'导入图像',exact:true}).click()
+ const target=page.getByRole('tab',{name:'target-crop.tif',exact:true})
+ const reference=page.getByRole('tab',{name:'lanes.tif',exact:true})
+ await expect(target).toHaveAttribute('aria-selected','true')
+ await reference.click()
+ await page.getByRole('button',{name:'重新识别',exact:true}).click()
+ await expect(page.getByRole('button',{name:'确认内参',exact:true})).toBeEnabled()
+ await target.click()
+ await expect(reference).toHaveAttribute('aria-selected','true')
+ await expect(reference).toBeFocused()
+ await expect(page.getByRole('button',{name:'确认内参',exact:true})).toBeEnabled()
+ await page.evaluate(()=>{(window as any).discardDraft=true})
+ await reference.press('ArrowRight')
+ await expect(target).toHaveAttribute('aria-selected','true')
+ await expect(target).toBeFocused()
+})
+
+test('a missing peak and its background can be drawn from the canvas',async({page})=>{
  await setup(page)
  await page.getByRole('button',{name:'目标',exact:true}).click()
  await page.getByLabel('目标名称',{exact:true}).fill('缺峰验收')
@@ -64,13 +93,69 @@ test('manual correction can draw a missing peak from the inspector',async({page}
  await drag(page,[20,60],[220,95])
  await page.getByRole('button',{name:'沿用内参位置',exact:true}).click()
  await expect(page.getByRole('button',{name:'L1 · 未检出',exact:true})).toBeVisible()
- const manual=page.getByText('手动调整与图像信息',{exact:true})
- await manual.click()
- await page.getByRole('button',{name:'调整峰区',exact:true}).click()
+ await page.getByRole('button',{name:'L1 · 未检出',exact:true}).click()
+ await page.getByRole('button',{name:'补画条带',exact:true}).click()
  await drag(page,[33,72],[48,80])
  await expect(page.getByLabel('峰区 L1',{exact:true})).toBeVisible()
- await manual.click()
+ await page.getByRole('button',{name:'添加背景框',exact:true}).click()
+ await drag(page,[33,63],[48,68])
+ await expect(page.getByLabel('背景 L1 · 1',{exact:true})).toBeVisible()
  await expect(page.getByRole('button',{name:'调整泳道',exact:true})).toHaveAttribute('aria-pressed','true')
+})
+
+test('band and background edges resize directly while lane selection keeps the inspector fixed',async({page})=>{
+ await setup(page)
+ const inspector=page.getByTestId('task-panel')
+ await inspector.scrollIntoViewIfNeeded()
+ const before=await inspector.boundingBox()
+ await page.getByRole('button',{name:'L2',exact:true}).click()
+ expect(await inspector.boundingBox()).toEqual(before)
+ await expect(inspector.getByLabel('样本名称',{exact:true})).toHaveCount(0)
+ await expect(inspector.getByRole('button',{name:'重置显示',exact:true})).toHaveCount(0)
+ await expect(inspector.getByText('手动调整与图像信息',{exact:true})).toHaveCount(0)
+ const original=await box(page,'峰区 L2'),lane=await box(page,'泳道 L2')
+ await dragHandle(page,'调整条带左边缘',2,0)
+ await dragHandle(page,'调整条带右边缘',-2,0)
+ await dragHandle(page,'调整条带上边缘',0,1)
+ await dragHandle(page,'调整条带下边缘',0,-1)
+ await expect.poll(()=>box(page,'峰区 L2')).toEqual([original[0]+2,original[1]+1,original[2]-4,original[3]-2])
+ await dragHandle(page,'调整条带左边缘',-4,0)
+ await expect.poll(async()=>(await box(page,'峰区 L2'))[0]).toBe(lane[0])
+ expect(await box(page,'泳道 L2')).toEqual(lane)
+ const background=page.getByLabel('背景 L2 · 1',{exact:true})
+ const backgrounds=page.getByLabel(/^背景 L2 · /)
+ const count=await backgrounds.count(),bg=await box(page,'背景 L2 · 1')
+ await background.click()
+ await dragHandle(page,'调整背景左边缘',2,0)
+ await expect.poll(()=>box(page,'背景 L2 · 1')).toEqual([bg[0]+2,bg[1],bg[2]-2,bg[3]])
+ await expect(backgrounds).toHaveCount(count)
+ await page.getByTitle('撤销',{exact:true}).click()
+ await expect.poll(()=>box(page,'背景 L2 · 1')).toEqual(bg)
+ const [,bandY,,bandHeight]=await box(page,'峰区 L2')
+ if(bg[1]+bg[3]<=bandY){
+  await dragHandle(page,'调整背景下边缘',0,bandY-bg[1]-bg[3]+2)
+  await expect.poll(async()=>{const [,y,,h]=await box(page,'背景 L2 · 1');return y+h}).toBe(bandY)
+ }else{
+  await dragHandle(page,'调整背景上边缘',0,bandY+bandHeight-bg[1]-2)
+  await expect.poll(async()=>(await box(page,'背景 L2 · 1'))[1]).toBe(bandY+bandHeight)
+ }
+ await page.getByRole('button',{name:'采集信息',exact:true}).click()
+ const acquisition=page.getByRole('dialog',{name:'采集信息',exact:true})
+ await expect(acquisition.getByRole('combobox',{name:'原始信号方向',exact:true})).toBeVisible()
+ const ceiling=acquisition.getByRole('spinbutton',{name:'有效编码上界',exact:true})
+ await expect(ceiling).toBeVisible()
+ await acquisition.getByRole('button',{name:'关闭',exact:true}).click()
+ const adjustedBand=await box(page,'峰区 L2'),adjustedBackground=await box(page,'背景 L2 · 1')
+ await page.getByRole('button',{name:'确认内参',exact:true}).click()
+ await expect(page.getByRole('button',{name:'添加目标',exact:true})).toBeVisible()
+ expect(await box(page,'峰区 L2')).toEqual(adjustedBand)
+ expect(await box(page,'背景 L2 · 1')).toEqual(adjustedBackground)
+ await page.getByRole('button',{name:'采集信息',exact:true}).click()
+ await ceiling.fill('4095.5')
+ await acquisition.getByRole('button',{name:'应用',exact:true}).click()
+ await expect(acquisition).toHaveCount(0)
+ await page.getByRole('button',{name:'采集信息',exact:true}).click()
+ await expect(ceiling).toHaveValue('4095.5')
 })
 
 test('image view zoom and Space pan preserve original region coordinates',async({page})=>{
@@ -165,9 +250,12 @@ test('lane mode ignores blank drags and drags confirmed lanes through their peak
 test('both lane boundaries and keyboard nudges work without changing other lane peaks',async({page})=>{
  await setup(page);await page.getByRole('button',{name:'L2',exact:true}).click()
  const lane=await box(page,'泳道 L2'),other=await box(page,'峰区 L3')
- await drag(page,[lane[0],lane[1]+lane[3]/2],[lane[0]+2,lane[1]+lane[3]/2])
+ await dragHandle(page,'调整泳道左边界',2,0)
  await expect.poll(async()=>(await box(page,'泳道 L2'))[0]).toBe(lane[0]+2)
  expect((await box(page,'泳道 L2'))[2]).toBe(lane[2]-2)
+ await dragHandle(page,'调整泳道右边界',-2,0)
+ await expect.poll(async()=>(await box(page,'泳道 L2'))[2]).toBe(lane[2]-4)
+ await expect(page.getByRole('button',{name:'确认内参',exact:true})).toBeEnabled()
  const canvas=page.getByLabel('泳道分析画布');await canvas.focus();await page.keyboard.press('ArrowLeft')
  await expect.poll(async()=>(await box(page,'泳道 L2'))[0]).toBe(lane[0]+1)
  await page.keyboard.press('Shift+ArrowRight');await expect.poll(async()=>(await box(page,'泳道 L2'))[0]).toBe(lane[0]+11)

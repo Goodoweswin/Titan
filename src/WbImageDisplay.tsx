@@ -37,7 +37,7 @@ export function useWbImageDisplay(asset:ImageAsset|undefined){
  },[key,settings,adjusted])
  return {
   src:adjusted&&rendered?.key===key?rendered?.png:asset?.preview,
-  settings,adjusted,failed,
+  settings,failed,
   adjust:(next:Tuning)=>setTuning(current=>({...current,[imageId]:next})),
  }
 }
@@ -50,8 +50,7 @@ export default function WbImageDisplay({display}:{display:ReturnType<typeof useW
     <input type="range" aria-label={key==='brightness'?'亮度':'对比度'} min={-100} max={100}
      value={display.settings[key]} onChange={event=>display.adjust({...display.settings,[key]:Number(event.target.value)})}/>
    </label>)}
-   <button type="button" className="text-btn" disabled={!display.adjusted} onClick={()=>display.adjust(defaults)}>重置显示</button>
    <p className="hint">仅调整预览，定量使用原始像素。</p>
-   {display.failed&&<p className="hint" role="status">显示预览未更新，请重新调节或重置。</p>}
+   {display.failed&&<p className="hint" role="status">显示预览未更新，请再调节一次。</p>}
  </section>
 }

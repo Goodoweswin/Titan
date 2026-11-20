@@ -1,20 +1,21 @@
 import {useEffect,useLayoutEffect,useRef,useState} from 'react'
 import {callEngine} from './bridge'
 import type {ImageAsset,Project,Rect,LaneProposal,BandProposal,BandCandidate,LaneColumn} from './types'
-import {acceptLaneLayout,createBandSet,copyLaneLayout,alignLaneLayout,setLaneRect,acceptBandAssignments,applyPreparedDraft,renameBandSet} from './lane-workflow'
-import LaneLayoutEditor,{laneCorrectionTools,type LaneTool} from './LaneLayoutEditor'
+import {acceptLaneLayout,createBandSet,copyLaneLayout,alignLaneLayout,setLaneRect,acceptBandAssignments,applyPreparedDraft,renameBandSet,rectanglesOverlap} from './lane-workflow'
+import LaneLayoutEditor,{type LaneTool} from './LaneLayoutEditor'
 import WbImageDisplay,{useWbImageDisplay} from './WbImageDisplay'
 import WbImageTabs from './WbImageTabs'
 import LaneProfilePanel from './LaneProfilePanel'
 import ImageRotationDialog from './ImageRotationDialog'
+import WbAcquisitionDialog from './WbAcquisitionDialog'
 import type {WbEditorState} from './wb-tutorial'
 
 export interface CanvasHistory{canUndo:boolean;canRedo:boolean;dirty:boolean;busy:boolean;undo:()=>void;redo:()=>void}
 type Mapping={proposal:LaneProposal;values:Record<string,string>}
 type Snapshot={preview:Preview|null;region:Rect|null;mapping:Mapping|null;referenceId:string;regionEdits:number}
 type Preview={baseRevision:number;draft:Project;setId:string;bands:BandProposal[]|null;choices:Record<string,number>;uncertain?:string[]}
-interface Props{project:Project;stage:'reference'|'targets';activeSetId:string;onSet:(id:string)=>void;onEdit:(f:(draft:Project)=>void)=>void;onImport:()=>void;onTarget:()=>void;onHistory:(value:CanvasHistory|null)=>void;onStateChange?:(value:WbEditorState|null)=>void}
-export default function LaneSetup({project,stage,activeSetId,onSet,onEdit,onImport,onTarget,onHistory,onStateChange}:Props){
+interface Props{project:Project;stage:'reference'|'targets';activeSetId:string;onSet:(id:string)=>void;onEdit:(f:(draft:Project)=>void)=>void;onImport:()=>void;onTarget:()=>void;onHistory:(value:CanvasHistory|null)=>void;onDiscardImageDraft:()=>Promise<boolean>;onStateChange?:(value:WbEditorState|null)=>void}
+export default function LaneSetup({project,stage,activeSetId,onSet,onEdit,onImport,onTarget,onHistory,onDiscardImageDraft,onStateChange}:Props){
  const role=stage==='reference'?'reference':'target'
  const existing=project.band_sets.find(g=>g.id===activeSetId&&g.role===role)??(role==='reference'?project.band_sets.find(g=>g.role==='reference'):undefined)
  const existingLayout=project.lane_layouts.find(l=>l.id===existing?.layout_id)
@@ -26,16 +27,17 @@ export default function LaneSetup({project,stage,activeSetId,onSet,onEdit,onImpo
  const [activity,setActivity]=useState({regionEdits:0,laneSelections:0,identifications:0})
  function pickLane(id:string){setSelected(id);if(id)setActivity(v=>({...v,laneSelections:v.laneSelections+1}))}
  const [mapping,setMapping]=useState<Mapping|null>(null),[rotating,setRotating]=useState(false)
+ const [showAcquisition,setShowAcquisition]=useState(false)
  const [past,setPast]=useState<Snapshot[]>([]),[future,setFuture]=useState<Snapshot[]>([])
  function snapshot():Snapshot{return structuredClone({preview,region,mapping,referenceId,regionEdits:activity.regionEdits})}
  function remember(){setPast(v=>[...v.slice(-49),snapshot()]);setFuture([])}
  function restore(redo=false){const list=redo?future:past;if(!list.length)return;generation.current++;busyJob.current++;setBusy(false);setMessage('');const next=list.at(-1)!;if(redo){setFuture(list.slice(0,-1));setPast(v=>[...v,snapshot()])}else{setPast(list.slice(0,-1));setFuture(v=>[...v,snapshot()])}setPreview(structuredClone(next.preview));setRegion(next.region);setActivity(v=>({...v,regionEdits:next.regionEdits}));setMapping(next.mapping);setReferenceId(next.referenceId);if(next.preview&&!next.preview.bands)void work(()=>measurePreview(structuredClone(next.preview!)))}
  const historyActions=useRef({undo:()=>{},redo:()=>{}});historyActions.current={undo:()=>restore(),redo:()=>restore(true)}
- useLayoutEffect(()=>{onHistory({canUndo:!rotating&&past.length>0,canRedo:!rotating&&future.length>0,dirty:!!preview||!!mapping||rotating,busy,undo:()=>historyActions.current.undo(),redo:()=>historyActions.current.redo()})},[past,future,preview,region,busy,mapping,rotating])
+ useLayoutEffect(()=>{onHistory({canUndo:!rotating&&!showAcquisition&&past.length>0,canRedo:!rotating&&!showAcquisition&&future.length>0,dirty:!!preview||!!mapping||rotating||showAcquisition,busy,undo:()=>historyActions.current.undo(),redo:()=>historyActions.current.redo()})},[past,future,preview,region,busy,mapping,rotating,showAcquisition])
  useEffect(()=>()=>onHistory(null),[])
  const lastReference=useRef(existing?.reference_set_id??null),knownImages=useRef(new Set(project.images.map(a=>a.id))),lastLayout=useRef(existing?.layout_id),generation=useRef(0),busyJob=useRef(0),latest=useRef(project);latest.current=project
  useEffect(()=>{
-  setActivity({regionEdits:0,laneSelections:0,identifications:0})
+  setActivity({regionEdits:0,laneSelections:0,identifications:0});setShowAcquisition(false)
   lastReference.current=existing?.reference_set_id??null
   generation.current++;busyJob.current++;setBusy(false);setPreview(null);setPast([]);setFuture([]);setSelected('');setMapping(null);setRotating(false);setMessage('');setRegion(existing?.window??null);setName(existing?.analyte??(role==='reference'?'内参':''));setImageId(existingLayout?.image_id??'');setReferenceId(existing?(existing.reference_set_id??''):(references[0]?.id??''))
   return()=>{generation.current++;busyJob.current++}
@@ -106,7 +108,7 @@ export default function LaneSetup({project,stage,activeSetId,onSet,onEdit,onImpo
  async function identify(){await work(async()=>{
   if(!asset||!region)throw new Error('先点击“选择区域”，拖选蛋白所在的横向区域，并避开 marker')
   if(!name.trim())throw new Error('请填写蛋白名称')
-  if(asset.polarity==='dark'&&!asset.ceiling)throw new Error('请在“图像信息”中填写有效编码上界后再识别。仅改变画面黑白可直接使用“显示反色”。')
+  if(asset.polarity==='dark'&&!asset.ceiling)throw new Error('请在「采集信息」填写有效编码上界后再识别。')
   if(role==='target'){const next=targetPreview();remember();setPreview({...next,bands:null});await measurePreview(next);return}
   const token=++generation.current,baseId=project.id,baseRevision=project.revision
   // Re-identification uses the confirmed template and its explicit identities.
@@ -174,14 +176,21 @@ export default function LaneSetup({project,stage,activeSetId,onSet,onEdit,onImpo
   const column=p.lane_layouts.find(l=>l.id===layoutId)!.columns.find(c=>c.lane_id===id)!
   setLaneRect(p,layoutId,id,[rect[0],column.rect[1],rect[2],column.rect[3]])
  })}
- function updateBand(id:string,rect:Rect,background?:Rect){
+ function updateBand(id:string,rect:Rect,background?:{rect:Rect;index?:number}){
   try{
    const next=editable(),b=next.bands?.find(b=>b.lane_id===id);if(!b)return
    let index=next.choices[id]??-1
    if(index<0){b.candidates.push({rect,backgrounds:[]});index=b.candidates.length-1;next.choices[id]=index}
    const candidate=b.candidates[index]
-   if(background)candidate.backgrounds.push(background)
-   else {candidate.rect=rect;candidate.backgrounds=candidate.backgrounds.filter(bg=>!(Math.max(bg[1],rect[1])<Math.min(bg[3],rect[3])))}
+   if(background){
+    if(rectanglesOverlap(background.rect,candidate.rect))throw new Error('请让背景框避开条带。')
+    if(background.index===undefined)candidate.backgrounds.push(background.rect)
+    else if(candidate.backgrounds[background.index])candidate.backgrounds[background.index]=background.rect
+    else return
+   }else{
+    candidate.rect=rect
+    candidate.backgrounds=candidate.backgrounds.filter(bg=>!rectanglesOverlap(bg,rect))
+   }
    b.status=b.candidates.length>1?'ambiguous':'proposed';remember();setPreview(next);setMessage('')
   }catch(e){setMessage(String(e))}
  }
@@ -201,23 +210,30 @@ export default function LaneSetup({project,stage,activeSetId,onSet,onEdit,onImpo
  }catch(e){setMessage(String(e))}}
  const hasAccepted=!!existing&&existingLayout?.image_id===asset?.id&&!preview&&!mapping&&existing.assignments.some(a=>a.status==='accepted')
  const confirmed=hasAccepted&&!referenceChanged
- const displayRegion=region??(existingLayout?.image_id===asset?.id?existing?.window??null:null)
+ const savedRegion=existingLayout?.image_id===asset?.id?existing?.window??null:null
+ const displayRegion=region??savedRegion
  const selectedPeak=visibleBands[selected]?.rect
- const selectedSample=shownProject.samples.find(s=>s.id===shownProject.lanes.find(l=>l.id===selected)?.sample_id)
  const unresolved=preview?.bands?.filter(b=>b.candidates.length>0&&!b.candidates[preview.choices[b.lane_id]??-1]).length??0
  const backgroundsReady=!!preview?.bands?.length&&preview.bands.every(b=>!b.candidates.length||!!b.candidates[preview.choices[b.lane_id]??-1]?.backgrounds.length)
- function selectImage(id:string){
+ async function selectImage(id:string){
+  const token=generation.current
+  const editedRegion=region&&region.join(',')!==savedRegion?.join(',')
+  if((preview||mapping||editedRegion)&&!await onDiscardImageDraft())return false
+  if(token!==generation.current)return false
   generation.current++
   setPast([]);setFuture([])
   setMapping(null);setPreview(null)
-  setImageId(id);setRegion(null);setSelected('')
+  setImageId(id);setRegion(existingLayout?.image_id===id?existing?.window??null:null);setSelected('');setMessage('')
+  return true
  }
  useEffect(()=>{onStateChange?.({projectId:project.id,revision:project.revision,imageId:asset?.id??'',setId:group?.id??'',...activity,selectedLane:selected,hasRegion:!!displayRegion,hasPreview:!!preview?.bands,unresolved,backgroundsReady,busy})},[project.id,project.revision,asset?.id,group?.id,activity,selected,!!displayRegion,!!preview?.bands,unresolved,backgroundsReady,busy,onStateChange])
  useEffect(()=>()=>onStateChange?.(null),[project.id,onStateChange])
 
  return <div className="lane-workspace"><div className="lane-main">
   <WbImageTabs images={project.images} activeId={asset?.id} onSelect={selectImage} disabled={busy}>
-  {!asset?<div className="lane-empty"><h2>先导入内参图像</h2><p>建立一次泳道与样本对应，后续目标可以直接复用。</p></div>:<LaneLayoutEditor asset={asset} displaySrc={display.src} tool={canvasTool} onToolChange={setCanvasTool} region={displayRegion} columns={columns} laneBounds={layout?.window} bands={visibleBands} selected={selected} readOnly={!!project.read_only||busy||referenceChanged} onSelect={pickLane} onRegion={changeRegion} onColumn={adjustColumn} onAlign={dx=>adjust((p,l)=>alignLaneLayout(p,l,{dx,dy:0,scaleX:1,anchorX:0}))} onBand={(id,r)=>updateBand(id,r)} onBackground={(id,r)=>{const c=visibleBands[id];if(c)updateBand(id,c.rect,r)}} onRotate={()=>setRotating(true)} onInvert={()=>{if(preview){remember();setPreview(current=>{if(!current)return current;const next=structuredClone(current),a=next.draft.images.find(a=>a.id===asset.id)!;a.display_inverted=!a.display_inverted;return next})}else onEdit(p=>{const a=p.images.find(a=>a.id===asset.id)!;a.display_inverted=!a.display_inverted})}}/>}
+  {!asset?<div className="lane-empty"><h2>先导入内参图像</h2><p>建立一次泳道与样本对应，后续目标可以直接复用。</p></div>:<LaneLayoutEditor asset={asset} displaySrc={display.src} tool={canvasTool} onToolChange={setCanvasTool} region={displayRegion} columns={columns} laneBounds={layout?.window} bands={visibleBands} selected={selected} readOnly={!!project.read_only||busy||referenceChanged} onSelect={pickLane} onRegion={changeRegion} onColumn={adjustColumn} onAlign={dx=>adjust((p,l)=>alignLaneLayout(p,l,{dx,dy:0,scaleX:1,anchorX:0}))} onBand={(id,r)=>updateBand(id,r)} onBackground={(id,rect,index)=>{const c=visibleBands[id];if(c)updateBand(id,c.rect,{rect,index})}} onAcquisition={()=>setShowAcquisition(true)} onRotate={()=>setRotating(true)} onInvert={()=>{if(preview){remember();setPreview(current=>{if(!current)return current;const next=structuredClone(current),a=next.draft.images.find(a=>a.id===asset.id)!;a.display_inverted=!a.display_inverted;return next})}else onEdit(p=>{const a=p.images.find(a=>a.id===asset.id)!;a.display_inverted=!a.display_inverted})}}/>}
+  {showAcquisition&&asset&&<WbAcquisitionDialog key={asset.id} asset={asset} readOnly={!!project.read_only||busy} onClose={()=>setShowAcquisition(false)}
+   onApply={(polarity,ceiling)=>onEdit(p=>{const image=p.images.find(a=>a.id===asset.id);if(image){image.polarity=polarity;image.ceiling=ceiling}})}/>}
   {rotating&&asset&&<ImageRotationDialog asset={asset} onApply={rotate} onClose={()=>{generation.current++;setRotating(false)}}/>}
   {mapping&&<section className="lane-mapping"><strong>{role==='target'?'核对目标泳道对应':'核对泳道对应'}</strong><p className="hint">请明确每个候选对应的原泳道，未检出的位置也需保留，避免样本错配。</p>{mapping.proposal.columns.map((c,i)=><label key={c.proposal_id}>候选 {i+1}<select aria-label={`候选 ${i+1} 对应泳道`} value={mapping.values[c.proposal_id]??''} onChange={e=>{remember();setMapping({...mapping,values:{...mapping.values,[c.proposal_id]:e.target.value}})}}><option value="">请选择</option>{mappingColumns?.map(l=><option key={l.lane_id} value={l.lane_id}>{l.lane_id}</option>)}{role==='reference'&&<><option value="new">新泳道</option><option value="exclude">不使用</option></>}</select></label>)}<button className="btn primary" disabled={busy||mapping.proposal.columns.some(c=>!mapping.values[c.proposal_id])} onClick={()=>work(()=>prepareProposal(mapping.proposal,Object.fromEntries(mapping.proposal.columns.filter(c=>mapping.values[c.proposal_id]!=='exclude').map(c=>[c.proposal_id,mapping.values[c.proposal_id]==='new'?null:mapping.values[c.proposal_id]]))))}>确认泳道对应</button><button className="text-btn" disabled={busy} onClick={()=>{remember();setMapping(null)}}>取消泳道识别</button></section>}
   {columns.length>0&&<div data-wb-guide="lane-list" className="lane-check-list" aria-label="泳道检查">{columns.map(c=>{
@@ -238,11 +254,6 @@ export default function LaneSetup({project,stage,activeSetId,onSet,onEdit,onImpo
   {referenceChanged&&<p className="hint">对应内参已切换，请重新识别目标后确认。</p>}
   {existingLayout&&role==='reference'&&<p className="hint">拖动泳道直接微调，确认后保存；重新识别会生成新的峰区建议。</p>}
   {columns.length>0&&<p className="lane-count">{columns.length} 条泳道</p>}
-  {selectedSample&&<label>样本名称<input aria-label="样本名称" disabled={project.read_only||busy} value={selectedSample.name??selectedSample.id} onChange={e=>{
-   const name=e.target.value
-   if(preview){remember();setPreview(p=>{if(!p)return p;const next=structuredClone(p);next.draft.samples.find(s=>s.id===selectedSample.id)!.name=name;return next})}
-   else onEdit(p=>{p.samples.find(s=>s.id===selectedSample.id)!.name=name})
-  }}/></label>}
   {confirmed&&<p className="lane-confirmed">{role==='reference'?'内参已确认':'目标已确认'}</p>}
   {message&&<p role="alert" className="lane-message">{message}</p>}
   <button data-wb-guide={preview?.bands?'confirm-target':'identify-target'} className="btn primary full" disabled={busy||!!mapping||!!project.read_only||(role==='target'&&!references.length&&!canRemeasureUnlinked)} onClick={()=>!asset?onImport():preview?.bands?confirm():confirmed?(onSet(''),onTarget()):identify()}>{busy?'正在识别…':mapping?'先核对泳道':!asset?'导入内参图':preview?.bands?(role==='reference'?'确认内参':'确认目标'):confirmed?(role==='reference'?'添加目标':'添加下一个目标'):(role==='reference'?'识别泳道':'识别目标')}</button>
@@ -251,16 +262,5 @@ export default function LaneSetup({project,stage,activeSetId,onSet,onEdit,onImpo
   {busy&&<button className="text-btn" onClick={()=>{generation.current++;busyJob.current++;setBusy(false);setPreview(null);setMessage('已取消识别，本次建议不会加入实验。')}}>取消识别</button>}
   {role==='target'&&!references.length&&<p className="hint">{canRemeasureUnlinked?'可先检查并确认原始测量；补充配套内参后才能计算比值。':'先在“内参”步骤确认泳道和内参。'}</p>}
   {asset&&<WbImageDisplay display={display}/>}
-  <details className="lane-advanced" onToggle={event=>{
-   if(!event.currentTarget.open)setCanvasTool(tool=>tool==='peaks'||tool==='background'?'lanes':tool)
-  }}>
-   <summary data-wb-guide="lane-correction">手动调整与图像信息</summary>
-   {columns.length>0&&<div className="target-lane-actions">
-    {laneCorrectionTools.map(([id,label])=><button key={id} type="button" className="btn secondary"
-     aria-pressed={canvasTool===id} disabled={busy||project.read_only||referenceChanged}
-     onClick={()=>setCanvasTool(canvasTool===id?'lanes':id)}>{label}</button>)}
-   </div>}
-   {asset&&<><label>原始信号方向<select aria-label="原始信号方向" value={asset.polarity} disabled={project.read_only} onChange={e=>onEdit(p=>p.images.find(a=>a.id===asset.id)!.polarity=e.target.value as 'bright'|'dark')}><option value="bright">数值越大，信号越强</option><option value="dark">数值越小，信号越强</option></select></label><label>有效编码上界<input type="number" value={asset.ceiling??''} disabled={project.read_only} placeholder="按采集记录填写" onChange={e=>onEdit(p=>p.images.find(a=>a.id===asset.id)!.ceiling=e.target.value?Number(e.target.value):null)}/></label><p className="hint">显示反色只改变画面。原始信号方向参与计算；暗信号需提供有效编码上界。</p><p className="hint">原始文件：{asset.name}；第 {(asset.page_index??0)+1} 页。</p></>}{role==='target'&&<><button className="btn secondary" disabled={!region||busy||project.read_only} onClick={()=>adjust((p,l)=>alignLaneLayout(p,l,{dx:0,dy:0,scaleX:.97,anchorX:(asset?.width??0)/2}))}>缩小泳道间距</button><button className="btn secondary" disabled={!region||busy||project.read_only} onClick={()=>adjust((p,l)=>alignLaneLayout(p,l,{dx:0,dy:0,scaleX:1.03,anchorX:(asset?.width??0)/2}))}>增大泳道间距</button></>}
-  </details>
  </aside></div>
 }

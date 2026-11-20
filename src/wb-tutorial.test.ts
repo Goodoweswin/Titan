@@ -44,7 +44,7 @@ describe('action-gated WB tutorial',()=>{
   expect(tutorialStepState(next,c).ready).toBe(true)
   c.editor!.backgroundsReady=false
   expect(tutorialStepState(next,c).ready).toBe(false)
-  expect(tutorialStepState(next,c).target).toBe('lane-correction')
+  expect(tutorialStepState(next,c).target).toBe('canvas')
   c.editor!.hasPreview=false
   expect(tutorialStepState(next,c).recovery).toBe(true)
  })

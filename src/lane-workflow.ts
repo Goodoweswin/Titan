@@ -21,7 +21,7 @@ export function acceptLaneLayout(p:Project,proposal:LaneProposal,mapping:Record<
 function writable(p:Project){if(p.read_only)throw new Error('只读项目不能编辑')}
 function layoutOf(p:Project,id:string){const l=p.lane_layouts.find(l=>l.id===id);if(!l)throw new Error('泳道布局不存在');return l}
 function validRect(rect:Rect,width:number,height:number){return rect.every(Number.isInteger)&&rect[0]>=0&&rect[1]>=0&&rect[2]<=width&&rect[3]<=height&&rect[0]<rect[2]&&rect[1]<rect[3]}
-function overlap(a:Rect,b:Rect){return Math.max(a[0],b[0])<Math.min(a[2],b[2])&&Math.max(a[1],b[1])<Math.min(a[3],b[3])}
+export function rectanglesOverlap(a:Rect,b:Rect){return Math.max(a[0],b[0])<Math.min(a[2],b[2])&&Math.max(a[1],b[1])<Math.min(a[3],b[3])}
 
 export function applyPreparedDraft(p:Project,draft:Project,baseRevision:number){
  writable(p);if(p.id!==draft.id||p.revision!==baseRevision)throw new Error('输入已变化，请重新识别')
@@ -92,7 +92,7 @@ export function acceptBandAssignments(p:Project,setId:string,choices:BandChoice[
   if(p.rois.some(r=>r.band_set_id!==group.id&&r.lane_id===c.lane_id&&r.analyte===group.analyte&&r.role===group.role))throw new Error('该泳道已有此蛋白的正式测量，请检查名称')
   const column=layout.columns.find(l=>l.lane_id===c.lane_id)!
   if(!c.rect||!validRect(c.rect,asset.width,asset.height)||c.rect[0]<column.rect[0]||c.rect[2]>column.rect[2])throw new Error('峰区必须位于对应泳道内')
-  if(!c.backgrounds?.length||c.backgrounds.some(b=>!validRect(b,asset.width,asset.height)||overlap(b,c.rect!)))throw new Error('请为每个峰确认不重叠的局部背景')
+  if(!c.backgrounds?.length||c.backgrounds.some(b=>!validRect(b,asset.width,asset.height)||rectanglesOverlap(b,c.rect!)))throw new Error('请为每个峰确认不重叠的局部背景')
  }
  const previouslyApproved=new Set(p.rois.filter(r=>r.role==='target'&&r.reviewed_revision===p.revision).map(r=>r.id))
  const removed=new Set(group.assignments.map(a=>a.roi_id));p.rois=p.rois.filter(r=>!removed.has(r.id))

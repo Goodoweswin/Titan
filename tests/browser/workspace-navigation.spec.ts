@@ -6,11 +6,12 @@ async function rpc(page:any,command:string,payload:object={}){
  const response=await(await page.request.post('/test-engine',{data:{command,payload}})).json()
  expect(response.ok,response.error).toBe(true);return response.data
 }
-async function savedWB(page:any,name:string,guided=false){
+async function savedWB(page:any,name:string,mode:'demo'|'legacy'|'formal'='demo'){
  const created=await rpc(page,'library_create',{name})
  let p=await rpc(page,'demo')
  p={...p,id:created.project.id,name,project_path:created.project.project_path,saved_revision:0}
- if(guided){delete p.demo;p.synthetic=true}
+ if(mode!=='demo'){delete p.demo;p.synthetic=true}
+ if(mode==='formal'){p.rois=[];p.lanes=[];p.samples=[]}
  p=await rpc(page,'save_project',{project:p,path:p.project_path,expected_revision:0})
  await rpc(page,'library_register',{path:p.project_path})
  return p
@@ -144,7 +145,7 @@ test('missing historical statistics table preserves the current table and undo s
 
 test('WB formal target step survives back from a different WB analysis',async({page})=>{
  await page.goto('/?integration=1')
- await savedWB(page,'formal history A',true);await savedWB(page,'formal history B',true)
+ await savedWB(page,'formal history A','formal');await savedWB(page,'formal history B','formal')
  await page.reload()
  await page.getByRole('button',{name:'打开分析 formal history A',exact:true}).click()
  await page.getByRole('button',{name:'目标',exact:true}).click()
@@ -154,6 +155,18 @@ test('WB formal target step survives back from a different WB analysis',async({p
  await expect(page.getByLabel('实验名称',{exact:true})).toHaveValue('formal history A')
  await expect(page.getByRole('button',{name:'目标',exact:true})).toHaveAttribute('aria-current','page')
  await expect(page.getByLabel('泳道分析画布',{exact:true})).toBeVisible()
+})
+
+test('existing WB analyses with manual ROIs can still open and quantify their original measurements',async({page})=>{
+ await page.goto('/?integration=1')
+ await savedWB(page,'existing manual WB','legacy');await page.reload()
+ await page.getByRole('button',{name:'打开分析 existing manual WB',exact:true}).click()
+ await expect(page.getByLabel('原图条带工作台',{exact:true})).toBeVisible()
+ await page.getByRole('button',{name:'开始定量',exact:true}).click()
+ await expect(page.getByRole('heading',{name:'定量结果',exact:true})).toBeVisible()
+ await page.getByRole('button',{name:'原始测量',exact:true}).click()
+ await expect(page.getByRole('button',{name:'L1 · TARGET',exact:true})).toBeVisible()
+ await expect(page.getByRole('button',{name:'导出结果',exact:true})).toBeEnabled()
 })
 
 test('history before the first IF field resolves to a live view without freezing navigation',async({page})=>{

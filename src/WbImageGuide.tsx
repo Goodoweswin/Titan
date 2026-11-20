@@ -1,16 +1,16 @@
 import {useEffect, useRef, useState} from 'react'
 import {Hand, X} from 'lucide-react'
-import {laneCorrectionTools,laneTools} from './LaneLayoutEditor'
+import {laneTools} from './LaneLayoutEditor'
 
-const tools = [...laneTools, ['rotate','旋转校正'], ['pan','移动视图'], ...laneCorrectionTools] as const
+const tools = [...laneTools, ['rotate','旋转校正'], ['pan','移动视图'], ['peaks','调整条带框'], ['background','调整背景框']] as const
 type Mode = typeof tools[number][0]
 
 const descriptions: Record<Mode, string> = {
  region: '在图像上横向拖出一个框，圈住同一种蛋白的所有条带，避开分子量标记（Marker）。框好后再识别泳道。',
  lanes: '点选一条泳道。拖蓝框左右移动，拖两侧手柄改宽度。画布聚焦时可用左右方向键微调。',
  align: '在画布上左右拖动，让所有泳道一起对齐。适合目标图像上的泳道整体偏移时使用。',
- peaks: '需要修改识别建议时，在右栏的「手动调整与图像信息」选择「调整峰区」。拖动绿框微调位置和高度。',
- background: '需要修正背景时，在右栏的「手动调整与图像信息」选择「画背景」。选中泳道后，拖出避开条带的背景框。',
+ peaks: '在「调整泳道」中点选绿色条带框，拖动任意一边调整范围。缺少条带时，选择泳道后点击画布下方「补画条带」。',
+ background: '点选橙色虚线框，拖动任意一边调整背景范围。缺少背景时，选中条带，点击画布下方「添加背景框」后拖出一个避开条带的框。',
  rotate: '图像倾斜时，参照水平线和垂直线微调角度。应用后保留原图，并在校正视图上重新框选。',
  pan: '拖动画布查看边缘。要继续框选，点「选择区域」或再点一次「移动视图」退出。',
 }
@@ -33,8 +33,9 @@ function ToolDiagram({mode}: {mode: Mode}) {
   {mode === 'region' && <rect x="87" y="53" width="271" height="55" rx="2" fill="#81a9ff18" stroke="#9abaff" strokeDasharray="5 4" strokeWidth="2"/>}
   {mode === 'lanes' && <path d="M159 78h6v7h-6zm55 0h6v7h-6z" fill="#81a9ff"/>}
   {(mode === 'peaks' || mode === 'background') && <rect x="162" y="70" width="55" height="20" fill="#59d6ad23" stroke="#59d6ad"/>}
-  {mode === 'peaks' && <rect x="210" y="87" width="7" height="7" fill="#59d6ad"/>}
+  {mode === 'peaks' && <path d="M159 77h6v6h-6zm55 0h6v6h-6zm-28-10h6v6h-6zm0 20h6v6h-6z" fill="#59d6ad"/>}
   {mode === 'background' && <rect x="162" y="95" width="55" height="12" fill="#d7ab5733" stroke="#d7ab57" strokeDasharray="4 3"/>}
+  {mode === 'background' && <path d="M159 98h6v6h-6zm55 0h6v6h-6zm-28-6h6v6h-6zm0 12h6v6h-6z" fill="#d7ab57"/>}
   {mode === 'rotate' && <path d="M35 82h330M200 29v104" stroke="#81a9ff" strokeDasharray="5 4"/>}
   {(mode === 'align' || mode === 'pan') && <path d="M174 124h52m-46-5-6 5 6 5m40-10 6 5-6 5" fill="none" stroke="#b3caff" strokeWidth="2" strokeLinecap="round"/>}
  </svg>

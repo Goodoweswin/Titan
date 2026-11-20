@@ -115,7 +115,7 @@ export function numberLanes(p:Project,ids:string[],start:number){
  const selected=p.rois.filter(r=>ids.includes(r.id)).sort((a,b)=>a.rect[0]-b.rect[0])
  if(!selected.length||new Set(selected.map(r=>r.image_id)).size!==1)throw new Error('请选择同一图像的条带')
  const lanes=Array.from(new Set(selected.map(r=>r.lane_id)))
- if(p.lane_layouts.some(l=>l.columns.some(c=>lanes.includes(c.lane_id))))throw new Error('已建立泳道身份，请在内参步骤调整位置或样本名称')
+ if(p.lane_layouts.some(l=>l.columns.some(c=>lanes.includes(c.lane_id))))throw new Error('已建立泳道身份，请在内参调整位置，在结果的样本设置填写样本名称')
  const mapping=new Map(lanes.map((id,i)=>[id,`L${start+i}`]))
  if(p.lanes.some(l=>!mapping.has(l.id)&&[...mapping.values()].includes(l.id)))throw new Error('编号与未选泳道冲突；未应用本次操作')
  for(const l of p.lanes)l.id=mapping.get(l.id)??l.id
