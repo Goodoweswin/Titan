@@ -37,6 +37,7 @@
 
 | 构建编号 | 源码与基础版本 | 主要范围 | 验收及分发状态 |
 | --- | --- | --- | --- |
+| `local-20261120-wb-tabs-and-updater` | `78fafc0` · 基础 `v0.4.4-beta.1` · 显示版本 `0.4.4` | 中栏 WB 图像页签、预览反色、正式画布修正和左下角紧凑更新按钮 | 已安装本机。162 项前端、60 项浏览器和 25 项引擎相关测试通过，原生实测旧 WB 分析切图以及项目和登录恢复。[本机验证报告](local-20261120-wb-tabs-and-updater-verification.json) |
 | `local-20261113-release-042` | `93fe85e` · 显示版本 `0.4.2` | 账户／菜单整合版本及双平台发行配置 | 本地 Mac App／DMG、实际打包引擎保存与导出、版本／issuer／签名和许可清单检查通过；未替换本机安装。GitHub 双平台已公开发布，见上方 `v0.4.2-beta.1`。[本地验证记录](v0.4.2-beta.1-local-verification.json) |
 | `local-20261113-context-menu` | `codex/unified-context-menu` · `7d748b9` · 账户整合基线 `5ce46de` · 显示版本 `0.4.1` | 项目、分析、图表与导出的统一右键／省略号菜单；统计明确排除／恢复 | 已安装 `/Applications/Titan.app`；旧应用和项目库已备份。140 项前端、106 项完整浏览器、346 项 Python 检查及本机打包通过；账户服务、Windows／Linux 原生测试和 Windows 安装包构建通过。合成原生验收覆盖菜单、取消、键盘、数值、撤销和快照只读；系统访问确认后，最终安装版已核对旧 WB、IF、关联统计、冻结图和来源只读菜单；登录状态保留，结束时恢复首页。[验证记录](local-20261113-context-menu-verification.json) |
 | `local-20261112-account-activity` | 账户工作区 · `e4538ee` · 显示版本 `0.4.1` | 账户中栏、正方形活动格、每日／每周／累计总量；保留统计 PNG/PDF 导出 | 曾安装并启动 `/Applications/Titan.app`。签名、主程序哈希、打包 WB 保存／重开和统计 PNG/PDF 导出通过；原生窗口核对账户中栏及三种活动视图，旧应用和数据已备份。[本机验证报告](local-20261112-account-activity-verification.json) |
@@ -77,6 +78,7 @@
 
 | 日期（北京时间） | 位置与应用标识 | 安装状态 |
 | --- | --- | --- |
+| 2026-11-20 23:38 | `/Applications/Titan.app` · `com.titan.wb` | **当前安装** `local-20261120-wb-tabs-and-updater`，显示版本 `0.4.4`。旧应用及项目库已备份，系统授权后打开原 WB 分析并核对登录。当前版本隐藏更新入口。[本机验证报告](local-20261120-wb-tabs-and-updater-verification.json) |
 | 2026-11-20 | `/Applications/Titan.app` · `com.titan.wb` | 从已核验的 DMG 安装 `v0.4.4-beta.1`，前一版 App 和本机项目库已备份。完成 macOS 授权后，重试恢复项目列表，原 WB 分析可重开，登录会话已恢复。当前版本隐藏更新入口。[验证报告](v0.4.4-beta.1-verification.json) |
 | 2026-11-13 04:37 | `/Applications/Titan.app` · `com.titan.wb` | 曾安装 `local-20261113-context-menu`，显示版本 `0.4.1`，源码 `7d748b9`。主程序签名和哈希已核对，内置引擎保持前版，安装后项目库索引未变。系统访问确认后，旧项目与登录已恢复，原生菜单核对通过，结束时恢复首页。[校验值与备份](local-20261113-context-menu-verification.json) |
 | 2026-11-12 21:58 | `/Applications/Titan.app` · `com.titan.wb` | 此前安装 `local-20261112-account-activity`，显示版本 `0.4.1`，源码 `e4538ee`。原生已验证账户中栏、正方形日历和每日／每周／累计切换，活动记录和配色保留；项目库文件哈希未变。[校验值和备份位置](local-20261112-account-activity-verification.json) |
