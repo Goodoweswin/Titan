@@ -1,6 +1,6 @@
 # Titan 版本注册表
 
-公开发布审计日期 **2026-11-13（Asia/Shanghai）**。本表登记公开发布、本机构建和安装事件。按 Git 标签或表中的构建编号识别具体版本。多个构建可以显示同一个应用版本号，例如 `0.4.0`。功能变更见 [CHANGELOG](../../CHANGELOG.md)。
+公开发布审计日期 **2026-11-20（Asia/Shanghai）**。本表登记公开发布、本机构建和安装事件。按 Git 标签或表中的构建编号识别具体版本。多个构建可以显示同一个应用版本号，例如 `0.4.0`。功能变更见 [CHANGELOG](../../CHANGELOG.md)。
 
 ## 公开发布
 
@@ -8,6 +8,7 @@
 
 | 发布标签 | 发布日 | 标签对应提交 | 发布验证与校验记录 |
 | --- | --- | --- | --- |
+| **[v0.4.3-beta.1](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.3-beta.1)** | 2026-11-20 | `9c89085` | Mac／Windows 原生构建及发布成功。六项发布附件已下载并通过 SHA-256 核对，下载的 DMG 通过签名完整性和 WB 合成样例检查。[验证报告](v0.4.3-beta.1-verification.json) |
 | **[v0.4.2-beta.1](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.2-beta.1)** | 2026-11-13 | `0ab0e5a` | Mac／Windows 原生构建及发布成功，DMG／EXE 实际下载 SHA-256 校验通过；下载 DMG 内的原生程序与 CI 一致，签名验证通过。[验证报告](v0.4.2-beta.1-verification.json) |
 | **[v0.4.1-beta.3](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.1-beta.3)** | 2026-11-07 | `a13b349` | [验证报告](v0.4.1-beta.3-verification.json) |
 | [v0.4.0-beta.3](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.0-beta.3) | 2026-11-07 | `80d552c` | [验证报告](v0.4.0-beta.3-verification.json) |
