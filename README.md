@@ -1,98 +1,31 @@
 # Titan
 
-[![CI](https://github.com/Goodoweswin/Titan/actions/workflows/ci.yml/badge.svg)](https://github.com/Goodoweswin/Titan/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+Titan 是免费使用的本地实验图像分析桌面应用，提供 Western blot、免疫荧光以及统计与绘图功能。
 
-本地运行的实验图像分析应用，提供 Western blot 定量分析和免疫荧光模块。React / TypeScript 构建界面，Tauri 提供桌面能力，Python 负责原始像素定量与统计。
+## 下载
 
-免疫荧光模块支持原始 TIFF / OME-TIFF 多通道、区域强度和阳性面积、DAPI 核分割与人工修正、批量测量、独立论文组图及 .titanif 项目。Z-stack 三维查看原型支持多通道叠加、正交切片和 PNG 截图。操作见 **[免疫荧光指南](docs/IF_USER_GUIDE.md)**。
+请到 **[GitHub Releases](https://github.com/Goodoweswin/Titan/releases)** 下载 Mac 或 Windows 安装包。Beta 表示测试版，更新内容与验证范围以对应版本说明为准。
 
-**当前状态：测试版。** 已有自动化测试和合成数据验证；真实 WB 定量准确性与完整原生桌面操作验收仍待完成。适合试用、方法核对和共同改进。它不能自动判断抗体特异性、曝光线性或实验设计是否有效。
+| 系统 | 安装包 |
+| --- | --- |
+| macOS 14+，Apple Silicon | `*-macos-arm64.dmg` |
+| Windows 10/11，x64 | `*-windows-x64-setup.exe` |
 
-## 下载与安装
+发布页面同时提供 `SHA256SUMS.txt` 和第三方许可归档。macOS 当前采用临时签名，Windows 未配置商业签名；尚未提供 Intel Mac、Windows ARM 或 Linux 安装包。
 
-当前公开版本为 **[0.4.2 beta.1](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.2-beta.1)**，包含管理员开通的账户登录、账户中栏、活动日历与统一菜单，并保留课题侧栏、WB／免疫荧光结果对接和独立统计与绘图。自助注册、验证／找回邮件、Pilotus 合并及科研数据云同步尚未接通。
+分析和项目保存继续在本地进行。源码管理调整不增加强制登录、付费、设备绑定或联网使用限制。更新方式请看对应版本说明。
 
-| 系统 | 下载文件 | 安装方式 |
-| --- | --- | --- |
-| macOS 14+，Apple Silicon（M 系列） | `*-macos-arm64.dmg` | 打开磁盘映像，将应用拖入 Applications |
-| Windows 10/11，x64 | `*-windows-x64-setup.exe` | 运行安装向导，支持中文 |
+## 源码与许可
 
-安装包包含 Python 计算引擎。Windows 缺少 WebView2 时会联网安装该运行库。当前未提供 Intel Mac、Windows ARM 或 Linux 安装包；macOS 包采用临时签名，尚未完成 Apple 公证，Windows 包未配置商业签名。
+后续产品源码已迁入私有开发仓库。本公开仓库继续保留安装包下载、更新说明、[问题反馈](https://github.com/Goodoweswin/Titan/issues)和历史开源代码。
 
-发布页面提供 `SHA256SUMS.txt` 和第三方许可归档。正式发布资产与短期保留的 Actions 构建产物分别管理。
+已按 MIT 发布的源码及其既有授权继续保留，例如 [v0.4.5-beta.1 历史源码](https://github.com/Goodoweswin/Titan/tree/v0.4.5-beta.1)。该历史许可不代表后续安装包中的所有新增内容都采用 MIT；请查阅安装包附带的许可与第三方声明。
 
-![Titan 的 Western blot 强度与背景检查，合成示例、非实验数据](docs/assets/workspace.png)
+新版本公开标签指向 `distribution` 分支的发布元数据。GitHub 自动生成的 Source code ZIP/TAR 对这些新标签提供的是元数据，不包含后续私有产品源码。
 
-## 主要能力
+## 使用与反馈
 
-- 导入单通道 TIFF / PNG，保留原始位深；显示预览与定量数据分离。
-- 内参→目标→结果的泳道优先流程，支持稳定泳道布局、未检出状态及逐目标关联。
-- 自动保存的本地项目库、冻结图表与版本历史。
-- 论文图样式、多组 ANOVA / Welch ANOVA 及相应多重比较，导出含嵌图的 Excel 工作簿。
-- 独立的 WB 条带组图：原图连续裁剪、默认对齐、蛋白名与 kDa/条件标签、保存重开，导出 PNG 与可编辑文字的 SVG；无需先做定量。
-- 手动画框、批量编辑与撤销；自动识别候选先预览，确认后加入项目。
-- 原图、ROI、泳道强度曲线及局部背景联动，扣背景积分保留负值。
-- 样本、技术重复、生物学重复、参考条带与跨膜 IBC 显式映射。
-- 参考归一化、分块生物学汇总、受限两组统计与质量提示。
-- `.titanwb` 项目保存与重开；导出 CSV、JSON、PNG、SVG、原图、标注与审计记录。
-- 图表导出预览，可设尺寸、字号和 DPI；浅色界面支持大字号。
+- [使用指南](docs/USER_GUIDE.md) · [免疫荧光指南](docs/IF_USER_GUIDE.md) · [统计指南](docs/STATS_USER_GUIDE.md)
+- [问题反馈](https://github.com/Goodoweswin/Titan/issues) · [安全报告](SECURITY.md)
 
-完整操作流程见 **[使用指南](docs/USER_GUIDE.md)**。软件内「体验合成示例」和仓库中的示例均为生成数据，标注为非实验数据。
-
-## 开发
-
-需要 Python 3.11、Node.js 22、Rust stable，以及目标平台的 Tauri 编译工具链。Mac 需要 Xcode 命令行工具；Windows 需要 Visual Studio C++ 桌面开发组件与 Windows SDK。
-
-```bash
-git clone https://github.com/Goodoweswin/Titan.git
-cd Titan
-python3.11 -m venv .venv
-.venv/bin/python -m pip install -r requirements.lock
-npm ci
-mkdir -p artifacts
-cargo metadata --manifest-path src-tauri/Cargo.toml --format-version 1 > artifacts/cargo-metadata.json
-.venv/bin/python scripts/collect_notices.py
-.venv/bin/python packaging/build_engine.py
-npm run desktop:dev
-```
-
-Windows 使用 `.venv\Scripts\python.exe`。一键构建步骤见 [Windows 构建指南](docs/WINDOWS_BUILD.md)。
-
-```bash
-npm test
-.venv/bin/python -m pytest -q
-npm run build
-npx playwright install chromium
-npm run test:e2e
-```
-
-## 构建 macOS 安装包
-
-先生成第三方声明和原生 Python 引擎，再构建 Tauri：
-
-```bash
-mkdir -p artifacts
-cargo metadata --manifest-path src-tauri/Cargo.toml --format-version 1 > artifacts/cargo-metadata.json
-.venv/bin/python scripts/collect_notices.py
-.venv/bin/python packaging/build_engine.py
-TITAN_ACCOUNTS_ISSUER=https://121.40.43.188 npm run desktop:build
-```
-
-安装包位于 `src-tauri/target/release/bundle/`。使用 `scripts/verify_release.py` 可在独立副本和受限 PATH 下验证打包引擎；它不自动验证原生窗口操作。CI 在 Windows x64 和 macOS arm64 原生环境构建；版本标签 `v*` 触发双平台预发布流程。
-
-## 文档与参与
-
-- [贡献指南](CONTRIBUTING.md) · [问题反馈](https://github.com/Goodoweswin/Titan/issues) · [安全报告](SECURITY.md)
-- [版本注册表](docs/releases/INDEX.md) · [更新日志](CHANGELOG.md) · [本版发布说明](docs/releases/v0.4.2-beta.1.md) · [待办与验证重点](docs/ROADMAP.md)
-- [原生验收清单](docs/NATIVE_ACCEPTANCE.md) · [验证记录索引](docs/checkpoints.md)
-- [第三方许可](docs/THIRD_PARTY_NOTICES.md) · [研究资料与独立参考实现](wb_research/README.md)
-- 历史设计、实施计划和检查点保留于 `docs/`，其中部分内容描述早期版本，不代表当前已实现或已验证的能力。
-
-## 许可
-
-Titan 原创代码与项目文档采用 [MIT License](LICENSE)。第三方依赖保留各自许可证；许可清单由发布环境生成，并随发布包附带。
-
-## 统计与绘图
-
-独立统计工作区支持表格导入、两组和多组统计、论文图、冻结历史及 WB／IF 来源关联。课题侧栏统一组织分析和图表。操作与适用范围见[统计模块指南](docs/STATS_USER_GUIDE.md)，各构建及安装状态见[版本注册表](docs/releases/INDEX.md)。
+仓库里的旧设计、截图和开发文档描述历史版本，当前界面以实际安装包为准。软件仍处于 Beta 阶段；自动化测试不等同于真实 WB/IF 科学准确性或完整原生操作验收。
