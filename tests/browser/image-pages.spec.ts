@@ -17,7 +17,9 @@ with tifffile.TiffWriter(sys.argv[1]) as t:
  t.write(a,photometric='minisblack')
  t.write(np.ones((28,40),dtype=np.uint16),photometric='minisblack')
 with tifffile.TiffWriter(sys.argv[2]) as t:
- t.write(np.ones((24,32),dtype=np.uint8),photometric='minisblack')
+ a=np.full((24,32),8,dtype=np.uint8);a[9:15,10:22]=244
+ lut=np.arange(255,-1,-1,dtype=np.uint16)*257
+ t.write(a,photometric='palette',colormap=np.tile(lut,(3,1)))
  t.write(np.full((24,32),12345,dtype=np.uint16),photometric='minisblack')
 from PIL import Image
 Image.new('RGB',(32,24),(45,45,45)).save(sys.argv[3])
@@ -49,6 +51,20 @@ test('imports the first TIFF page at its original bit depth without a success ba
  await expect(page.getByRole('dialog',{name:'选择 TIFF 页面'})).toBeHidden()
  await expect(page.getByText('32 × 24 px · uint8',{exact:true})).toBeVisible()
  await expect(page.locator('.notice').filter({hasText:/自动导入第|确认极性与编码上界/})).toHaveCount(0)
+ const canvas=page.getByLabel('泳道分析画布')
+ const reverse=page.getByRole('button',{name:'显示反色',exact:true})
+ const readPixels=async()=>{
+  const png=await canvas.screenshot({animations:'disabled'})
+  return JSON.parse(execFileSync(path.resolve('.venv/bin/python'),['-c',
+   `import io,json,sys
+from PIL import Image
+im=Image.open(io.BytesIO(sys.stdin.buffer.read())).convert('L')
+print(json.dumps([im.getpixel((im.width//4, im.height//4)),im.getpixel((im.width//2, im.height//2))]))`],{input:png,encoding:'utf8'}))
+ }
+ await expect(reverse).toHaveAttribute('aria-pressed','true')
+ await expect.poll(readPixels).toEqual([255,0])
+ await reverse.click()
+ await expect.poll(readPixels).toEqual([0,255])
 })
 
 test('imports a PNG saved as equal RGB channels',async({page})=>{

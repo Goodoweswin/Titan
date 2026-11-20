@@ -108,11 +108,13 @@ const updateLabels:Partial<Record<Phase,string>>={
 export function AppUpdateButton({update,onOpen}:{update:UpdateControl;onOpen:()=>void}){
  const label=updateLabels[update.state.phase]
  if(!label)return null
- return <button type="button" className="nav update-trigger" aria-haspopup="dialog"
-  title={update.state.update?`更新到 Titan ${update.state.update.version}`:undefined}
-  onClick={()=>{onOpen();void (update.state.phase==='installed'?update.restart():update.applyUpdate())}}>
-  <span className="update-icon"><Download size={16} aria-hidden="true"/></span><span>{label}</span>
- </button>
+ return <div className="sidebar-update">
+  <button type="button" className="update-trigger" aria-haspopup="dialog" aria-label={label}
+   title={update.state.update?`${label} · Titan ${update.state.update.version}`:label}
+   onClick={()=>{onOpen();void (update.state.phase==='installed'?update.restart():update.applyUpdate())}}>
+   <span className="update-icon"><Download size={14} aria-hidden="true"/></span>
+  </button>
+ </div>
 }
 
 export function AppUpdateDialog({update,onClose}:{update:UpdateControl;onClose:()=>void}){

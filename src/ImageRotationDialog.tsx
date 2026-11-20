@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react'
 import type {ImageAsset} from './types'
-import {displayStyle} from './image-display'
+import WbPreviewImage from './WbPreviewImage'
 import useImageViewport,{rotationView} from './useImageViewport'
 import ImageViewControls from './ImageViewControls'
 
@@ -24,7 +24,7 @@ export default function ImageRotationDialog({asset,onApply,onClose}:{asset:Image
   <div className="image-view-bar"><ImageViewControls zoomPercent={viewport.zoomPercent} panMode={viewport.panMode} onPan={()=>viewport.setPanMode(!viewport.panMode)} onZoom={viewport.zoom} onFit={viewport.reset}/><span className="hint">滚轮缩放 · 空格或中键拖动视图</span></div>
   <div ref={preview} className="rotation-preview" onKeyDown={viewport.onKeyDown} onKeyUp={viewport.onKeyUp} onBlur={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node|null))viewport.cancelPan()}} onPointerDownCapture={e=>{if(viewport.beginPan(e))dragging.current=null}} onPointerMove={viewport.movePan} onPointerUp={viewport.endPan} onPointerCancel={viewport.cancelPan}>
    <svg ref={svg} tabIndex={0} aria-label="旋转校正画布" viewBox={`${v[0]} ${v[1]} ${v[2]-v[0]} ${v[3]-v[1]}`} style={{width:'100%',height:'100%',touchAction:'none',cursor:viewport.cursor}} onPointerDown={()=>svg.current?.focus()} onLostPointerCapture={viewport.stopPan}>
-    <image aria-label="旋转校正预览" href={asset.preview} width={asset.width} height={asset.height} style={displayStyle(asset)} transform={`rotate(${Number.isFinite(angle)?angle:0} ${asset.width/2} ${asset.height/2})`}/>
+    <WbPreviewImage aria-label="旋转校正预览" href={asset.preview} width={asset.width} height={asset.height} inverted={asset.display_inverted} transform={`rotate(${Number.isFinite(angle)?angle:0} ${asset.width/2} ${asset.height/2})`}/>
    </svg><div className="rotation-grid"/>{showGuides&&(['y','x'] as const).map(axis=><div key={axis} role="slider" tabIndex={0} aria-label={axis==='y'?'水平参考线':'垂直参考线'} aria-orientation={axis==='y'?'vertical':'horizontal'} aria-valuemin={0} aria-valuemax={100} aria-valuenow={guides[axis]} className={`rotation-guide ${axis==='y'?'horizontal':'vertical'}`} style={axis==='y'?{top:`${guides.y}%`}:{left:`${guides.x}%`}} onKeyDown={e=>guideKey(e,axis)} onPointerDown={e=>{if(e.button!==0)return;e.preventDefault();dragging.current=axis;e.currentTarget.focus();e.currentTarget.setPointerCapture(e.pointerId);moveGuide(e,axis)}} onPointerMove={e=>{if(dragging.current===axis)moveGuide(e,axis)}} onPointerUp={()=>{dragging.current=null}} onPointerCancel={()=>{dragging.current=null}}><span>{axis==='y'?'水平':'垂直'}</span></div>)}
   </div>
   <div className="rotation-guide-controls"><label className="checkbox-label"><input type="checkbox" checked={showGuides} onChange={e=>setShowGuides(e.target.checked)}/>显示参考线</label><span>拖动参考线对齐条带</span><button className="text-btn" onClick={()=>setGuides({x:50,y:50})}>参考线居中</button></div>

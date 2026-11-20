@@ -55,9 +55,19 @@ test('the app update guard preserves an unconfirmed WB preview',async({page})=>{
  await region(page,[20,20,220,50])
  await page.getByRole('button',{name:'识别泳道',exact:true}).click()
  await expect(page.getByText('5 条泳道',{exact:true})).toBeVisible()
- await expect(sidebar.getByRole('button',{name:'更新并重启',exact:true})).toBeVisible()
+ const updateButton=sidebar.getByRole('button',{name:'更新并重启',exact:true})
+ await expect(updateButton).toBeVisible()
+ await expect(updateButton).toHaveText('')
+ const [tools,update,account]=await Promise.all([
+  sidebar.getByRole('navigation',{name:'分析模块'}).boundingBox(),
+  updateButton.boundingBox(),
+  sidebar.getByRole('button',{name:/^账户/}).boundingBox(),
+ ])
+ expect(update!.y).toBeGreaterThan(tools!.y+tools!.height)
+ expect(update!.y+update!.height).toBeLessThan(account!.y)
+ expect(update!.width).toBe(update!.height)
  await expect(page.getByRole('dialog',{name:'软件更新'})).toHaveCount(0)
- await sidebar.getByRole('button',{name:'更新并重启',exact:true}).click()
+ await updateButton.click()
  await expect(page.getByRole('alert')).toContainText('请完成当前任务')
  const invocations=()=>page.evaluate(()=>(window as typeof window & {updateInvocations?:string[]}).updateInvocations)
  expect(await invocations()).not.toContain('pause_engine_for_update')

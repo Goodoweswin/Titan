@@ -1,11 +1,26 @@
+.sidebar-update {
+ flex:none;
+ margin-top:4px;
+ padding-block:3px;
+ border-top:1px solid var(--border);
+}
+.sidebar-update .update-trigger {
+ display:grid;
+ place-items:center;
+ width:36px;
+ height:36px;
+ padding:0;
+ border-radius:8px;
+}
+.sidebar-update .update-trigger:hover { background:var(--sidebar-hover); }
+.sidebar-update .update-trigger:focus-visible { outline-offset:-2px; }
 .update-trigger .update-icon {
  display:grid;
  place-items:center;
- width:18px;
- height:18px;
- flex:none;
- background:var(--accent-soft);
- color:var(--accent);
+ width:24px;
+ height:24px;
+ background:#2f7cf6;
+ color:#fff;
  border-radius:50%;
 }
 .app-update-dialog .update-status {

@@ -27,7 +27,7 @@ function Harness({canInstall}:{canInstall:boolean}){
  )
 }
 async function click(label:string){
- const button=Array.from(host.querySelectorAll('button')).find(element=>element.textContent===label)
+ const button=Array.from(host.querySelectorAll('button')).find(element=>(element.getAttribute('aria-label')??element.textContent)===label)
  expect(button?.disabled).toBe(false)
  await act(async()=>button?.click())
 }

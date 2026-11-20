@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react'
 import type {ImageAsset,Rect,LaneColumn,BandCandidate} from './types'
-import {displayStyle} from './image-display'
+import WbPreviewImage from './WbPreviewImage'
 import useImageViewport from './useImageViewport'
 import ImageViewControls from './ImageViewControls'
 
@@ -86,7 +86,7 @@ export default function LaneLayoutEditor(p:Props){
  <div className="image-view-bar"><ImageViewControls zoomPercent={viewport.zoomPercent} panMode={viewport.panMode} onPan={()=>{cancel();viewport.setPanMode(!viewport.panMode)}} onZoom={viewport.zoom} onFit={viewport.reset} fitLabel="查看全图"/><span className="hint">滚轮缩放 · 空格或中键拖动视图</span></div>
  <div className="lane-tool-hint" role="status"><span aria-hidden={viewport.panMode}>{hints[tool]}</span><span aria-hidden={!viewport.panMode}>拖动移动视图，不修改区域或条带</span></div>
  <div className="lane-canvas-scroll"><svg ref={svg} tabIndex={0} data-wb-guide="canvas" aria-label="泳道分析画布" viewBox={`${view[0]} ${view[1]} ${w} ${h}`} style={{aspectRatio:`${w}/${h}`,touchAction:'none',cursor:viewport.cursor??(tool==='lanes'?'ew-resize':tool==='align'?'grab':'crosshair')}} onKeyDown={nudge} onKeyUp={viewport.onKeyUp} onBlur={viewport.cancelPan} onPointerDownCapture={e=>{viewport.beginPan(e)}} onPointerDown={e=>{if(e.button===0){svg.current?.focus({preventScroll:true});down(e)}}} onPointerMove={e=>{if(!viewport.movePan(e))move(e)}} onPointerUp={e=>{if(!viewport.endPan(e))finish(e)}} onPointerCancel={()=>{viewport.cancelPan();cancel()}} onLostPointerCapture={()=>{viewport.stopPan();cancel()}}>
- <image href={p.displaySrc} style={displayStyle(p.asset)} width={p.asset.width} height={p.asset.height}/>
+ <WbPreviewImage href={p.displaySrc} inverted={p.asset.display_inverted} width={p.asset.width} height={p.asset.height}/>
  {p.region&&<rect aria-label="识别区域" x={p.region[0]} y={p.region[1]} width={p.region[2]-p.region[0]} height={p.region[3]-p.region[1]} fill="none" stroke="#93a5c4" strokeDasharray={`${stroke*4} ${stroke*3}`} strokeWidth={stroke} pointerEvents="none"/>}
  {p.columns.map(c=>{const box=draft&&gesture.current?.id===c.lane_id&&gesture.current.kind.startsWith('lane')?draft:c.rect;return <g key={c.lane_id}>
   <rect aria-label={`泳道 ${c.lane_id}`} x={box[0]} y={box[1]} width={box[2]-box[0]} height={box[3]-box[1]} fill={c.lane_id===p.selected?'#4474df15':'transparent'} stroke={c.lane_id===p.selected?'#81a9ff':'#7ca0d5'} strokeWidth={stroke} onPointerDown={e=>down(e,c.lane_id)}/>

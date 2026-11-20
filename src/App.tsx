@@ -907,8 +907,8 @@ export default function App(){
       aria-current={selected?'page':undefined} onClick={()=>enterModule(key)}><Icon size={16}/><span>{label}</span></button>
     })}</nav>
    </div>
+   <AppUpdateButton update={appUpdate} onOpen={()=>setShowAppUpdate(true)}/>
    <div className="sidebar-settings">
-    <AppUpdateButton update={appUpdate} onOpen={()=>setShowAppUpdate(true)}/>
     <button type="button" className={`nav account-trigger${screen.kind==='account'?' active':''}`} aria-current={screen.kind==='account'?'page':undefined} onClick={()=>visit({kind:'account'})}><UserRound size={18}/><span>账户<small>{account.snapshot.status==='logging_in'?'正在登录':account.snapshot.profile&&['authenticated','offline'].includes(account.snapshot.status)?`${account.snapshot.profile.name} · ${account.snapshot.status==='offline'?'离线':'已登录'}`:'未登录 · 本地使用'}</small></span></button>
     <button type="button" className="nav" onClick={()=>setShowSettings(true)}><Settings size={18}/><span>设置</span></button>
    </div>
