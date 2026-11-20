@@ -1,3 +1,5 @@
+param([switch]$PrepareOnly)
+
 $ErrorActionPreference = 'Stop'
 Set-Location (Split-Path $PSScriptRoot -Parent)
 if ($env:OS -ne 'Windows_NT') { throw 'Run this script on Windows x64.' }
@@ -23,6 +25,7 @@ New-Item -ItemType Directory -Force artifacts | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'Cargo metadata failed.' }
 Invoke-Checked $python @('scripts/collect_notices.py')
 Invoke-Checked $python @('packaging/build_engine.py')
+if ($PrepareOnly) { return }
 Invoke-Checked 'npm.cmd' @('run','desktop:build','--','--target','x86_64-pc-windows-msvc','--bundles','nsis')
 $installers = @(Get-ChildItem 'src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\*-setup.exe')
 if ($installers.Count -eq 0) { throw 'Installer was not generated.' }

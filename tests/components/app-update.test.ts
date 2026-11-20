@@ -8,7 +8,7 @@ const mocks=vi.hoisted(()=>({
  check:vi.fn(),invoke:vi.fn(),relaunch:vi.fn(),download:vi.fn(),install:vi.fn(),close:vi.fn(),
 }))
 vi.mock('@tauri-apps/plugin-updater',()=>({check:mocks.check}))
-vi.mock('@tauri-apps/api/core',()=>({invoke:mocks.invoke}))
+vi.mock('@tauri-apps/api/core',()=>({invoke:mocks.invoke,Channel:class{}}))
 vi.mock('@tauri-apps/plugin-process',()=>({relaunch:mocks.relaunch}))
 
 ;(globalThis as any).IS_REACT_ACT_ENVIRONMENT=true
@@ -63,6 +63,28 @@ it('checks once at startup and downloads, verifies, installs and restarts from o
  await act(async()=>finishDownload())
  expect(mocks.install).toHaveBeenCalledOnce()
  expect(mocks.relaunch).toHaveBeenCalledOnce()
+})
+
+it('leaves Windows restart to the verified installer and allows retry if it cannot launch',async()=>{
+ let attempts=0
+ mocks.invoke.mockImplementation(async command=>{
+  if(command==='update_configuration')return {enabled:true,supported:true,version:'0.4.2',installerRestarts:true}
+  if(command==='check_windows_update')return {version:'0.4.3',body:'修复说明'}
+  if(command==='download_windows_update')return
+  if(command==='install_windows_update'&&attempts++>0)return
+  throw Error('could not launch installer')
+ })
+ await render()
+ await click('更新并重启')
+ expect(host.textContent).toContain('安装更新未完成')
+ await click('安装并重启')
+ expect(mocks.invoke.mock.calls.filter(([command])=>command==='download_windows_update')).toHaveLength(1)
+ expect(mocks.invoke.mock.calls.filter(([command])=>command==='install_windows_update')).toEqual([
+  ['install_windows_update',{version:'0.4.3'}],['install_windows_update',{version:'0.4.3'}],
+ ])
+ expect(mocks.check).not.toHaveBeenCalled()
+ expect(mocks.install).not.toHaveBeenCalled()
+ expect(mocks.relaunch).not.toHaveBeenCalled()
 })
 
 it('keeps a verified download when current work prevents installation',async()=>{

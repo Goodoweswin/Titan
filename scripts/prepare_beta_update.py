@@ -1,4 +1,4 @@
-"""Verify the signed Mac artifact and prepare the Titan Beta update feed."""
+"""Verify the signed installers and prepare the Titan Beta update feed."""
 
 import argparse
 import base64
@@ -26,12 +26,8 @@ def require_forward_update(candidate, previous):
         raise ValueError("This application version is already active with different release metadata")
 
 
-def prepare_update(release_dir, version, tag, public_key, notes):
-    _version(version)
-    if not re.fullmatch(rf"v{re.escape(version)}-beta\.[1-9][0-9]*", tag):
-        raise ValueError("Release tag does not match the app version and Beta channel")
-    archive = release_dir / f"Titan-{version}-macos-arm64.app.tar.gz"
-    signature = archive.with_suffix(".gz.sig").read_text(encoding="ascii").strip()
+def _verified_signature(artifact, version, public_key):
+    signature = artifact.with_name(artifact.name + ".sig").read_text(encoding="ascii").strip()
     signature_bytes = base64.b64decode(signature, validate=True)
     with tempfile.TemporaryDirectory(prefix="titan-minisign-") as directory:
         public_key_file = Path(directory) / "key.pub"
@@ -39,7 +35,7 @@ def prepare_update(release_dir, version, tag, public_key, notes):
         signature_file = Path(directory) / "update.minisig"
         signature_file.write_bytes(signature_bytes)
         subprocess.run(
-            ["minisign", "-Vm", str(archive), "-p", str(public_key_file), "-x", str(signature_file)],
+            ["minisign", "-Vm", str(artifact), "-p", str(public_key_file), "-x", str(signature_file)],
             check=True,
         )
 
@@ -50,15 +46,27 @@ def prepare_update(release_dir, version, tag, public_key, notes):
         if value.startswith("version:")
     ]
     if signed_versions != [version]:
-        raise ValueError("The trusted signature version does not match the app version")
+        raise ValueError(f"The trusted signature version for {artifact.name} does not match the app version")
+    return signature
+
+
+def prepare_update(release_dir, version, tag, public_key, notes):
+    _version(version)
+    if not re.fullmatch(rf"v{re.escape(version)}-beta\.[1-9][0-9]*", tag):
+        raise ValueError("Release tag does not match the app version and Beta channel")
+    artifacts = {
+        "darwin-aarch64": f"Titan-{version}-macos-arm64.app.tar.gz",
+        "windows-x86_64": f"Titan-{version}-windows-x64-setup.exe",
+    }
     return {
         "version": version,
         "notes": notes,
         "platforms": {
-            "darwin-aarch64": {
-                "url": f"https://github.com/Goodoweswin/Titan/releases/download/{tag}/{archive.name}",
-                "signature": signature,
+            platform: {
+                "url": f"https://github.com/Goodoweswin/Titan/releases/download/{tag}/{name}",
+                "signature": _verified_signature(release_dir / name, version, public_key),
             }
+            for platform, name in artifacts.items()
         },
     }
 

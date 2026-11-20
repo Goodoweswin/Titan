@@ -1,13 +1,29 @@
-import {invoke} from '@tauri-apps/api/core'
+import {Channel,invoke} from '@tauri-apps/api/core'
 import {relaunch} from '@tauri-apps/plugin-process'
-import {check,type Update} from '@tauri-apps/plugin-updater'
+import {check,type DownloadEvent,type Update} from '@tauri-apps/plugin-updater'
 import {Download,X} from 'lucide-react'
 import {useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react'
 import './app-update.css'
 
 type Phase='idle'|'checking'|'current'|'unsupported'|'unconfigured'|'available'|'downloading'|'ready'|'installing'|'installed'
-type State={phase:Phase;current?:string;update?:Update;progress?:number;message?:string}
+type UpdatePackage=Pick<Update,'version'|'body'|'download'|'install'|'close'>
+type State={phase:Phase;current?:string;update?:UpdatePackage;progress?:number;message?:string;installerRestarts?:boolean}
 type InstallGuard=(install:()=>Promise<void>)=>Promise<boolean>
+
+async function checkWindowsUpdate():Promise<UpdatePackage|null>{
+ const update=await invoke<Pick<Update,'version'|'body'>|null>('check_windows_update')
+ if(!update)return null
+ const {version}=update
+ return {...update,
+  download(onEvent){
+   const channel=new Channel<DownloadEvent>()
+   if(onEvent)channel.onmessage=onEvent
+   return invoke('download_windows_update',{version,onEvent:channel})
+  },
+  install:()=>invoke('install_windows_update',{version}),
+  close:()=>invoke('clear_windows_update',{version}),
+ }
+}
 
 export function useAppUpdate(native:boolean,withSavedWork:InstallGuard){
  const [state,setState]=useState<State>({phase:'idle'})
@@ -15,23 +31,23 @@ export function useAppUpdate(native:boolean,withSavedWork:InstallGuard){
  const deferred=useRef(false)
  const installGuard=useRef(withSavedWork)
  useLayoutEffect(()=>{installGuard.current=withSavedWork},[withSavedWork])
- const checkForUpdate=useCallback(async (previous?:Update)=>{
+ const checkForUpdate=useCallback(async (previous?:UpdatePackage)=>{
   if(!native||flight.current)return
   flight.current='check'
   setState({phase:'checking'})
   try{
    await previous?.close().catch(()=>{})
-   const config=await invoke<{enabled:boolean;supported:boolean;version:string}>('update_configuration')
+   const config=await invoke<{enabled:boolean;supported:boolean;version:string;installerRestarts?:boolean}>('update_configuration')
    if(!config.supported){setState({phase:'unsupported',current:config.version});return}
    if(!config.enabled){setState({phase:'unconfigured',current:config.version});return}
-   const update=await check({timeout:15000})
-   setState(update?{phase:'available',current:config.version,update}:{phase:'current',current:config.version})
+   const update=config.installerRestarts?await checkWindowsUpdate():await check({timeout:15000})
+   setState(update?{phase:'available',current:config.version,update,installerRestarts:config.installerRestarts}:{phase:'current',current:config.version})
   }catch{
    setState({phase:'idle',message:'检查更新失败。请检查网络后重试。'})
   }finally{flight.current=null}
  },[native])
  useEffect(()=>{void checkForUpdate()},[checkForUpdate])
- async function download(update:Update){
+ async function download(update:UpdatePackage){
   let bytes=0,total=0,progress=0
   setState({...state,phase:'downloading',message:undefined})
   try{
@@ -48,14 +64,14 @@ export function useAppUpdate(native:boolean,withSavedWork:InstallGuard){
    return false
   }
  }
- async function install(update:Update,ready:State){
+ async function install(update:UpdatePackage,ready:State){
   let installed=false
   setState({...ready,phase:'installing'})
   try{
    const proceeded=await installGuard.current(async()=>{
     await update.install()
     installed=true
-    await relaunch()
+    if(!ready.installerRestarts)await relaunch()
    })
    if(!proceeded)setState({...ready,message:'请完成当前任务并保存草稿，再安装更新。'})
    else setState({phase:'installed',current:update.version})
@@ -67,7 +83,7 @@ export function useAppUpdate(native:boolean,withSavedWork:InstallGuard){
  async function applyUpdate(){
   const {phase,update}=state
   if(flight.current||!update||(phase!=='available'&&phase!=='ready'))return
-  const ready:State={phase:'ready',current:state.current,update}
+  const ready:State={phase:'ready',current:state.current,update,installerRestarts:state.installerRestarts}
   try{
    if(phase==='available'){
     deferred.current=false

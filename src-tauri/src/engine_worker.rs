@@ -65,6 +65,9 @@ impl EngineWorker {
     pub fn resume_after_update(&self) {
         self.updating.store(false, Ordering::Release);
     }
+    pub fn is_paused_for_update(&self) -> bool {
+        self.updating.load(Ordering::Acquire)
+    }
 }
 async fn read_frame(reader:&mut BufReader<ChildStdout>)->Result<Vec<u8>,String>{
     let mut output=Vec::new();

@@ -8,29 +8,32 @@ from scripts.prepare_beta_update import prepare_update, require_forward_update
 
 
 @pytest.fixture
-def macos_update(tmp_path):
-    archive = tmp_path / "Titan-0.4.4-macos-arm64.app.tar.gz"
-    archive.write_bytes(b"candidate app")
-
-    def write_signature(version):
+def signed_update(tmp_path):
+    def write_signature(version, suffix="macos-arm64.app.tar.gz"):
+        archive = tmp_path / f"Titan-0.4.4-{suffix}"
+        archive.write_bytes(suffix.encode())
         signature = base64.b64encode(
-            f"untrusted comment: signature\nfirst\ntrusted comment: file:app\tversion:{version}\nlast\n".encode()
+            f"untrusted comment: signature\nfirst\ntrusted comment: file:{suffix}\tversion:{version}\nlast\n".encode()
         ).decode()
-        archive.with_suffix(".gz.sig").write_text(signature + "\n")
+        archive.with_name(archive.name + ".sig").write_text(signature + "\n")
         return signature
 
     return write_signature
 
 
-def test_manifest_uses_the_verified_mac_asset_at_the_exact_beta_tag(tmp_path, macos_update, monkeypatch):
-    signature = macos_update("0.4.4")
+def test_manifest_uses_both_verified_assets_at_the_exact_beta_tag(tmp_path, signed_update, monkeypatch):
+    signature = signed_update("0.4.4")
+    windows_signature = signed_update("0.4.4", "windows-x64-setup.exe")
     public_key = base64.b64encode(b"public key").decode()
+    checked = set()
 
     def verify(command, *, check):
         assert check is True
         assert command[:2] == ["minisign", "-Vm"]
-        assert Path(command[2]).read_bytes() == b"candidate app"
+        suffix = Path(command[2]).read_text()
+        checked.add(suffix)
         assert Path(command[4]).read_bytes() == b"public key"
+        assert f"file:{suffix}".encode() in Path(command[6]).read_bytes()
         assert b"version:0.4.4" in Path(command[6]).read_bytes()
 
     monkeypatch.setattr(subprocess, "run", verify)
@@ -41,26 +44,40 @@ def test_manifest_uses_the_verified_mac_asset_at_the_exact_beta_tag(tmp_path, ma
             "darwin-aarch64": {
                 "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.4-beta.1/Titan-0.4.4-macos-arm64.app.tar.gz",
                 "signature": signature,
-            }
+            },
+            "windows-x86_64": {
+                "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.4-beta.1/Titan-0.4.4-windows-x64-setup.exe",
+                "signature": windows_signature,
+            },
         },
     }
+    assert checked == {"macos-arm64.app.tar.gz", "windows-x64-setup.exe"}
 
 
-def test_release_refuses_an_asset_with_mismatched_signed_version(tmp_path, macos_update, monkeypatch):
-    macos_update("0.4.3")
+def test_release_refuses_an_asset_with_mismatched_signed_version(tmp_path, signed_update, monkeypatch):
+    signed_update("0.4.4")
+    signed_update("0.4.3", "windows-x64-setup.exe")
     monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: None)
     with pytest.raises(ValueError, match="signature version"):
         prepare_update(tmp_path, "0.4.4", "v0.4.4-beta.1", "cHVi", "")
 
 
-def test_release_refuses_a_signature_minisign_cannot_verify(tmp_path, macos_update, monkeypatch):
-    macos_update("0.4.4")
+def test_release_refuses_a_signature_minisign_cannot_verify(tmp_path, signed_update, monkeypatch):
+    signed_update("0.4.4")
+    signed_update("0.4.4", "windows-x64-setup.exe")
 
     def reject(command, **kwargs):
         raise subprocess.CalledProcessError(1, command)
 
     monkeypatch.setattr(subprocess, "run", reject)
     with pytest.raises(subprocess.CalledProcessError):
+        prepare_update(tmp_path, "0.4.4", "v0.4.4-beta.1", "cHVi", "")
+
+
+def test_release_requires_the_windows_signature(tmp_path, signed_update, monkeypatch):
+    signed_update("0.4.4")
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: None)
+    with pytest.raises(FileNotFoundError, match="windows-x64-setup.exe.sig"):
         prepare_update(tmp_path, "0.4.4", "v0.4.4-beta.1", "cHVi", "")
 
 

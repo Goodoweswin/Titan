@@ -4,7 +4,7 @@
 
 ## GitHub 构建
 
-推送版本标签 `v*` 后，Release 工作流在 Windows 原生 runner 构建 NSIS 安装包并发布到 GitHub Releases。也可上传源码，在 Actions → Windows installer → Run workflow 运行。独立分支 `codex/windows-installer` 的推送也会自动触发。成功后下载 `Titan-WB-Windows-x64` artifact ZIP，解压得到安装程序。本工作流不自动发布 Release；安装程序未配置商业代码签名。
+推送版本标签 `v*` 后，Release 工作流会构建 Windows x64 NSIS 安装包和用于应用内更新的 Tauri 签名。可在 Actions → Release → Run workflow 对分支执行 Windows 升级验收。独立的 Windows installer 工作流仍可构建普通安装包，产物名为 `Titan-WB-Windows-x64`。Windows Authenticode 代码签名有独立配置。[应用内更新说明](releases/IN_APP_UPDATES.md)
 
 ## Windows 本地构建
 
@@ -23,7 +23,7 @@ powershell -ExecutionPolicy Bypass -File packaging/build_windows.ps1
 
 ## 当前公开版本
 
-请从 [GitHub Releases](https://github.com/Goodoweswin/Titan/releases/tag/v0.3.1-beta.2) 下载当前预发布包，并使用发布附件 SHA256SUMS.txt 核对。下面的首次构建记录仅为历史记录，其 hash 不用于新版。
+请从 [GitHub Releases](https://github.com/Goodoweswin/Titan/releases) 下载当前预发布包，并使用随包的 `SHA256SUMS.txt` 核对。下面记录的是首个 Windows 安装包的校验值。
 
 ## 首次 Windows 安装包
 

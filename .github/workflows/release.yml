@@ -34,12 +34,26 @@ jobs:
       - name: Read application version
         shell: bash
         run: node -p "'APP_VERSION=' + require('./package.json').version" >> "$GITHUB_ENV"
-      - name: Windows build
+      - name: Prepare Windows dependencies and engine
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           rustup default stable-x86_64-pc-windows-msvc
-          ./packaging/build_windows.ps1
+          ./packaging/build_windows.ps1 -PrepareOnly
+      - name: Build signed Windows installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if (-not $env:TAURI_SIGNING_PRIVATE_KEY) { throw 'Missing updater signing key' }
+          npm run desktop:build -- --target x86_64-pc-windows-msvc --bundles nsis --config src-tauri/tauri.beta.conf.json
+          if ($LASTEXITCODE -ne 0) { throw 'Signed NSIS build failed' }
+      - name: Verify Windows bundle and collect release assets
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
           cargo test --manifest-path src-tauri/Cargo.toml --locked --lib
           if ($LASTEXITCODE -ne 0) { throw 'Native account tests failed' }
           $nativeVersion = (Get-Item 'src-tauri/target/x86_64-pc-windows-msvc/release/titan-wb.exe').VersionInfo.ProductVersion
@@ -61,8 +75,44 @@ jobs:
           .venv/Scripts/python.exe scripts/verify_stats_sources.py $engine > artifacts/stats-sources-verification.json
           if ($LASTEXITCODE -ne 0) { throw 'Packaged statistics source verification failed' }
           New-Item -ItemType Directory -Force dist-release | Out-Null
-          Copy-Item 'src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*-setup.exe' 'dist-release/Titan-${{ env.APP_VERSION }}-windows-x64-setup.exe'
+          $installer = @(Get-ChildItem 'src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*-setup.exe')
+          if ($installer.Count -ne 1) { throw 'Expected one NSIS installer' }
+          $destination = "dist-release/Titan-$($env:APP_VERSION)-windows-x64-setup.exe"
+          Copy-Item -LiteralPath $installer[0].FullName -Destination $destination
+          Copy-Item -LiteralPath ($installer[0].FullName + '.sig') -Destination ($destination + '.sig')
           .venv/Scripts/python.exe scripts/package_notices.py dist-release/Titan-${{ env.APP_VERSION }}-windows-x64-third-party.zip
+      - name: Exercise the Windows updater
+        if: runner.os == 'Windows' && github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $qa = Join-Path $env:RUNNER_TEMP 'titan-updater-qa'
+          New-Item -ItemType Directory -Path $qa | Out-Null
+          $key = Join-Path $qa 'update.key'
+          npm run tauri -- signer generate --ci --write-keys $key *> $null
+          if ($LASTEXITCODE -ne 0) { throw 'Test key generation failed' }
+          $candidate = Join-Path $qa 'Titan-update.exe'
+          Copy-Item "dist-release/Titan-$($env:APP_VERSION)-windows-x64-setup.exe" $candidate
+          npm run tauri -- signer sign --private-key-path $key --app-version $env:APP_VERSION $candidate
+          if ($LASTEXITCODE -ne 0) { throw 'Test package signing failed' }
+          $config = Join-Path $qa 'starter.json'
+          @{
+            version = '0.0.1'
+            plugins = @{updater = @{
+              pubkey = (Get-Content -Raw ($key + '.pub')).Trim()
+              endpoints = @('http://127.0.0.1:18451/beta.json')
+              dangerousInsecureTransportProtocol = $true
+              requireSignedVersion = $true
+            }}
+          } | ConvertTo-Json -Depth 8 | Set-Content -Encoding utf8NoBOM $config
+          npm run desktop:build -- --target x86_64-pc-windows-msvc --bundles nsis --config $config
+          if ($LASTEXITCODE -ne 0) { throw 'Updater starter build failed' }
+          $starter = Get-ChildItem 'src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*_0.0.1_*-setup.exe'
+          $installDir = Join-Path $qa 'Titan'
+          $process = Start-Process $starter.FullName -ArgumentList @('/S', "/D=$installDir") -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw 'Updater starter installation failed' }
+          node scripts/verify_windows_update.mjs (Join-Path $installDir 'titan-wb.exe') $candidate ($candidate + '.sig') $env:APP_VERSION
+          if ($LASTEXITCODE -ne 0) { throw 'Windows updater check failed' }
       - name: Prepare macOS dependencies and engine
         if: runner.os == 'macOS'
         run: |
@@ -176,8 +226,10 @@ jobs:
           if [ "$draft" = true ]; then
             gh release edit "$GITHUB_REF_NAME" --draft=false --prerelease --latest=false
           fi
-          archive_url=$(python -c 'import json, sys; print(json.load(open(sys.argv[1]))["platforms"]["darwin-aarch64"]["url"])' "$RUNNER_TEMP/beta.json")
-          curl --fail --silent --show-error --location --head "$archive_url" > /dev/null
+          python -c 'import json, sys; print(*(p["url"] for p in json.load(open(sys.argv[1]))["platforms"].values()), sep="\n")' "$RUNNER_TEMP/beta.json" |
+            while IFS= read -r url; do
+              curl --fail --silent --show-error --location --head "$url" > /dev/null
+            done
       - name: Advance the public Beta update feed
         run: |
           if [ -n "${FEED_BASE:-}" ]; then

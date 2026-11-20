@@ -5,6 +5,7 @@ use tauri_plugin_dialog::DialogExt;
 mod engine_worker;
 mod if_volume;
 mod library_files;
+mod windows_update;
 use engine_worker::EngineWorker;
 
 struct Session { token:String, library_root:std::path::PathBuf }
@@ -29,9 +30,10 @@ fn update_configuration(app: tauri::AppHandle) -> Value {
         config["pubkey"].as_str().is_some_and(|key| !key.trim().is_empty()) &&
             config["endpoints"].as_array().is_some_and(|endpoints| !endpoints.is_empty())
     });
-    // Enable Windows once the installer can recover from a blocked launch.
-    let supported = cfg!(target_os = "macos");
-    json!({"enabled": enabled && supported, "supported": supported, "version": app.package_info().version.to_string()})
+    let installer_restarts = windows_update::SUPPORTED;
+    let supported = cfg!(target_os = "macos") || installer_restarts;
+    json!({"enabled": enabled && supported, "supported": supported,
+        "version": app.package_info().version.to_string(), "installerRestarts": installer_restarts})
 }
 
 #[tauri::command]
@@ -56,6 +58,7 @@ fn prepare_startup(account:Result<auth::Auth,&'static str>, library_root:std::pa
 
 pub fn run(){
     tauri::Builder::default()
+      .manage(windows_update::WindowsUpdates::default())
       .setup(|app| {
         let (program,args)=if cfg!(debug_assertions){
           let root=std::path::Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap();
@@ -87,7 +90,8 @@ pub fn run(){
       .plugin(tauri_plugin_dialog::init())
       .plugin(tauri_plugin_updater::Builder::new().build())
       .plugin(tauri_plugin_process::init())
-      .invoke_handler(tauri::generate_handler![auth::auth_status, auth::auth_login, auth::auth_cancel, auth::auth_logout, auth::auth_update_profile, auth::auth_sessions, auth::auth_revoke_session, auth::auth_revoke_all, engine, if_volume::if_volume_read, library_files::library_open_file, update_configuration, pause_engine_for_update, resume_engine_after_update])
+      .invoke_handler(tauri::generate_handler![auth::auth_status, auth::auth_login, auth::auth_cancel, auth::auth_logout, auth::auth_update_profile, auth::auth_sessions, auth::auth_revoke_session, auth::auth_revoke_all, engine, if_volume::if_volume_read, library_files::library_open_file, update_configuration, pause_engine_for_update, resume_engine_after_update,
+        windows_update::check_windows_update, windows_update::download_windows_update, windows_update::install_windows_update, windows_update::clear_windows_update])
       .build(tauri::generate_context!()).expect("Titan WB启动失败")
       .run(|app,event|{if matches!(event,tauri::RunEvent::Exit){if let Some(worker) = app.try_state::<EngineWorker>() { tauri::async_runtime::block_on(worker.shutdown()); }}});
 }
