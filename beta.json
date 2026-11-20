@@ -1,10 +1,10 @@
 {
-  "version": "0.4.6",
-  "notes": "# Titan v0.4.6-beta.1\n\n- 后续源码迁入私有开发仓库，安装包继续从原 GitHub Releases 地址公开下载。\n- 保留现有 WB、IF、统计分析、教程、项目保存和导出流程；本次不增加登录、付费、设备绑定或联网使用限制。\n- macOS Apple Silicon 继续使用原 Beta 应用内更新通道。Windows x64 继续通过 EXE 安装包更新。\n- 历史 MIT 授权与第三方声明保留；新增代码的免费使用许可随安装包附带。\n\n安装前请保存工作并退出 Titan。应用标识和项目目录保持不变。附件包含 SHA256SUMS.txt。",
+  "version": "0.4.7",
+  "notes": "# Titan v0.4.7-beta.2\n\n- 左侧新增一级导航。「首页」可返回当前分析，项目侧栏可独立折叠、调宽，切换页面时保留分析草稿。\n- 点击项目名即可展开或收起分析。「项目」和「最近」的标题字号随全局字号调整。\n- 账户页保留头像，点击用户名即可编辑。未登录时可直接从「登录账户」开始，也可继续使用本地分析。\n- 「SOP」可在系统浏览器中打开指南、采购清单和采购中心。「消息」入口已接入，文字聊天服务仍处于本地内测。\n- WB 可直接导入三个通道逐像素同值的 8 位和 16 位 TIFF，保留原始定量像素。真彩色 TIFF 需导出单个检测通道后再导入。\n- WB 组图的预览刷新后会保留保存提示。\n\nmacOS 提供 Apple Silicon 安装包和原 Beta 更新通道，Windows x64 提供 EXE 安装包。安装前请保存工作并退出 Titan。若 macOS 提示访问已有项目所在的文件夹，请按系统提示授权。安装包校验值见 SHA256SUMS.txt。",
   "platforms": {
     "darwin-aarch64": {
-      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.6-beta.1/Titan-0.4.6-macos-arm64.app.tar.gz",
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSYkI4MTBtT0JIVEpKNnZSVkRNVllGNkFtU1kwcnBrb0VpVGxxV0RGMXplaHBDMWNJN21ZWUhFYUlPZ25RNmo1alFuZGtoN2kxMVhnNG9vemJYUXY2YW8wL3BUSHBlY1FrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MjA3MjM3CWZpbGU6VGl0YW4uYXBwLnRhci5negl2ZXJzaW9uOjAuNC42ClVlWFVwQlFicWwya3lMUEQxRTQ2cFkrbzllYS9nZ3JlcFFMQzZuQ3FPN3NhNENIRFdLdXpSc3NvMStPenlycmVqY2RYRUhpLzZYVUV6VURUZU9lRUNRPT0K"
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.7-beta.2/Titan-0.4.7-macos-arm64.app.tar.gz",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSYkI4MTBtT0JIVEY2Y09NbC9CUmZYZXdtRDFybW1sMTJHTVNQRnA5Z2JxRHlnNE9STE5ZY2pRVVA2cE14RDFaM1J1QmNMYmVoaHVmS0p4TWFldlEvMVlpZW1WWTUvendNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MjE0Njg2CWZpbGU6VGl0YW4uYXBwLnRhci5negl2ZXJzaW9uOjAuNC43CnRqVjF2SzdxaEh4OFlJMDVEUE13V1RaZkh5MFAwWkVIN05KZUtaMXRQeThpeXdVVk1DSTZNR2lrRmI2alV0WFpzTFVuRDR0aER3TUkxT2g4WVVOUUJRPT0K"
     }
   }
 }
