@@ -1,10 +1,10 @@
 {
-  "version": "0.4.5",
-  "notes": "# Titan v0.4.5-beta.1\n\n- WB 原图改用画布上方的页签切换。\n- 切换图像时可保留尚未确认的修改。旧版保存的手动条带仍可打开、编辑和重新定量。\n- 点选绿色条带框或橙色背景框后可直接拖动四边。条带框限制在所属泳道内，自动生成的背景框也能微调。\n- 切换泳道时右栏保持稳定，并继续提供亮度和对比度。原始信号方向及有效编码上界移至画布的「采集信息」，样本名称在「结果 → 样本设置」中编辑。\n- macOS 检测到新版本时在左下角显示更新按钮。接入 Beta 更新通道的 Titan 0.4.4 可通过该按钮安装 0.4.5。\n\nmacOS 安装包适用于 Apple Silicon。Windows x64 通过本页的安装包更新。发布附件附有 `SHA256SUMS.txt`。",
+  "version": "0.4.6",
+  "notes": "# Titan v0.4.6-beta.1\n\n- 后续源码迁入私有开发仓库，安装包继续从原 GitHub Releases 地址公开下载。\n- 保留现有 WB、IF、统计分析、教程、项目保存和导出流程；本次不增加登录、付费、设备绑定或联网使用限制。\n- macOS Apple Silicon 继续使用原 Beta 应用内更新通道。Windows x64 继续通过 EXE 安装包更新。\n- 历史 MIT 授权与第三方声明保留；新增代码的免费使用许可随安装包附带。\n\n安装前请保存工作并退出 Titan。应用标识和项目目录保持不变。附件包含 SHA256SUMS.txt。",
   "platforms": {
     "darwin-aarch64": {
-      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.5-beta.1/Titan-0.4.5-macos-arm64.app.tar.gz",
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSYkI4MTBtT0JIVE9RbXlReUQzVzB0dGN1aldCQ0IxdDVaYWozQTdtZFhkUUdkNnZPMEhUU2tzdENSb1R4SWJaMzVUM05HcEFoSnFpVlhTV0VndThZNmpTRmpWWEtQZWc4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MTkyNTgyCWZpbGU6VGl0YW4uYXBwLnRhci5negl2ZXJzaW9uOjAuNC41ClhmaVV1WlFIZHR1YVE4TWpUQ0FhaEo1SFloWVBaL1h6SkE1WnpDL0pYTHpUVTVMZE0yTmYrdVh3WVhOWGdidzlEemU3eTFFOU03U0dNNTNwY3cxOURBPT0K"
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.6-beta.1/Titan-0.4.6-macos-arm64.app.tar.gz",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSYkI4MTBtT0JIVEpKNnZSVkRNVllGNkFtU1kwcnBrb0VpVGxxV0RGMXplaHBDMWNJN21ZWUhFYUlPZ25RNmo1alFuZGtoN2kxMVhnNG9vemJYUXY2YW8wL3BUSHBlY1FrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MjA3MjM3CWZpbGU6VGl0YW4uYXBwLnRhci5negl2ZXJzaW9uOjAuNC42ClVlWFVwQlFicWwya3lMUEQxRTQ2cFkrbzllYS9nZ3JlcFFMQzZuQ3FPN3NhNENIRFdLdXpSc3NvMStPenlycmVqY2RYRUhpLzZYVUV6VURUZU9lRUNRPT0K"
     }
   }
 }
