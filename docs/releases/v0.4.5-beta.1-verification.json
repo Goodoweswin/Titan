@@ -1,0 +1,106 @@
+{
+  "version": "0.4.5",
+  "tag": "v0.4.5-beta.1",
+  "release_url": "https://github.com/Goodoweswin/Titan/releases/tag/v0.4.5-beta.1",
+  "published_at": "2026-11-20T16:43:31Z",
+  "release_id": 452940613,
+  "commit": "f2796efc32d0c29aa5ee75e893ae92b919b33573",
+  "verified_at": "2026-11-20T16:47:08.735098+00:00",
+  "assets": [
+    {
+      "name": "Titan-0.4.5-macos-arm64-third-party.zip",
+      "size": 2737359,
+      "sha256": "4b0e8b8b40a5bddccb4f425260ea7b57035ccd949fdf0546ec2fcd1dc819c27f",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.5-beta.1/Titan-0.4.5-macos-arm64-third-party.zip",
+      "format_verified": "ZIP integrity"
+    },
+    {
+      "name": "Titan-0.4.5-macos-arm64.app.tar.gz",
+      "size": 110352348,
+      "sha256": "04618a1da357615696370efa56fe8aef13c22c72331bf64607bfe68632b6e161",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.5-beta.1/Titan-0.4.5-macos-arm64.app.tar.gz",
+      "format_verified": "tar archive, app metadata, and cryptographic signature"
+    },
+    {
+      "name": "Titan-0.4.5-macos-arm64.app.tar.gz.sig",
+      "size": 420,
+      "sha256": "2ceb70aed388fd3a4a15d4e2ed32c5807a766ad6fa924be181b9677911ded287",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.5-beta.1/Titan-0.4.5-macos-arm64.app.tar.gz.sig",
+      "format_verified": "minisign signature binds app version"
+    },
+    {
+      "name": "Titan-0.4.5-macos-arm64.app.zip",
+      "size": 110448123,
+      "sha256": "731184c8b8caa3b6717c840b9170f2ea2d5c657b1893e65b765550fdbe59d0e2",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.5-beta.1/Titan-0.4.5-macos-arm64.app.zip",
+      "format_verified": "ZIP integrity and app metadata"
+    },
+    {
+      "name": "Titan-0.4.5-macos-arm64.dmg",
+      "size": 108610934,
+      "sha256": "445086a9a48226e48ade8e33f80ad31a8e5a8a6ac05265436bb58a8e3bf8a06f",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.5-beta.1/Titan-0.4.5-macos-arm64.dmg",
+      "format_verified": "UDIF footer"
+    },
+    {
+      "name": "Titan-0.4.5-windows-x64-setup.exe",
+      "size": 78513231,
+      "sha256": "613e58549c7572d9ba60ac59cc0946401295a687119bdaa978850b4b7734ac47",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.5-beta.1/Titan-0.4.5-windows-x64-setup.exe",
+      "format_verified": "NSIS x86 bootstrap PE header"
+    },
+    {
+      "name": "Titan-0.4.5-windows-x64-third-party.zip",
+      "size": 2839531,
+      "sha256": "d4660ca909bb85af94e30b8599bfb66182819db3e3d174921598e3d5d5fb5452",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.5-beta.1/Titan-0.4.5-windows-x64-third-party.zip",
+      "format_verified": "ZIP integrity"
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "size": 710,
+      "sha256": "b98cd9bd77b09433ab8ec87a0a81e66747667e9e3368188a2898875cabc6de30",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.5-beta.1/SHA256SUMS.txt"
+    }
+  ],
+  "update_feed": {
+    "url": "https://raw.githubusercontent.com/Goodoweswin/Titan/updates/beta.json",
+    "version": "0.4.5",
+    "platform": "darwin-aarch64",
+    "asset_url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.5-beta.1/Titan-0.4.5-macos-arm64.app.tar.gz",
+    "signature_matches": true,
+    "branch_commit": "a8eb33e3de01814d7a598b71880dad949c6afe36",
+    "archive_signature_verified": true
+  },
+  "workflows": {
+    "release": {
+      "run_id": 44773559279,
+      "conclusion": "success",
+      "macos_arm64": "success",
+      "windows_x64": "success",
+      "publish": "success"
+    },
+    "ci": {
+      "run_id": 44773559281,
+      "conclusion": "success"
+    }
+  },
+  "local_checks": {
+    "frontend": 162,
+    "browser": 134,
+    "python": 382,
+    "python_subtests": 5,
+    "rust": 48,
+    "rust_ignored": 2,
+    "frontend_build": "passed"
+  },
+  "native_update_check": {
+    "platform": "macos-arm64",
+    "installed_app_version": "0.4.4",
+    "detected_version": "0.4.5",
+    "surface": "left sidebar",
+    "button": "更新并重启",
+    "button_visible": true,
+    "installation_started": false
+  }
+}
