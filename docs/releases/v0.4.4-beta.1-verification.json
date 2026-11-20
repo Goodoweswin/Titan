@@ -123,7 +123,14 @@
     "project_library_backed_up": true,
     "downloaded_dmg_app_signature_verified": true,
     "application_window_started": true,
-    "existing_project_and_login_verification": "awaiting macOS consent"
+    "existing_project_and_login_verification": "passed",
+    "project_library_recovered_after_authorization_and_retry": true,
+    "previous_signed_in_session_restored": true,
+    "existing_wb_analysis_reopened": true,
+    "existing_wb_source_images_visible": 3,
+    "existing_wb_analysis_shows_saved": true,
+    "update_entry_hidden_at_current_version": true,
+    "startup_observation": "The initial project list request timed out while macOS awaited consent. After the user completed the system dialog, retrying the project list restored access in the running app."
   },
-  "scope": "Verified published Mac and Windows artifacts, isolated macOS update behavior, and the installed macOS app startup. Windows native GUI and real-sample analytical accuracy were outside this update verification."
+  "scope": "Verified published Mac and Windows artifacts, isolated macOS update behavior, and installed macOS recovery of the project library, one existing WB analysis, and the signed-in session. Windows native GUI and real-sample analytical accuracy were outside this update verification."
 }

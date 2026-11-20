@@ -77,7 +77,7 @@
 
 | 日期（北京时间） | 位置与应用标识 | 安装状态 |
 | --- | --- | --- |
-| 2026-11-20 | `/Applications/Titan.app` · `com.titan.wb` | 公开版 `v0.4.4-beta.1` 已从核验过的 DMG 安装并启动，前一版 App 和本机项目库已备份。既有项目和登录等待 macOS 确认。[验证报告](v0.4.4-beta.1-verification.json) |
+| 2026-11-20 | `/Applications/Titan.app` · `com.titan.wb` | 从已核验的 DMG 安装 `v0.4.4-beta.1`，前一版 App 和本机项目库已备份。完成 macOS 授权后，重试恢复项目列表，原 WB 分析可重开，登录会话已恢复。当前版本隐藏更新入口。[验证报告](v0.4.4-beta.1-verification.json) |
 | 2026-11-13 04:37 | `/Applications/Titan.app` · `com.titan.wb` | 曾安装 `local-20261113-context-menu`，显示版本 `0.4.1`，源码 `7d748b9`。主程序签名和哈希已核对，内置引擎保持前版，安装后项目库索引未变。系统访问确认后，旧项目与登录已恢复，原生菜单核对通过，结束时恢复首页。[校验值与备份](local-20261113-context-menu-verification.json) |
 | 2026-11-12 21:58 | `/Applications/Titan.app` · `com.titan.wb` | 此前安装 `local-20261112-account-activity`，显示版本 `0.4.1`，源码 `e4538ee`。原生已验证账户中栏、正方形日历和每日／每周／累计切换，活动记录和配色保留；项目库文件哈希未变。[校验值和备份位置](local-20261112-account-activity-verification.json) |
 | 2026-11-12 12:38 | `/Applications/Titan.app` · `com.titan.wb` | 此前安装 `local-20261112-sidebar-appearance`，显示版本 `0.4.1`。旧应用和项目库已备份；已核对实际浅色左栏，已恢复原 WB 分析及未选择页面的 TIFF 窗口。[校验值和备份位置](local-20261112-sidebar-appearance-verification.json) |
