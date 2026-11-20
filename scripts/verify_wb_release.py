@@ -11,6 +11,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import numpy as np
+import tifffile
 from PIL import Image
 from release_environment import packaged_environment
 
@@ -53,14 +54,30 @@ def verify(binary, output):
             project['synthetic'] = True
             project = call('save_project', project=project, path=str(output/'original.titanwb'), expected_revision=None)
             unchanged = copy.deepcopy(project)
+            high_depth = output/'SYNTHETIC_16BIT.tif'
+            tifffile.imwrite(high_depth, pixels.astype(np.uint16)*257, photometric='minisblack')
+            high_depth_project = call('import_image', project=call('new_project', name='WB display'), path=str(high_depth))
+            asset = high_depth_project['images'][0]
+            assert asset['dtype'] == 'uint16'
+            for asset in (project['images'][0], asset):
+                original = Path(asset['path'])
+                changed_preview = call('wb_display_preview', asset=asset, brightness=25, contrast=20)
+                assert changed_preview.startswith('data:image/png') and changed_preview != asset['preview']
+                assert hashlib.sha256(original.read_bytes()).hexdigest() == asset['sha256']
             document = call('wb_new', project=project)
             document['rows'][0].update(protein='AKT 蛋白', crop=[10, 20, 110, 30], confirmed=True, expected_mw='60')
             document['labels'] = [dict(text='Ctrl < &', x=.25)]
+            original_position = call('wb_preview', project=project, document=document)['layout']['rows'][0]
+            document['rows'][0]['offset_mm'] = [1.2, -.7]
             preview = call('wb_preview', project=project, document=document)
+            placement = preview['layout']['rows'][0]
+            assert placement['offset_mm'] == [1.2, -.7]
+            assert placement['x_pt'] > original_position['x_pt'] and placement['y_pt'] < original_position['y_pt']
             saved = call('wb_save', project=project, document=document)
             assert call('wb_list', project=project)[0]['version'] == saved['version']
             reopened = call('wb_load', project=project, document_id=saved['id'])
             assert reopened['rows'][0]['crop'] == [10, 20, 110, 30]
+            assert reopened['rows'][0]['offset_mm'] == [1.2, -.7]
             reopened['name'] = '修订'
             updated = call('wb_save', project=project, document=reopened, expected_version=saved['version'])
             assert updated['version'] != saved['version']
@@ -75,6 +92,8 @@ def verify(binary, output):
             assert any(node.text == 'Ctrl < &' for node in svg.findall('.//{http://www.w3.org/2000/svg}text'))
             images = svg.findall('.//{http://www.w3.org/2000/svg}image')
             assert images and all(node.get('href', '').startswith('data:image/png') for node in images)
+            assert abs(float(images[0].get('x')) - placement['x_pt']) < .001
+            assert abs(float(images[0].get('y')) - placement['y_pt']) < .001
             for name, digest in exported['outputs'].items():
                 assert hashlib.sha256((output/'export'/name).read_bytes()).hexdigest() == digest
             empty = copy.deepcopy(project)
@@ -93,6 +112,8 @@ def verify(binary, output):
                 version_conflict_rejected=True, historical_version_preserved=True,
                 portable_copy_after_original_removed=True, preview_equals_png_export=True,
                 editable_svg_text=True, embedded_strip_images=len(images), outputs_sha256=exported['outputs'],
+                adjusted_display_bit_depths=[8,16], original_sha256_preserved=True,
+                placement_saved_and_exported_mm=placement['offset_mm'],
                 real_wb_verified=False)
             (output/'wb-release-verification.json').write_text(json.dumps(report, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
             print(json.dumps(report, ensure_ascii=False, indent=2))
