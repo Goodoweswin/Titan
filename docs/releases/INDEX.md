@@ -8,6 +8,7 @@
 
 | 发布标签 | 发布日 | 标签对应提交 | 发布验证与校验记录 |
 | --- | --- | --- | --- |
+| **[v0.4.4-beta.1](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.4-beta.1)** | 2026-11-20 | `72f986c` | Mac／Windows 发布通过。八项公开附件已复核，Mac 签名更新和实时 Beta 清单已验证。[验证报告](v0.4.4-beta.1-verification.json) |
 | **[v0.4.3-beta.1](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.3-beta.1)** | 2026-11-20 | `9c89085` | Mac／Windows 原生构建及发布成功。六项发布附件已下载并通过 SHA-256 核对，下载的 DMG 通过签名完整性和 WB 合成样例检查。[验证报告](v0.4.3-beta.1-verification.json) |
 | **[v0.4.2-beta.1](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.2-beta.1)** | 2026-11-13 | `0ab0e5a` | Mac／Windows 原生构建及发布成功，DMG／EXE 实际下载 SHA-256 校验通过；下载 DMG 内的原生程序与 CI 一致，签名验证通过。[验证报告](v0.4.2-beta.1-verification.json) |
 | **[v0.4.1-beta.3](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.1-beta.3)** | 2026-11-07 | `a13b349` | [验证报告](v0.4.1-beta.3-verification.json) |
@@ -76,7 +77,8 @@
 
 | 日期（北京时间） | 位置与应用标识 | 安装状态 |
 | --- | --- | --- |
-| 2026-11-13 04:37 | `/Applications/Titan.app` · `com.titan.wb` | **当前安装** `local-20261113-context-menu`，显示版本 `0.4.1`，源码 `7d748b9`；主程序签名和哈希已核对，内置引擎保持前版，安装后项目库索引未变。系统访问确认后，旧项目与登录已恢复，原生菜单核对通过，结束时恢复首页。[校验值与备份](local-20261113-context-menu-verification.json) |
+| 2026-11-20 | `/Applications/Titan.app` · `com.titan.wb` | 公开版 `v0.4.4-beta.1` 已从核验过的 DMG 安装并启动，前一版 App 和本机项目库已备份。既有项目和登录等待 macOS 确认。[验证报告](v0.4.4-beta.1-verification.json) |
+| 2026-11-13 04:37 | `/Applications/Titan.app` · `com.titan.wb` | 曾安装 `local-20261113-context-menu`，显示版本 `0.4.1`，源码 `7d748b9`。主程序签名和哈希已核对，内置引擎保持前版，安装后项目库索引未变。系统访问确认后，旧项目与登录已恢复，原生菜单核对通过，结束时恢复首页。[校验值与备份](local-20261113-context-menu-verification.json) |
 | 2026-11-12 21:58 | `/Applications/Titan.app` · `com.titan.wb` | 此前安装 `local-20261112-account-activity`，显示版本 `0.4.1`，源码 `e4538ee`。原生已验证账户中栏、正方形日历和每日／每周／累计切换，活动记录和配色保留；项目库文件哈希未变。[校验值和备份位置](local-20261112-account-activity-verification.json) |
 | 2026-11-12 12:38 | `/Applications/Titan.app` · `com.titan.wb` | 此前安装 `local-20261112-sidebar-appearance`，显示版本 `0.4.1`。旧应用和项目库已备份；已核对实际浅色左栏，已恢复原 WB 分析及未选择页面的 TIFF 窗口。[校验值和备份位置](local-20261112-sidebar-appearance-verification.json) |
 | 2026-11-12 03:54 | `/Applications/Titan.app` · `com.titan.wb` | 此前安装 `local-20261112-navigation-panels`，显示版本 `0.4.1`。旧应用及项目库已备份，主程序和内置引擎校验通过。[校验值和备份位置](local-20261112-navigation-panels-verification.json) |

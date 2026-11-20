@@ -1,0 +1,129 @@
+{
+  "version": "0.4.4",
+  "tag": "v0.4.4-beta.1",
+  "release_url": "https://github.com/Goodoweswin/Titan/releases/tag/v0.4.4-beta.1",
+  "published_at": "2026-11-20T14:45:45Z",
+  "release_id": 452811354,
+  "commit": "72f986c60e61269e2fb9c10f8a3faa049963e404",
+  "verified_at": "2026-11-20T14:49:16.360410+00:00",
+  "assets": [
+    {
+      "name": "Titan-0.4.4-macos-arm64-third-party.zip",
+      "size": 2737359,
+      "sha256": "51ee97e10692b84047aab13e38f53acad4c0ca4e69a3ff488ee9725ff81c09c2",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.4-beta.1/Titan-0.4.4-macos-arm64-third-party.zip",
+      "format_verified": "ZIP integrity"
+    },
+    {
+      "name": "Titan-0.4.4-macos-arm64.app.tar.gz",
+      "size": 110353599,
+      "sha256": "83bd75291a431a9daebf4e027de05e4b348e20512d46f2108883e4cc2f6d1d2d",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.4-beta.1/Titan-0.4.4-macos-arm64.app.tar.gz",
+      "format_verified": "tar archive and app metadata"
+    },
+    {
+      "name": "Titan-0.4.4-macos-arm64.app.tar.gz.sig",
+      "size": 420,
+      "sha256": "7223ae054e6a40d6c6777cb94d291f4bf2bb0d7abf2aff528c375bb1781b41ab",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.4-beta.1/Titan-0.4.4-macos-arm64.app.tar.gz.sig",
+      "format_verified": "minisign signature binds app version"
+    },
+    {
+      "name": "Titan-0.4.4-macos-arm64.app.zip",
+      "size": 110448727,
+      "sha256": "ebfce4542574b097e09f2af3b8255eedb790ad187854674974521ec7cab3d4d4",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.4-beta.1/Titan-0.4.4-macos-arm64.app.zip",
+      "format_verified": "ZIP integrity and app metadata"
+    },
+    {
+      "name": "Titan-0.4.4-macos-arm64.dmg",
+      "size": 108607997,
+      "sha256": "feb89026ac3256f539ea5a1e498c6f76fc60721c054ea845e6ea45bb167d929e",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.4-beta.1/Titan-0.4.4-macos-arm64.dmg",
+      "format_verified": "UDIF footer"
+    },
+    {
+      "name": "Titan-0.4.4-windows-x64-setup.exe",
+      "size": 78504553,
+      "sha256": "9fa9f1462ffe6669bf7782a2b65e6ff0b909fe810587b25fa378cbd252d6d261",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.4-beta.1/Titan-0.4.4-windows-x64-setup.exe",
+      "format_verified": "NSIS x86 bootstrap PE header"
+    },
+    {
+      "name": "Titan-0.4.4-windows-x64-third-party.zip",
+      "size": 2839533,
+      "sha256": "9c9dd8fb53bb3f21718c588cae4ca5dffa35b6c3c4ce8ca16ab70b55745d49c8",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.4-beta.1/Titan-0.4.4-windows-x64-third-party.zip",
+      "format_verified": "ZIP integrity"
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "size": 710,
+      "sha256": "726a971dbf57c551506ebf707880dd82f04b274a303fab971d8aa412998a96ae",
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.4-beta.1/SHA256SUMS.txt"
+    }
+  ],
+  "update_feed": {
+    "url": "https://raw.githubusercontent.com/Goodoweswin/Titan/updates/beta.json",
+    "version": "0.4.4",
+    "platform": "darwin-aarch64",
+    "asset_url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.4-beta.1/Titan-0.4.4-macos-arm64.app.tar.gz",
+    "signature_matches": true,
+    "branch_commit": "57cf9db6dcb672418d1d6910b82f7b47a4dc7b3b",
+    "public_key_sha256": "9f40dfeefad4d0351b05fd4b7aa1a46b0842c08005b3c98cc7e90df8e9011651",
+    "archive_signature_verified_in_publish_job": true
+  },
+  "github_actions": {
+    "ci": {
+      "run_id": 44754046695,
+      "status": "success"
+    },
+    "release": {
+      "run_id": 44754046569,
+      "macos_arm64": "success",
+      "windows_x64": "success",
+      "publish": "success"
+    }
+  },
+  "local_test_summary": {
+    "python": {
+      "passed": 382,
+      "subtests_passed": 5
+    },
+    "frontend": {
+      "passed": 162
+    },
+    "browser": {
+      "passed": 130
+    },
+    "macos_rust": {
+      "passed": 48,
+      "ignored_live_account_tests": 2
+    },
+    "production_frontend_build": "passed"
+  },
+  "native_macos_upgrade_qa": {
+    "from_version": "0.4.3",
+    "to_version": "0.4.4",
+    "isolated_app": true,
+    "guest_mode": true,
+    "automatic_restart": true,
+    "invalid_signature_rejected": true,
+    "signed_version_mismatch_rejected": true,
+    "deferred_install_verified": true,
+    "installed_update_button_hidden": true,
+    "saved_synthetic_wb_analysis_reopened": true,
+    "offline_startup_verified": true
+  },
+  "local_macos_installation": {
+    "from_version": "0.4.2",
+    "to_version": "0.4.4",
+    "binary_sha256": "3dd8edf90e520e4990e3c1b2c8f8e9751554a53185a2568f34cc8999f0952d4b",
+    "previous_app_backed_up": true,
+    "project_library_backed_up": true,
+    "downloaded_dmg_app_signature_verified": true,
+    "application_window_started": true,
+    "existing_project_and_login_verification": "awaiting macOS consent"
+  },
+  "scope": "Verified published Mac and Windows artifacts, isolated macOS update behavior, and the installed macOS app startup. Windows native GUI and real-sample analytical accuracy were outside this update verification."
+}
