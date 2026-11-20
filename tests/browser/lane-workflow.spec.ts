@@ -1,6 +1,6 @@
 import {createAnalysis} from './library-actions'
 import {test,expect} from '@playwright/test'
-import {mkdtempSync,rmSync,readFileSync} from 'node:fs'
+import {mkdtempSync,rmSync} from 'node:fs'
 import {tmpdir} from 'node:os'
 import path from 'node:path'
 import {execFileSync} from 'node:child_process'
@@ -185,26 +185,4 @@ test('reference re-identification reuses explicit lane template instead of guess
  await expect(page.getByLabel('泳道 L1',{exact:true})).toHaveAttribute('x',x!)
  await page.getByRole('button',{name:'确认内参',exact:true}).click()
  await expect(page.getByText('内参已确认',{exact:true})).toBeVisible()
- await page.getByText('手动调整与图像信息',{exact:true}).click()
- await page.getByRole('button',{name:'打开手动条带编辑',exact:true}).click()
- await page.setViewportSize({width:1080,height:900})
- await page.locator('aside.inspector').getByRole('slider',{name:'对比度',exact:true}).click({position:{x:16,y:5}})
- await page.getByRole('button',{name:'重置显示',exact:true}).click()
- await page.setViewportSize({width:1440,height:1000})
- await page.getByRole('button',{name:'选择 L1 内参',exact:true}).click()
- await expect(page.getByLabel('蛋白 / 测量名称',{exact:true}).first()).toBeDisabled()
- await page.getByTitle('删除条带',{exact:true}).click()
- const savePath=path.join(root,'delete-reidentify.titanwb')
- await page.evaluate((dest:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async(c:string)=>{if(c==='plugin:dialog|save')return dest;throw Error(c)}}},savePath)
- await page.getByRole('button',{name:'另存副本',exact:true}).click()
- await expect(page.getByText('实验已保存；保存期间的新修改仍保留。',{exact:true})).toBeVisible()
- let disk=JSON.parse(readFileSync(path.join(savePath,'project.json'),'utf8'))
- expect(disk.band_sets[0].assignments[0]).toMatchObject({roi_id:null,status:'pending'})
- await page.getByRole('button',{name:'返回简洁流程',exact:true}).click()
- await page.getByRole('button',{name:'重新识别',exact:true}).click()
- await page.getByRole('button',{name:'确认内参',exact:true}).click()
- await page.getByRole('button',{name:'保存实验',exact:true}).click()
- await expect(page.getByText('实验已保存；保存期间的新修改仍保留。',{exact:true})).toBeVisible()
- disk=JSON.parse(readFileSync(path.join(savePath,'project.json'),'utf8'))
- expect(disk.band_sets[0].assignments.every((a:any)=>a.status==='accepted')).toBe(true)
 })

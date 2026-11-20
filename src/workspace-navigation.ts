@@ -18,7 +18,6 @@ export interface AnalysisLocation extends Omit<ModuleView,'busy'> {
  projectId:string
  view:string
  entryId?:string
- manualMode?:boolean
  activeSetId?:string
  roiId?:string
 }
@@ -30,7 +29,7 @@ export function locationKey(location:WorkspaceLocation):string {
  if(location.kind==='project')return 'project:'+location.id
  if(location.kind==='tool')return 'tool:'+location.tool
  return JSON.stringify([location.module,location.entryId??location.path??location.projectId,location.projectId,location.view,location.resourceId,
-  location.artifactId,location.versionId,location.runId,location.manualMode,location.activeSetId])
+  location.artifactId,location.versionId,location.runId,location.activeSetId])
 }
 function sameAnalysis(a:AnalysisLocation,b:AnalysisLocation):boolean {
  const identity=a.entryId&&b.entryId?a.entryId===b.entryId:a.path&&b.path?a.path===b.path:a.projectId===b.projectId

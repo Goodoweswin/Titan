@@ -190,8 +190,8 @@ export default function App(){
  useEffect(()=>{setCandidates(null);if(!frozenRef.current)setShowExport(false)},[project?.id,project?.revision])
  const [tab,setTab]=useState<'workspace'|'samples'|'results'|'wb'>('workspace')
  const homeVisible=!project||screen.kind!=='analysis'||module!=='wb'
- const [manualMode,setManualMode]=useState(false),[activeSetId,setActiveSetId]=useState('')
- const guided=!!project&&!(project as any).demo&&!manualMode
+ const [activeSetId,setActiveSetId]=useState('')
+ const guided=!!project&&!(project as any).demo
  const navigation=useRef(0)
  async function navigate(next:typeof tab,discardApproved=false){if(!discardApproved&&!await canLeaveFigure())return;navigation.current++;frozenRef.current=null;setFrozen(null);figurePreview.current=null;setInitialStrip(null);setActiveStrip(null);setTab(next)}
  async function goWbStage(next:typeof tab,fromTutorial=false){
@@ -201,7 +201,6 @@ export default function App(){
    if(next==='workspace')setActiveSetId(base.band_sets.find(g=>g.role==='reference')?.id??'')
    if(next==='samples'&&!base.band_sets.some(g=>g.id===activeSetId&&g.role==='target'))setActiveSetId(base.band_sets.find(g=>g.role==='target')?.id??'')
   }
-  if(fromTutorial)setManualMode(false)
   await navigate(next,true)
  }
  const [busy,setBusy]=useState(''),[message,setMessage]=useState(''),[connected,setConnected]=useState(false)
@@ -259,7 +258,7 @@ export default function App(){
  async function activateProject(p:Project){
   const old=current.current;choosePages(null);figurePreview.current=null;frozenRef.current=null;setFrozen(null);setShowExport(false);setCandidates(null)
   if(old?.project_path&&old.project_path!==p.project_path)await callEngine('release_project',{path:old.project_path}).catch(()=>{})
-  job.current++;setBusy('');setSelection({imageId:p.images[0]?.id??'',roiId:'',ids:[]});assignProject(p);setPast([]);setFuture([]);assignResult(null);setInitialStrip(null);setActiveStrip(null);setTab('workspace');setManualMode(false);setActiveSetId('');setWorkspaceEpoch(v=>v+1);setMessage('')
+  job.current++;setBusy('');setSelection({imageId:p.images[0]?.id??'',roiId:'',ids:[]});assignProject(p);setPast([]);setFuture([]);assignResult(null);setInitialStrip(null);setActiveStrip(null);setTab('workspace');setActiveSetId('');setWorkspaceEpoch(v=>v+1);setMessage('')
  }
  async function switchProject(p:Project){
   if(!await canLeaveFigure()||!await flushCurrent()){if(p.project_path&&p.project_path!==current.current?.project_path)await callEngine('release_project',{path:p.project_path}).catch(()=>{});return false}
@@ -815,7 +814,7 @@ export default function App(){
   currentView.projectId&&currentView.view?{kind:'analysis',module,projectId:currentView.projectId,view:currentView.view,
    path:currentView.path,name:currentView.name,entryId:currentEntry?.entry_id,resourceId:currentView.resourceId,
    artifactId:currentView.artifactId,versionId:currentView.versionId,runId:currentView.runId,
-   ...(module==='wb'?{manualMode,activeSetId,roiId:selection.roiId}:{})}:null
+   ...(module==='wb'?{activeSetId,roiId:selection.roiId}:{})}:null
  const browsingLocation:WorkspaceLocation|null=screen.kind==='analysis'?liveLocation:screen
  const browsingBlocked=libraryBusy||switching||!!currentView.busy||module==='wb'&&(!!busy||wbWorking)||
   !!firstImport||!!pageChoice||!!libraryDialog||showExport||showWbGuide
@@ -844,7 +843,7 @@ export default function App(){
    }
    if(candidate!==before)await activateProject(candidate)
    await navigate(location.view as typeof tab,true)
-   setManualMode(!!location.manualMode);setActiveSetId(location.activeSetId??'')
+   setActiveSetId(location.activeSetId??'')
    setSelection({imageId:location.resourceId??candidate.images[0]?.id??'',roiId:candidate.rois.some(roi=>roi.id===location.roiId)?location.roiId!:'',ids:[]})
    if(figure){frozenRef.current=figure;setFrozen(figure);setTab('results')}
    if(strip){setInitialStrip(strip);setActiveStrip({id:strip.id,version:strip.version!})}
@@ -951,19 +950,18 @@ export default function App(){
      {!guided&&<button className={`btn ${tab==='results'?'secondary':'primary'}`} disabled={!!busy||!project.rois.length} onClick={analyze}><Activity size={15}/>开始定量</button>}
      {tab==='results'&&!frozen&&<button className="btn secondary" disabled={!result||!!busy} onClick={sendStats}>发送到统计与绘图</button>}
      {(tab==='results'||frozen)&&<button className="btn primary" disabled={!result||!!busy} onClick={openExport}><ArrowDownToLine size={15}/>导出结果</button>}
-     {manualMode&&<button className="text-btn" onClick={()=>{setManualMode(false);navigate('workspace')}}>返回简洁流程</button>}
     </>}
    </>}
   </WorkspaceHeader>
   {message&&<div className="notice" role="status"><span>{message}</span>{recoveryPath&&<button className="btn secondary" onClick={recover}>尝试恢复项目</button>}<button onClick={()=>setMessage('')}>×</button></div>}{busy&&<div className="busy" role="status"><img className="titan-loader" src={gorillaHead} alt="" aria-hidden="true"/>{busy}…{(busy.startsWith('计算')||busy.startsWith('识别'))&&<button onClick={()=>{job.current++;setBusy('');setMessage('已取消等待，本次结果不会写入当前项目。')}}>取消等待</button>}</div>}
   {module==='wb'&&memberLine}
-  {project?.example_case?.mode==='tutorial'?<WbTutorial key={project.id} context={{project,view:manualMode||frozen?'other':tab,active:!homeVisible&&module==='wb',editor:tutorialEditor,figure:tutorialFigure,result,exported:tutorialExport}} onLocate={view=>{if(view!=='other')void goWbStage(view,true)}} onReveal={()=>{if(panels.rightCollapsed)panels.toggleRight()}}/>:project?.example_case&&<WbReferenceCaseGuide project={project}/>}
+  {project?.example_case?.mode==='tutorial'?<WbTutorial key={project.id} context={{project,view:frozen?'other':tab,active:!homeVisible&&module==='wb',editor:tutorialEditor,figure:tutorialFigure,result,exported:tutorialExport}} onLocate={view=>{if(view!=='other')void goWbStage(view,true)}} onReveal={()=>{if(panels.rightCollapsed)panels.toggleRight()}}/>:project?.example_case&&<WbReferenceCaseGuide project={project}/>}
    {project&&<div hidden={homeVisible}><div className="workspace-navigation">
     <nav className="steps" aria-label="实验视图">{(guided?([['workspace','内参'],['samples','目标'],['results','结果']] as const):([['workspace','图像与条带'],['samples','样本与分析设置'],['results','定量结果']] as const)).map(([t,label])=><button aria-label={label} key={t} data-wb-guide={'nav-'+t} onClick={()=>void goWbStage(t)} className={tab===t?'selected':''} aria-current={tab===t?'page':undefined}>{label}</button>)}<button aria-label="WB 组图" data-wb-guide="nav-wb" onClick={()=>void goWbStage('wb')} className={tab==='wb'?'selected':''} aria-current={tab==='wb'?'page':undefined}>WB 组图</button></nav>
     {guided&&!frozen&&tab!=='results'&&tab!=='wb'&&project.band_sets.length>0&&<div className="workspace-proteins"><label>当前蛋白<select aria-label="当前蛋白" value={activeSetId||project.band_sets[0].id} onChange={e=>{const g=project.band_sets.find(g=>g.id===e.target.value)!;setActiveSetId(g.id);navigate(g.role==='reference'?'workspace':'samples')}}>{project.band_sets.map(g=><option key={g.id} value={g.id}>{g.analyte} · {g.role==='reference'?'内参':'目标'}</option>)}</select></label></div>}
    </div>
    <section inert={switching} className={`page-content ${tab==='workspace'?'workbench-page':''}`}>{tab==='wb'?<WbFigureEditor key={project.id+':'+workspaceEpoch+':'+(initialStrip?.version??'')} project={project}
-    initialDocument={initialStrip} onStateChange={project.example_case?.mode==='tutorial'?setTutorialFigure:undefined} onDocument={setActiveStrip} onSaved={library.refresh} onExported={receipt=>{reportLibraryExport(receipt);if(current.current?.id===project.id&&current.current.revision===project.revision){const proof=wbExportProof(project,tutorialFigure,receipt);if(proof)setTutorialExport(proof)}}} externalBusy={!!busy||switching} onBusy={working=>{wbBusy.current=working;setWbWorking(working)}} onBeforeSave={prepareWbSave} onDraft={dirty=>{wbDirty.current=dirty}} onHistory={history=>{wbHistory.current=history}}/>:frozen?<FigureDocument key={figureEpoch} figure={frozen} onArchive={archiveFigure} onPreview={onFigurePreview} onUpdate={updateFigureSource} canUpdate={!!result&&result.input_revision===project.revision} onWorkspace={()=>{setActiveSetId(project.band_sets.find(g=>g.role==='reference')?.id??'');navigate('workspace')}} onVersion={openFigureVersion}/>:guided?(tab==='results'?<LaneResults key={figureEpoch} project={project} result={result} onEdit={edit} onReview={review} onLocate={locate} onAnalyze={analyze} onExport={openExport} onArchive={archiveFigure} onPreview={onFigurePreview} figureDocument={figureDocument}/>:<LaneSetup onStateChange={project.example_case?.mode==='tutorial'?setTutorialEditor:undefined} onHistory={setCanvasHistory} key={workspaceEpoch} project={project} stage={tab==='workspace'?'reference':'targets'} activeSetId={activeSetId} onSet={setActiveSetId} onEdit={edit} onImport={()=>importImages().catch(e=>setMessage(String(e)))} onTarget={()=>{setActiveSetId('');navigate('samples')}} onManual={()=>{setManualMode(true);navigate('workspace')}}/>):<><QualityPanel project={project} result={result} onLocate={locate}/>{tab==='workspace'?<Workspace project={project} onEdit={edit} onDetect={detect} candidates={staged} onCandidates={setCandidates} onAcceptCandidates={acceptCandidates} onReview={review} busy={!!busy} selection={selection} onSelect={setSelection}/>:tab==='samples'?<SampleEditor project={project} onEdit={edit} onReview={review}/>:<Results project={project} result={result} onLocate={locate} onAnalyze={analyze}/>}</>}</section></div>}
+    initialDocument={initialStrip} onStateChange={project.example_case?.mode==='tutorial'?setTutorialFigure:undefined} onDocument={setActiveStrip} onSaved={library.refresh} onExported={receipt=>{reportLibraryExport(receipt);if(current.current?.id===project.id&&current.current.revision===project.revision){const proof=wbExportProof(project,tutorialFigure,receipt);if(proof)setTutorialExport(proof)}}} externalBusy={!!busy||switching} onBusy={working=>{wbBusy.current=working;setWbWorking(working)}} onBeforeSave={prepareWbSave} onDraft={dirty=>{wbDirty.current=dirty}} onHistory={history=>{wbHistory.current=history}}/>:frozen?<FigureDocument key={figureEpoch} figure={frozen} onArchive={archiveFigure} onPreview={onFigurePreview} onUpdate={updateFigureSource} canUpdate={!!result&&result.input_revision===project.revision} onWorkspace={()=>{setActiveSetId(project.band_sets.find(g=>g.role==='reference')?.id??'');navigate('workspace')}} onVersion={openFigureVersion}/>:guided?(tab==='results'?<LaneResults key={figureEpoch} project={project} result={result} onEdit={edit} onReview={review} onLocate={locate} onAnalyze={analyze} onExport={openExport} onArchive={archiveFigure} onPreview={onFigurePreview} figureDocument={figureDocument}/>:<LaneSetup onStateChange={project.example_case?.mode==='tutorial'?setTutorialEditor:undefined} onHistory={setCanvasHistory} key={workspaceEpoch} project={project} stage={tab==='workspace'?'reference':'targets'} activeSetId={activeSetId} onSet={setActiveSetId} onEdit={edit} onImport={()=>importImages().catch(e=>setMessage(String(e)))} onTarget={()=>{setActiveSetId('');navigate('samples')}}/>):<><QualityPanel project={project} result={result} onLocate={locate}/>{tab==='workspace'?<Workspace project={project} onEdit={edit} onDetect={detect} candidates={staged} onCandidates={setCandidates} onAcceptCandidates={acceptCandidates} onReview={review} busy={!!busy} selection={selection} onSelect={setSelection}/>:tab==='samples'?<SampleEditor project={project} onEdit={edit} onReview={review}/>:<Results project={project} result={result} onLocate={locate} onAnalyze={analyze}/>}</>}</section></div>}
   {showExport&&exportContext&&<ExportPreview project={exportContext.project} result={exportContext.result} initialSettings={exportContext.settings} initialFigure={exportContext.figure} initialData={exportContext.preview?.figure_data} onClose={()=>setShowExport(false)} onExport={exportResult}/>}{!homeVisible&&<footer className="statusbar"><div className="status-summary">{project&&!homeVisible&&<><span>{project.images.length} 张原始图像</span><span>{project.rois.length} 个条带区域</span><span>{reviewed} 已复核</span>{project.example_case&&!project.synthetic&&<b className="synthetic-label">真实图像案例 · 仅供操作练习</b>}{(project.demo||project.synthetic)&&<b className="synthetic-label">纯合成示例 · 非实验数据</b>}</>}</div><div className="status-system"><span className="connection"><i className={connected?'online':''}/>{connected?'本地引擎就绪':'连接中'}</span>{project&&!homeVisible&&<span className="pixel-note"><ShieldCheck size={12}/>原始像素参与计算</span>}</div></footer>}</div></div>
   <IFWorkspace active={analysisVisible&&module==='if'} volumeAvailable={tool==='if'} onStatsSource={sendIFStats} registerClose={fn=>{ifClose.current=fn}}
    registerLibrary={actions=>{ifLibrary.current=actions}} library={library} libraryBusy={libraryBusy}

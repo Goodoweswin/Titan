@@ -142,18 +142,18 @@ test('missing historical statistics table preserves the current table and undo s
  await expect(page.getByRole('button',{name:'撤销统计修改',exact:true})).toBeEnabled()
 })
 
-test('WB manual mode survives back from a different WB analysis',async({page})=>{
+test('WB formal target step survives back from a different WB analysis',async({page})=>{
  await page.goto('/?integration=1')
- await savedWB(page,'manual history A',true);await savedWB(page,'manual history B',true)
+ await savedWB(page,'formal history A',true);await savedWB(page,'formal history B',true)
  await page.reload()
- await page.getByRole('button',{name:'打开分析 manual history A',exact:true}).click()
- await page.getByText('手动调整与图像信息',{exact:true}).click()
- await page.getByRole('button',{name:'打开手动条带编辑',exact:true}).click()
- await expect(page.getByLabel('原图条带工作台',{exact:true})).toBeVisible()
- await page.getByRole('button',{name:'打开分析 manual history B',exact:true}).click()
+ await page.getByRole('button',{name:'打开分析 formal history A',exact:true}).click()
+ await page.getByRole('button',{name:'目标',exact:true}).click()
+ await expect(page.getByRole('button',{name:'目标',exact:true})).toHaveAttribute('aria-current','page')
+ await page.getByRole('button',{name:'打开分析 formal history B',exact:true}).click()
  await browsing(page).getByRole('button',{name:'后退',exact:true}).click()
- await expect(page.getByLabel('实验名称',{exact:true})).toHaveValue('manual history A')
- await expect(page.getByLabel('原图条带工作台',{exact:true})).toBeVisible()
+ await expect(page.getByLabel('实验名称',{exact:true})).toHaveValue('formal history A')
+ await expect(page.getByRole('button',{name:'目标',exact:true})).toHaveAttribute('aria-current','page')
+ await expect(page.getByLabel('泳道分析画布',{exact:true})).toBeVisible()
 })
 
 test('history before the first IF field resolves to a live view without freezing navigation',async({page})=>{
