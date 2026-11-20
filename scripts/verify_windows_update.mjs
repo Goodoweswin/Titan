@@ -11,6 +11,8 @@ const webviewPort = 18452
 const projectName = 'Windows updater verification'
 const signature = readFileSync(signatureFile, 'ascii').trim()
 const packageBytes = statSync(installer).size
+const executableLiteral = executable.replaceAll("'", "''")
+const appProcesses = `Get-Process titan-wb -ErrorAction SilentlyContinue | Where-Object Path -eq '${executableLiteral}'`
 let sendValidPackage = false
 
 const server = createServer((request, response) => {
@@ -54,16 +56,19 @@ async function connect() {
 }
 
 const config = page => page.evaluate(() => window.__TAURI_INTERNALS__.invoke('update_configuration'))
+const powershell = command => execFileSync('powershell.exe', ['-NoProfile','-Command',command],
+ {encoding:'utf8', timeout:15_000, windowsHide:true}).trim()
+const launch = () => spawn(executable, [], {
+ env:{...process.env, WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS:
+  `--remote-debugging-port=${webviewPort} --remote-debugging-address=127.0.0.1`},
+})
 
 await new Promise((resolve, reject) => {
  server.once('error', reject)
  server.listen(feedPort, '127.0.0.1', resolve)
 })
 
-const old = spawn(executable, [], {
- env:{...process.env, WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS:
-  `--remote-debugging-port=${webviewPort} --remote-debugging-address=127.0.0.1`},
-})
+const old = launch()
 let spawnError
 old.on('error', error => {spawnError = error})
 let upgraded
@@ -88,19 +93,32 @@ try {
  await page.getByRole('dialog',{name:'软件更新',exact:true}).getByRole('button',{name:'重试更新',exact:true}).click()
  await until(() => old.exitCode === 0, 'old Titan to exit for NSIS', 120_000)
  await until(() => !browser.isConnected() || page.isClosed(), 'previous Titan WebView to close')
+ const replacementPid = await until(() => Number(powershell(`${appProcesses} | Where-Object MainWindowHandle -ne 0 | Select-Object -First 1 -ExpandProperty Id`)), 'NSIS to relaunch Titan and show its window')
+ assert.notEqual(replacementPid,old.pid)
+ const installedVersion = powershell(`(Get-Item -LiteralPath '${executableLiteral}').VersionInfo.ProductVersion`)
+ assert.equal(installedVersion.split('.').slice(0,3).join('.'),version)
+ console.log(`NSIS automatically relaunched Titan ${version} with PID ${replacementPid}`)
+
+ // NSIS may start the new app without inheriting the old debugging environment.
+ const debugging = await fetch(`http://127.0.0.1:${webviewPort}/json/list`).then(response=>response.json()).catch(()=>[])
+ if (!debugging.some(target => target.type === 'page' && /tauri\.localhost/.test(target.url))) {
+  powershell(`$app = Get-Process -Id ${replacementPid}; $null = $app.CloseMainWindow()`)
+  await until(() => !powershell(`Get-Process -Id ${replacementPid} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Id`), 'the verified replacement to close')
+  const reopened = launch()
+  reopened.on('error', error => {spawnError = error})
+ }
  const replacement = await connect()
+ if (spawnError) throw spawnError
  upgraded = replacement.browser
  assert.equal((await config(replacement.page)).version,version)
  await replacement.page.getByRole('button',{name:`打开分析 ${projectName}`,exact:true}).click()
  await replacement.page.getByLabel('实验名称',{exact:true}).waitFor()
  assert.equal(await replacement.page.getByLabel('实验名称',{exact:true}).inputValue(),projectName)
- console.log(`Windows updater relaunched Titan ${version}; the saved analysis reopened`)
+ console.log(`Saved analysis reopened in Titan ${version}`)
 } finally {
  if (old.exitCode === null) old.kill()
  if (upgraded) await upgraded.close().catch(() => {})
- const literal = executable.replaceAll("'", "''")
- execFileSync('powershell.exe',['-NoProfile','-Command',
-  `Get-Process titan-wb -ErrorAction SilentlyContinue | Where-Object Path -eq '${literal}' | Stop-Process -ErrorAction SilentlyContinue`], {windowsHide:true})
+ powershell(`${appProcesses} | Stop-Process -ErrorAction SilentlyContinue`)
  server.closeAllConnections()
  await new Promise(resolve => server.close(resolve))
 }
