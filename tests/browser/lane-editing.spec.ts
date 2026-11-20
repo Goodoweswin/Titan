@@ -30,7 +30,7 @@ async function drag(page:Page,a:number[],b:number[]){
 async function setup(page:Page){
  await page.goto('/?integration=1');await createAnalysis(page,'wb')
  await page.evaluate((source:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async()=>[source]}},file)
- await page.getByRole('button',{name:'导入图像',exact:true}).click();await expect(page.getByLabel('当前图像')).toContainText('lanes.tif')
+ await page.getByRole('button',{name:'导入图像',exact:true}).click();await expect(page.getByRole('tab',{name:'lanes.tif',selected:true})).toBeVisible()
  await drag(page,[20,20],[220,50]);await page.getByRole('button',{name:'识别泳道',exact:true}).click()
  await page.getByRole('button',{name:'确认内参',exact:true}).click();await expect(page.getByText('内参已确认',{exact:true})).toBeVisible()
 }
@@ -118,7 +118,7 @@ test('rotation preview zooms at the pointer and pans without moving level guides
  expect(await dialog.evaluate(e=>e.scrollWidth<=e.clientWidth+1)).toBe(true)
  await dialog.screenshot({path:'artifacts/image-viewport/rotation-narrow.png'})
  await dialog.getByRole('button',{name:'取消',exact:true}).click()
- await expect(page.getByLabel('当前图像').locator('option')).toHaveCount(1)
+ await expect(page.getByRole('tablist',{name:'原始图像'}).getByRole('tab')).toHaveCount(1)
  expect(errors).toEqual([])
 })
 
@@ -177,15 +177,15 @@ test('both lane boundaries and keyboard nudges work without changing other lane 
 })
 test('region selection is reversible without undoing the imported image',async({page})=>{
  await setup(page);await page.getByRole('button',{name:'选择区域',exact:true}).click();await drag(page,[22,22],[215,48])
- await page.getByTitle('撤销',{exact:true}).click();await expect(page.getByText('内参已确认',{exact:true})).toBeVisible();await expect(page.getByLabel('当前图像')).toContainText('lanes.tif')
+ await page.getByTitle('撤销',{exact:true}).click();await expect(page.getByText('内参已确认',{exact:true})).toBeVisible();await expect(page.getByRole('tab',{name:'lanes.tif',selected:true})).toBeVisible()
 })
 test('rotation keeps the original and requires explicit lane identity mapping on the corrected reference',async({page})=>{
- await setup(page);const oldImage=await page.getByLabel('当前图像').inputValue()
+ await setup(page);const original=page.getByRole('tab',{name:'lanes.tif',exact:true})
  await page.getByRole('button',{name:'旋转校正',exact:true}).click()
  await page.getByLabel('旋转角度',{exact:true}).fill('-2')
  await page.getByRole('button',{name:'应用校正',exact:true}).click()
- await expect(page.getByLabel('当前图像')).not.toHaveValue(oldImage)
- await expect(page.getByLabel('当前图像').locator('option')).toHaveCount(2)
+ await expect(original).toHaveAttribute('aria-selected','false')
+ await expect(page.getByRole('tablist',{name:'原始图像'}).getByRole('tab')).toHaveCount(2)
  await page.getByRole('button',{name:'查看全图',exact:true}).click();await drag(page,[15,20],[225,60])
  await page.getByRole('button',{name:'识别泳道',exact:true}).click()
  await expect(page.getByText('核对泳道对应',{exact:true})).toBeVisible()
@@ -197,7 +197,7 @@ test('rotation keeps the original and requires explicit lane identity mapping on
  await expect(page.getByText('内参已确认',{exact:true})).toBeVisible()
  await page.getByTitle('撤销',{exact:true}).click()
  // Undo confirmation restores the previous reference, never a silently remapped one.
- await expect(page.getByLabel('当前图像')).toHaveValue(oldImage)
+ await expect(original).toHaveAttribute('aria-selected','true')
  await expect(page.getByLabel('泳道 L1',{exact:true})).toBeVisible()
 })
 test('undo during recognition discards its late result and redo can finish recognition',async({page})=>{
@@ -231,7 +231,7 @@ test('target import selects the new crop and offers the same visible handles and
  await page.getByLabel('目标名称',{exact:true}).fill('AKT')
  await page.evaluate((source:string)=>{(window as any).__TAURI_INTERNALS__={invoke:async()=>[source]}},targetFile)
  await page.getByRole('button',{name:'导入目标图像',exact:true}).click()
- await expect(page.getByLabel('当前图像')).toContainText('target-crop.tif')
+ await expect(page.getByRole('tab',{name:'target-crop.tif',selected:true})).toBeVisible()
  await drag(page,[60,180],[300,230]);await page.getByRole('button',{name:'识别目标',exact:true}).click()
  await expect(page.getByRole('button',{name:'确认目标',exact:true})).toBeVisible()
  const lane=await box(page,'泳道 L2');expect(lane[1]).toBe(180);expect(lane[3]).toBe(50)

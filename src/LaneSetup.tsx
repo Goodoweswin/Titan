@@ -4,6 +4,7 @@ import type {ImageAsset,Project,Rect,LaneProposal,BandProposal,BandCandidate,Lan
 import {acceptLaneLayout,createBandSet,copyLaneLayout,alignLaneLayout,setLaneRect,acceptBandAssignments,applyPreparedDraft,renameBandSet} from './lane-workflow'
 import LaneLayoutEditor,{laneCorrectionTools,type LaneTool} from './LaneLayoutEditor'
 import WbImageDisplay,{useWbImageDisplay} from './WbImageDisplay'
+import WbImageTabs from './WbImageTabs'
 import LaneProfilePanel from './LaneProfilePanel'
 import ImageRotationDialog from './ImageRotationDialog'
 import type {WbEditorState} from './wb-tutorial'
@@ -205,10 +206,17 @@ export default function LaneSetup({project,stage,activeSetId,onSet,onEdit,onImpo
  const selectedSample=shownProject.samples.find(s=>s.id===shownProject.lanes.find(l=>l.id===selected)?.sample_id)
  const unresolved=preview?.bands?.filter(b=>b.candidates.length>0&&!b.candidates[preview.choices[b.lane_id]??-1]).length??0
  const backgroundsReady=!!preview?.bands?.length&&preview.bands.every(b=>!b.candidates.length||!!b.candidates[preview.choices[b.lane_id]??-1]?.backgrounds.length)
+ function selectImage(id:string){
+  generation.current++
+  setPast([]);setFuture([])
+  setMapping(null);setPreview(null)
+  setImageId(id);setRegion(null);setSelected('')
+ }
  useEffect(()=>{onStateChange?.({projectId:project.id,revision:project.revision,imageId:asset?.id??'',setId:group?.id??'',...activity,selectedLane:selected,hasRegion:!!displayRegion,hasPreview:!!preview?.bands,unresolved,backgroundsReady,busy})},[project.id,project.revision,asset?.id,group?.id,activity,selected,!!displayRegion,!!preview?.bands,unresolved,backgroundsReady,busy,onStateChange])
  useEffect(()=>()=>onStateChange?.(null),[project.id,onStateChange])
 
  return <div className="lane-workspace"><div className="lane-main">
+  <WbImageTabs images={project.images} activeId={asset?.id} onSelect={selectImage} disabled={busy}>
   {!asset?<div className="lane-empty"><h2>先导入内参图像</h2><p>建立一次泳道与样本对应，后续目标可以直接复用。</p></div>:<LaneLayoutEditor asset={asset} displaySrc={display.src} tool={canvasTool} onToolChange={setCanvasTool} region={displayRegion} columns={columns} laneBounds={layout?.window} bands={visibleBands} selected={selected} readOnly={!!project.read_only||busy||referenceChanged} onSelect={pickLane} onRegion={changeRegion} onColumn={adjustColumn} onAlign={dx=>adjust((p,l)=>alignLaneLayout(p,l,{dx,dy:0,scaleX:1,anchorX:0}))} onBand={(id,r)=>updateBand(id,r)} onBackground={(id,r)=>{const c=visibleBands[id];if(c)updateBand(id,c.rect,r)}} onRotate={()=>setRotating(true)} onInvert={()=>{if(preview){remember();setPreview(current=>{if(!current)return current;const next=structuredClone(current),a=next.draft.images.find(a=>a.id===asset.id)!;a.display_inverted=!a.display_inverted;return next})}else onEdit(p=>{const a=p.images.find(a=>a.id===asset.id)!;a.display_inverted=!a.display_inverted})}}/>}
   {rotating&&asset&&<ImageRotationDialog asset={asset} onApply={rotate} onClose={()=>{generation.current++;setRotating(false)}}/>}
   {mapping&&<section className="lane-mapping"><strong>{role==='target'?'核对目标泳道对应':'核对泳道对应'}</strong><p className="hint">请明确每个候选对应的原泳道，未检出的位置也需保留，避免样本错配。</p>{mapping.proposal.columns.map((c,i)=><label key={c.proposal_id}>候选 {i+1}<select aria-label={`候选 ${i+1} 对应泳道`} value={mapping.values[c.proposal_id]??''} onChange={e=>{remember();setMapping({...mapping,values:{...mapping.values,[c.proposal_id]:e.target.value}})}}><option value="">请选择</option>{mappingColumns?.map(l=><option key={l.lane_id} value={l.lane_id}>{l.lane_id}</option>)}{role==='reference'&&<><option value="new">新泳道</option><option value="exclude">不使用</option></>}</select></label>)}<button className="btn primary" disabled={busy||mapping.proposal.columns.some(c=>!mapping.values[c.proposal_id])} onClick={()=>work(()=>prepareProposal(mapping.proposal,Object.fromEntries(mapping.proposal.columns.filter(c=>mapping.values[c.proposal_id]!=='exclude').map(c=>[c.proposal_id,mapping.values[c.proposal_id]==='new'?null:mapping.values[c.proposal_id]]))))}>确认泳道对应</button><button className="text-btn" disabled={busy} onClick={()=>{remember();setMapping(null)}}>取消泳道识别</button></section>}
@@ -223,8 +231,9 @@ export default function LaneSetup({project,stage,activeSetId,onSet,onEdit,onImpo
    remember();setSelected('');setPreview(next);await measurePreview(next)
   })}>排除选中泳道（如 marker）</button>}
   {selected&&layout&&displayRegion&&<LaneProfilePanel project={shownProject} layoutId={layout.id} laneId={selected} window={displayRegion} peak={selectedPeak}/>}
+  </WbImageTabs>
  </div><aside className="lane-task" data-testid="task-panel"><h2>{role==='reference'?'确认内参':'添加目标'}</h2><p className="hint">{role==='reference'?'框选内参所在区域，避开 marker。检查泳道、绿框和背景后一起确认。':'导入目标图像，框选目标区域。沿用内参编号；位置可单独识别、移动或微调。'}</p>
-  {asset&&<fieldset disabled={!!project.read_only||busy}><label>{role==='reference'?'内参名称':'目标名称'}<input aria-label={role==='reference'?'内参名称':'目标名称'} value={name} onChange={e=>setName(e.target.value)} placeholder={role==='reference'?'如 ACTIN':'如 AKT'}/></label><label>图像<select aria-label="当前图像" value={asset.id} onChange={e=>{generation.current++;setPast([]);setFuture([]);setMapping(null);setImageId(e.target.value);setRegion(null);setPreview(null)}}>{project.images.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</select></label>{role==='target'&&(references.length>1||(references.length>0&&!!existing&&!existing.reference_set_id))?<label>对应内参<select aria-label="对应内参" value={referenceId} onChange={e=>{remember();generation.current++;setReferenceId(e.target.value);setPreview(null);setMapping(null)}}>{existing&&!existing.reference_set_id&&<option value="">未关联内参</option>}{references.map(g=><option key={g.id} value={g.id}>{g.analyte}</option>)}</select></label>:null}</fieldset>}
+  {asset&&<fieldset disabled={!!project.read_only||busy}><label>{role==='reference'?'内参名称':'目标名称'}<input aria-label={role==='reference'?'内参名称':'目标名称'} value={name} onChange={e=>setName(e.target.value)} placeholder={role==='reference'?'如 ACTIN':'如 AKT'}/></label>{role==='target'&&(references.length>1||(references.length>0&&!!existing&&!existing.reference_set_id))?<label>对应内参<select aria-label="对应内参" value={referenceId} onChange={e=>{remember();generation.current++;setReferenceId(e.target.value);setPreview(null);setMapping(null)}}>{existing&&!existing.reference_set_id&&<option value="">未关联内参</option>}{references.map(g=><option key={g.id} value={g.id}>{g.analyte}</option>)}</select></label>:null}</fieldset>}
   {role==='target'&&<><button className="btn secondary full" disabled={busy||project.read_only} onClick={onImport}>导入目标图像</button><div className="target-lane-actions"><button className="btn secondary" disabled={busy||project.read_only||!region||!referenceLayout} onClick={reuseTarget}>沿用内参位置</button><button className="btn secondary" disabled={busy||project.read_only||!region||!referenceLayout} onClick={identifyTargetLanes}>重新识别泳道位置</button></div></>}
   {referenceChanged&&<p className="hint">对应内参已切换，请重新识别目标后确认。</p>}
   {existingLayout&&role==='reference'&&<p className="hint">拖动泳道直接微调，确认后保存；重新识别会生成新的峰区建议。</p>}

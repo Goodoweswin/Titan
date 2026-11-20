@@ -368,8 +368,7 @@ details[open] > summary { margin-bottom: 14px; }
 .inspector label { margin-top: 12px; }
 .inspector .card-heading { margin-bottom: 12px; }
 .inspector .btn { white-space: normal; }
-.image-context { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; font-size: var(--text-sm); color: var(--text-secondary); }
-.image-context select { max-width: 70%; font-size: var(--text-base); }
+.image-context { margin-bottom: 12px; color: var(--text-secondary); font-size: var(--text-sm); text-align: end; }
 .canvas-toolbar { flex-wrap: wrap; padding: 8px; }
 .canvas-toolbar .tool-group { flex-wrap: wrap; }
 .canvas-viewport { min-height: 350px; max-height: calc(100vh - 400px); padding: 26px 18px; align-items: safe center; }
@@ -422,7 +421,6 @@ details[open] > summary { margin-bottom: 14px; }
  .inspector > fieldset { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
  .inspector .card { margin-bottom: 0; }
  .canvas-viewport { max-height: 500px; min-height: 290px; }
- .image-context { flex-wrap: wrap; }
  .steps { gap: 18px; }
  .steps-note { display: none; }
 }
@@ -439,7 +437,6 @@ details[open] > summary { margin-bottom: 14px; }
  .quality-panel summary span { display: block; margin-left: 0; }
  .text-size { max-width: 100px; }
  .project-actions { width: 100%; }
- .image-context select { max-width: 100%; width: 100%; }
  .source-overlay { padding: 12px; }
 }
 dialog.source-dialog { margin: auto; padding: 22px; border: 1px solid var(--border); color: var(--ink); }

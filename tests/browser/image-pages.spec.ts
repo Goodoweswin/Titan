@@ -15,7 +15,7 @@ with tifffile.TiffWriter(sys.argv[1]) as t:
  t.write(np.zeros((20,30),dtype=np.uint8),photometric='palette',colormap=np.vstack([np.arange(256,dtype=np.uint16)*256,np.zeros(256,dtype=np.uint16),np.zeros(256,dtype=np.uint16)]))
  a=np.full((24,32),12345,dtype=np.uint16);a[4:8,4:8]=54321
  t.write(a,photometric='minisblack')
- t.write(np.ones((24,32),dtype=np.uint16),photometric='minisblack')
+ t.write(np.ones((28,40),dtype=np.uint16),photometric='minisblack')
 with tifffile.TiffWriter(sys.argv[2]) as t:
  t.write(np.ones((24,32),dtype=np.uint8),photometric='minisblack')
  t.write(np.full((24,32),12345,dtype=np.uint16),photometric='minisblack')
@@ -44,8 +44,8 @@ async function start(page:any,input=source){
 
 test('imports the first TIFF page at its original bit depth without a success banner',async({page})=>{
  await start(page,paired)
- await expect(page.getByLabel('当前图像')).toContainText('自动位深.tif · 第 1 页')
- await expect(page.getByLabel('当前图像').locator('option')).toHaveCount(1)
+ await expect(page.getByRole('tab',{name:'自动位深.tif · 第 1 页',selected:true})).toBeVisible()
+ await expect(page.getByRole('tablist',{name:'原始图像'}).getByRole('tab')).toHaveCount(1)
  await expect(page.getByRole('dialog',{name:'选择 TIFF 页面'})).toBeHidden()
  await expect(page.getByText('32 × 24 px · uint8',{exact:true})).toBeVisible()
  await expect(page.locator('.notice').filter({hasText:/自动导入第|确认极性与编码上界/})).toHaveCount(0)
@@ -53,7 +53,7 @@ test('imports the first TIFF page at its original bit depth without a success ba
 
 test('imports a PNG saved as equal RGB channels',async({page})=>{
  await start(page,grayPng)
- await expect(page.getByLabel('当前图像')).toContainText('灰度RGB.png')
+ await expect(page.getByRole('tab',{name:'灰度RGB.png',selected:true})).toBeVisible()
  await expect(page.getByRole('dialog',{name:'选择 TIFF 页面'})).toBeHidden()
  await expect(page.getByText('32 × 24 px · uint8',{exact:true})).toBeVisible()
 })
@@ -64,7 +64,7 @@ test('offers other TIFF pages only when the first page cannot be decoded',async(
  await expect(picker.getByRole('checkbox',{name:'导入第 1 页',exact:true})).toBeDisabled()
  await picker.getByRole('checkbox',{name:'导入第 2 页',exact:true}).check()
  await picker.getByRole('button',{name:'导入所选页面',exact:true}).click()
- await expect(page.getByLabel('当前图像')).toContainText('默认页损坏.tif · 第 2 页')
+ await expect(page.getByRole('tab',{name:'默认页损坏.tif · 第 2 页',selected:true})).toBeVisible()
 })
 test('choose raw grayscale pages from a mixed multipage TIFF',async({page})=>{
  await start(page)
@@ -81,8 +81,8 @@ test('choose raw grayscale pages from a mixed multipage TIFF',async({page})=>{
  await page.screenshot({path:'artifacts/checkpoints/image-page-picker.png',fullPage:true})
  await dialog.getByRole('button',{name:'导入所选页面',exact:true}).click()
  await expect(dialog).not.toBeVisible()
- await expect(page.getByLabel('当前图像')).toContainText('多页.tif · 第 2 页')
- await expect(page.getByLabel('当前图像').locator('option')).toHaveCount(1)
+ await expect(page.getByRole('tab',{name:'多页.tif · 第 2 页',selected:true})).toBeVisible()
+ await expect(page.getByRole('tablist',{name:'原始图像'}).getByRole('tab')).toHaveCount(1)
  await expect(page.getByText('32 × 24 px · uint16',{exact:true})).toBeVisible()
 })
 test('page cards toggle once from any area and support keyboard selection',async({page},testInfo)=>{
@@ -111,7 +111,8 @@ test('page cards toggle once from any area and support keyboard selection',async
  await expect(secondPage).toBeChecked()
  await page.screenshot({path:testInfo.outputPath('page-cards-dark.png'),fullPage:true})
 })
-test('cancel and Escape leave the project unchanged; all valid pages can be selected',async({page})=>{
+test('cancel leaves the project unchanged and imported pages switch above the canvas',async({page},testInfo)=>{
+ await page.emulateMedia({colorScheme:'dark'})
  await start(page)
  await expect(page.getByRole('dialog',{name:'选择 TIFF 页面'})).toBeVisible()
  await page.keyboard.press('Escape')
@@ -121,5 +122,24 @@ test('cancel and Escape leave the project unchanged; all valid pages can be sele
  const dialog=page.getByRole('dialog',{name:'选择 TIFF 页面'})
  await dialog.getByRole('button',{name:'全选可用页',exact:true}).click()
  await dialog.getByRole('button',{name:'导入所选页面',exact:true}).click()
- await expect(page.getByLabel('当前图像').locator('option')).toHaveCount(2)
+ const tabs=page.getByRole('tablist',{name:'原始图像'})
+ const second=tabs.getByRole('tab',{name:'多页.tif · 第 2 页',exact:true})
+ const third=tabs.getByRole('tab',{name:'多页.tif · 第 3 页',exact:true})
+ await expect(tabs.getByRole('tab')).toHaveCount(2)
+ await expect(third).toHaveAttribute('aria-selected','true')
+ await expect(page.getByText('40 × 28 px · uint16',{exact:true})).toBeVisible()
+ const bar=(await tabs.boundingBox())!
+ const canvas=(await page.getByLabel('泳道分析画布').boundingBox())!
+ expect(bar.y+bar.height).toBeLessThan(canvas.y)
+ await page.getByRole('button',{name:'收起右栏',exact:true}).click()
+ await second.click()
+ await expect(second).toHaveAttribute('aria-selected','true')
+ await expect(page.getByText('32 × 24 px · uint16',{exact:true})).toBeVisible()
+ await second.press('ArrowRight')
+ await expect(third).toBeFocused()
+ await expect(third).toHaveAttribute('aria-selected','true')
+ await expect(page.getByText('40 × 28 px · uint16',{exact:true})).toBeVisible()
+ await page.getByLabel('泳道分析画布').hover()
+ await expect(second).toHaveCSS('background-color','rgb(38, 41, 44)')
+ await tabs.screenshot({path:testInfo.outputPath('wb-image-tabs-dark.png')})
 })
