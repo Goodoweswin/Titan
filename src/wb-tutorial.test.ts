@@ -8,7 +8,7 @@ function context():TutorialContext{
  p.rois=p.rois.filter(r=>r.id==='target1').map(r=>({...r,reference_id:null,band_set_id:'bands',lane_layout_id:'layout'}))
  p.lane_layouts=[{id:'layout',image_id:'im',membrane_id:'M1',window:[0,0,100,100],columns:[{lane_id:'L1',rect:[0,0,40,100]}],excluded_regions:[],source_layout_id:null,confirmed_revision:0}]
  p.band_sets=[{id:'bands',layout_id:'layout',analyte:'PROTEIN',role:'target',window:[0,0,100,100],reference_set_id:null,assignments:[{lane_id:'L1',roi_id:'target1',status:'accepted'}]}]
- const editor:WbEditorState={projectId:p.id,revision:0,imageId:'im',setId:'bands',regionEdits:0,laneSelections:0,identifications:0,peakTools:0,backgroundTools:0,selectedLane:'',hasRegion:true,hasPreview:false,unresolved:0,backgroundsReady:false,busy:false}
+ const editor:WbEditorState={projectId:p.id,revision:0,imageId:'im',setId:'bands',regionEdits:0,laneSelections:0,identifications:0,selectedLane:'',hasRegion:true,hasPreview:false,unresolved:0,backgroundsReady:false,busy:false}
  return {project:p,view:'samples',active:true,editor,figure:null,result:null,exported:null}
 }
 function runAt(c:TutorialContext,step:number){return {...createTutorial(c.project.id),step}}
@@ -32,7 +32,7 @@ describe('action-gated WB tutorial',()=>{
   c.editor!.laneSelections=2
   expect(tutorialStepState(next,c).ready).toBe(true)
  })
- it('waits for fresh identification, resolved peaks and completed real tool inspections',()=>{
+ it('requires resolved peaks and backgrounds without requiring manual edits',()=>{
   const c=context(),r=runAt(c,3)
   c.editor!.hasPreview=true
   expect(tutorialStepState(r,c).ready).toBe(false)
@@ -40,11 +40,11 @@ describe('action-gated WB tutorial',()=>{
   expect(tutorialStepState(r,c).ready).toBe(false)
   c.editor!.unresolved=0;c.editor!.backgroundsReady=true
   expect(tutorialStepState(r,c).ready).toBe(true)
-  const next=advanceTutorial(r,c);c.editor!.selectedLane='L1'
-  c.editor!.peakTools=1
-  expect(tutorialStepState(next,c).ready).toBe(false)
-  c.editor!.backgroundTools=1
+  const next=advanceTutorial(r,c)
   expect(tutorialStepState(next,c).ready).toBe(true)
+  c.editor!.backgroundsReady=false
+  expect(tutorialStepState(next,c).ready).toBe(false)
+  expect(tutorialStepState(next,c).target).toBe('lane-correction')
   c.editor!.hasPreview=false
   expect(tutorialStepState(next,c).recovery).toBe(true)
  })

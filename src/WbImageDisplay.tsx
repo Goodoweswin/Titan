@@ -43,9 +43,8 @@ export function useWbImageDisplay(asset:ImageAsset|undefined){
 }
 
 export default function WbImageDisplay({display}:{display:ReturnType<typeof useWbImageDisplay>}){
- return <details className="wb-display-control">
-  <summary className="text-btn">显示调节</summary>
-  <div className="wb-display-panel">
+ return <section className="wb-display-panel" aria-label="图像调节">
+  <h3>图像调节</h3>
    {(['brightness','contrast'] as const).map(key=><label key={key}>
     <span>{key==='brightness'?'亮度':'对比度'} <output>{display.settings[key]}</output></span>
     <input type="range" aria-label={key==='brightness'?'亮度':'对比度'} min={-100} max={100}
@@ -54,6 +53,5 @@ export default function WbImageDisplay({display}:{display:ReturnType<typeof useW
    <button type="button" className="text-btn" disabled={!display.adjusted} onClick={()=>display.adjust(defaults)}>重置显示</button>
    <p className="hint">仅调整预览，定量使用原始像素。</p>
    {display.failed&&<p className="hint" role="status">显示预览未更新，请重新调节或重置。</p>}
-  </div>
- </details>
+ </section>
 }

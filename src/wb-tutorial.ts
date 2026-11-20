@@ -3,23 +3,23 @@ import type {AnalysisResult,Project} from './types'
 export type TutorialView='workspace'|'samples'|'results'|'wb'|'other'
 export interface WbEditorState{
  projectId:string;revision:number;imageId:string;setId:string;regionEdits:number;laneSelections:number;identifications:number
- peakTools:number;backgroundTools:number;selectedLane:string;hasRegion:boolean;hasPreview:boolean;unresolved:number;backgroundsReady:boolean;busy:boolean
+ selectedLane:string;hasRegion:boolean;hasPreview:boolean;unresolved:number;backgroundsReady:boolean;busy:boolean
 }
 export interface WbFigureState{projectId:string;revision:number;documentId:string|null;version:string|null;allConfirmed:boolean;saved:boolean;ready:boolean}
 export interface WbExportProof{projectId:string;revision:number;documentId:string;version:string}
-export interface TutorialRun{projectId:string;step:number;status:'active'|'dismissed'|'completed';baseline:{regionEdits:number;laneSelections:number;identifications:number;peakTools:number;backgroundTools:number}}
+export interface TutorialRun{projectId:string;step:number;status:'active'|'dismissed'|'completed';baseline:{regionEdits:number;laneSelections:number;identifications:number}}
 export interface TutorialContext{project:Project;view:TutorialView;active:boolean;editor:WbEditorState|null;figure:WbFigureState|null;result:AnalysisResult|null;exported:WbExportProof|null}
 export const tutorialSteps=[
  {title:'查看原图',text:'先看清第 2 页的中间条带和两侧 Marker。9 条蓝框是供检查的教学模板，蛋白和样本信息留空。'},
  {title:'框选条带区域',text:'点击“选择区域”，在原图上拖出覆盖中间一整行条带的矩形，避开两侧 Marker。建议原图范围 x 800–2040，y 1200–1380。'},
  {title:'核对泳道',text:'点击“调整泳道”，再点选一条蓝色泳道或下方的泳道编号，核对蓝框是否覆盖对应条带。正确的位置可以保留。'},
  {title:'识别峰区',text:'点击右侧“识别目标”。等待绿框建议；出现“选择峰”的泳道，需要根据原图和曲线选择正确的主峰。'},
- {title:'检查峰区与背景',text:'选择一条泳道，分别点“调整峰区”和“画背景”查看操作。绿框包住信号，背景框避开条带；正确的建议不必为了教程移动。'},
+ {title:'检查峰区与背景',text:'核对绿框是否包住信号，背景框是否避开条带。需要修正时，展开右栏「手动调整与图像信息」。'},
  {title:'确认测量',text:'核对每条泳道的峰区与背景后，点击右侧“确认目标”。这一步才会把建议写入当前分析，并记录人工复核。'},
  {title:'查看正式结果',text:'点击“结果”，查看目标净积分和状态。本示范未提供配套内参，因此比值保留为空并提示缺少参考。样本设置、统计与图表均使用正式页面。'},
  {title:'组图与导出',text:'进入“WB 组图”，创建组图并确认裁剪，然后保存组图、导出文件。教程只在实际导出成功后完成。'},
 ] as const
-const zero=()=>({regionEdits:0,laneSelections:0,identifications:0,peakTools:0,backgroundTools:0})
+const zero=()=>({regionEdits:0,laneSelections:0,identifications:0})
 export function createTutorial(projectId:string):TutorialRun{return {projectId,step:0,status:'active',baseline:zero()}}
 export function tutorialStepState(run:TutorialRun,c:TutorialContext){
  const required:TutorialView=run.step===6?'results':run.step===7?'wb':'samples'
@@ -34,7 +34,7 @@ export function tutorialStepState(run:TutorialRun,c:TutorialContext){
  if(run.step===1)return {...out,ready:!!e&&!e.busy&&e.hasRegion&&e.regionEdits>run.baseline.regionEdits,target:'tool-region',message:'请亲自在画布上拖选一次区域；预设框不会自动算作完成。'}
  if(run.step===2)return {...out,ready:!!e&&!e.busy&&!!e.selectedLane&&e.laneSelections>run.baseline.laneSelections,target:'lane-list',message:'请点选一条泳道，核对它与原图的对应。'}
  if(run.step===3)return {...out,ready:!!e&&!e.busy&&e.hasPreview&&e.identifications>0&&e.unresolved===0,target:e?.hasPreview?'lane-list':'identify-target',message:e?.unresolved?'仍有多个峰的泳道，请先选择目标峰。':'请识别目标，等待建议返回并核对所有峰。'}
- if(run.step===4)return {...out,ready:!!e&&!e.busy&&e.hasPreview&&e.unresolved===0&&e.backgroundsReady&&!!e.selectedLane&&e.peakTools>run.baseline.peakTools&&e.backgroundTools>run.baseline.backgroundTools,target:e&&e.peakTools>run.baseline.peakTools?'tool-background':'tool-peaks',recovery:!e?.hasPreview,message:!e?.hasPreview?'本次未确认的峰区建议已不在编辑器中，请返回识别步骤。':!e.backgroundsReady?'有峰区缺少可用背景，请选中对应泳道并画背景。':'请分别查看峰区和背景工具，并核对所选泳道。'}
+ if(run.step===4)return {...out,ready:!!e&&!e.busy&&e.hasPreview&&e.unresolved===0&&e.backgroundsReady,target:e?.hasPreview&&!e.backgroundsReady?'lane-correction':'lane-list',recovery:!e?.hasPreview,message:!e?.hasPreview?'本次未确认的峰区建议已不在编辑器中，请返回识别步骤。':e.unresolved?'请先选择目标峰。':!e.backgroundsReady?'有峰区缺少可用背景，请在右栏展开手动调整并补画背景。':'核对自动建议后，点击“下一步”。'}
  if(run.step===5){const ready=committed&&!!e&&!e.busy&&!e.hasPreview;return {...out,ready,target:'confirm-target',recovery:!committed&&!e?.hasPreview,message:ready?'当前测量已确认。':'请使用正式“确认目标”按钮；新的建议仍需确认，浏览建议不会记录复核。'}}
  if(run.step===6){const r=c.result;return {...out,ready:committed&&!!r&&r.project_id===c.project.id&&r.input_revision===c.project.revision&&!!r.lane_results?.some(row=>row.band_set_id===group?.id&&row.target_roi_id),target:'result-table',message:'等待当前版本的正式结果。缺少内参的空比值不是零值。'}}
  const f=c.figure&&c.figure.projectId===c.project.id&&c.figure.revision===c.project.revision?c.figure:null
@@ -49,7 +49,7 @@ export function advanceTutorial(run:TutorialRun,c:TutorialContext):TutorialRun{
  if(!tutorialStepState(run,c).ready)return run
  if(run.step===7)return {...run,status:'completed'}
  const e=c.editor
- return {...run,step:run.step+1,baseline:e?{regionEdits:e.regionEdits,laneSelections:e.laneSelections,identifications:e.identifications,peakTools:e.peakTools,backgroundTools:e.backgroundTools}:zero()}
+ return {...run,step:run.step+1,baseline:e?{regionEdits:e.regionEdits,laneSelections:e.laneSelections,identifications:e.identifications}:zero()}
 }
 export function wbExportProof(project:Project,figure:WbFigureState|null,receipt:unknown):WbExportProof|null{
  if(!figure?.saved||!figure.documentId||!figure.version||figure.projectId!==project.id||figure.revision!==project.revision)return null

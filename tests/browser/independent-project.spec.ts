@@ -85,7 +85,7 @@ test('a project owns its materials across tools and moves independently of an an
  }finally{await rm(dir,{recursive:true,force:true})}
 })
 
-test('project table copies remain usable and tool TIFF import saves only after page selection',async({page})=>{
+test('project table copies remain usable and tool TIFF import saves only the first page',async({page})=>{
  const dir=await mkdtemp(join(tmpdir(),'titan-tool-ui-'))
  try{
   const table=join(dir,'copied-data.csv')
@@ -116,21 +116,14 @@ test('project table copies remain usable and tool TIFF import saves only after p
   await page.getByRole('button',{name:'Western blot',exact:true}).click()
   pathPrompt(page,tiff)
   await page.getByRole('button',{name:'导入图像',exact:true}).click()
-  const picker=page.getByRole('dialog',{name:'选择 TIFF 页面'})
-  await picker.getByRole('button',{name:'跳过此文件'}).click()
-  await expect(picker).toBeHidden()
-  expect((await rpc(page,'library_workspace')).entries.some((entry:any)=>entry.name==='two-pages')).toBe(false)
-
-  pathPrompt(page,tiff)
-  await page.getByRole('button',{name:'导入图像',exact:true}).click()
-  await picker.getByLabel('导入第 2 页').check()
-  await picker.getByRole('button',{name:'导入所选页面'}).click()
   await expect(page.getByLabel('实验名称',{exact:true})).toHaveValue('two-pages')
+ await expect(page.getByRole('dialog',{name:'选择 TIFF 页面'})).toBeHidden()
   const final=await rpc(page,'library_workspace')
   const wb=final.entries.find((entry:any)=>entry.name==='two-pages')
   expect(wb.collection_id).toBe(null)
   const saved=await rpc(page,'open_project',{path:wb.path,read_only:true})
-  expect(saved.images.map((a:any)=>a.page_index)).toEqual([1])
+ expect(saved.images.map((a:any)=>a.page_index)).toEqual([0])
+  expect(saved.images[0].dtype).toBe('uint16')
   expect(final.projects.find((item:any)=>item.id===project.id).materials).toHaveLength(1)
  }finally{await rm(dir,{recursive:true,force:true})}
 })

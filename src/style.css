@@ -529,6 +529,7 @@ dialog.source-dialog::backdrop { background: #24365066; }
 .lane-advanced { margin-top:22px; border-top:1px solid var(--border); padding-top:14px; }
 .lane-advanced summary { cursor:pointer; color:var(--muted); font-size:.87rem; margin-bottom:14px; }
 .lane-advanced .btn { margin:4px 4px 10px 0; }
+.lane-advanced .btn[aria-pressed=true] { color:var(--accent); background:var(--accent-soft); border-color:var(--accent); }
 .lane-results { max-width:1400px; margin:auto; }
 .lane-results td small { display:block; font-size:.72rem; color:var(--muted); max-width:260px; margin-top:5px; }
 .lane-empty { min-height:450px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; color:var(--muted); }
@@ -619,7 +620,9 @@ dialog.source-dialog::backdrop { background: #24365066; }
 }
 @media(max-width:520px){.header-actions{justify-content:flex-start}.figure-common,.figure-fields{grid-template-columns:1fr}}
 
-.lane-tool-hint { padding:7px 14px; font-size:.76rem; color:var(--muted); border-bottom:1px solid var(--border); }
+.lane-tool-hint { display:grid; padding:7px 14px; font-size:.76rem; color:var(--muted); border-bottom:1px solid var(--border); }
+.lane-tool-hint > span { grid-area:1/1; }
+.lane-tool-hint > [aria-hidden=true] { visibility:hidden; }
 .lane-canvas-scroll svg:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
 .rotation-dialog { width:min(760px,calc(100vw - 32px)); }
 .rotation-preview { height:min(44vh,390px); background:#171b23; position:relative; overflow:hidden; display:grid; place-items:center; margin:18px 0; border-radius:8px; }

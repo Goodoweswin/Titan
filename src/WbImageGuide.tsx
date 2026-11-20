@@ -1,16 +1,16 @@
 import {useEffect, useRef, useState} from 'react'
 import {Hand, X} from 'lucide-react'
-import {laneTools} from './LaneLayoutEditor'
+import {laneCorrectionTools,laneTools} from './LaneLayoutEditor'
 
-const tools = [...laneTools, ['rotate','旋转校正'], ['pan','移动视图']] as const
+const tools = [...laneTools, ['rotate','旋转校正'], ['pan','移动视图'], ...laneCorrectionTools] as const
 type Mode = typeof tools[number][0]
 
 const descriptions: Record<Mode, string> = {
  region: '在图像上横向拖出一个框，圈住同一种蛋白的所有条带，避开分子量标记（Marker）。框好后再识别泳道。',
  lanes: '点选一条泳道。拖蓝框左右移动，拖两侧手柄改宽度。画布聚焦时可用左右方向键微调。',
  align: '在画布上左右拖动，让所有泳道一起对齐。适合目标图像上的泳道整体偏移时使用。',
- peaks: '拖动绿框上下对齐条带，拖下方手柄改高度。绿框标记用于定量的峰区。',
- background: '先选中泳道，再拖出背景框。选条带附近干净的区域，避开其他条带，用来扣除局部背景。',
+ peaks: '需要修改识别建议时，在右栏的「手动调整与图像信息」选择「调整峰区」。拖动绿框微调位置和高度。',
+ background: '需要修正背景时，在右栏的「手动调整与图像信息」选择「画背景」。选中泳道后，拖出避开条带的背景框。',
  rotate: '图像倾斜时，参照水平线和垂直线微调角度。应用后保留原图，并在校正视图上重新框选。',
  pan: '拖动画布查看边缘。要继续框选，点「选择区域」或再点一次「移动视图」退出。',
 }

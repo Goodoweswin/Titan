@@ -24,7 +24,7 @@ Image.new('RGB',(32,24),(45,45,45)).save(sys.argv[3])
 import struct
 from pathlib import Path
 with tifffile.TiffFile(sys.argv[2]) as t:
- tag=t.pages[1].tags['StripOffsets']
+ tag=t.pages[0].tags['StripOffsets']
  offset,order=tag.valueoffset,t.byteorder
  raw=bytearray(Path(sys.argv[2]).read_bytes())
 struct.pack_into(order+'I',raw,offset,len(raw)+50)
@@ -42,12 +42,13 @@ async function start(page:any,input=source){
  await page.getByRole('button',{name:'导入图像',exact:true}).click()
 }
 
-test('automatically uses the 16 bit page of a matching 8/16 bit pair',async({page})=>{
+test('imports the first TIFF page at its original bit depth without a success banner',async({page})=>{
  await start(page,paired)
- await expect(page.getByLabel('当前图像')).toContainText('自动位深.tif · 第 2 页')
+ await expect(page.getByLabel('当前图像')).toContainText('自动位深.tif · 第 1 页')
  await expect(page.getByLabel('当前图像').locator('option')).toHaveCount(1)
  await expect(page.getByRole('dialog',{name:'选择 TIFF 页面'})).toBeHidden()
- await expect(page.getByText('32 × 24 px · uint16',{exact:true})).toBeVisible()
+ await expect(page.getByText('32 × 24 px · uint8',{exact:true})).toBeVisible()
+ await expect(page.locator('.notice').filter({hasText:/自动导入第|确认极性与编码上界/})).toHaveCount(0)
 })
 
 test('imports a PNG saved as equal RGB channels',async({page})=>{
@@ -57,13 +58,13 @@ test('imports a PNG saved as equal RGB channels',async({page})=>{
  await expect(page.getByText('32 × 24 px · uint8',{exact:true})).toBeVisible()
 })
 
-test('offers the readable TIFF page if the preferred 16 bit page cannot be decoded',async({page})=>{
+test('offers other TIFF pages only when the first page cannot be decoded',async({page})=>{
  await start(page,damaged)
  const picker=page.getByRole('dialog',{name:'选择 TIFF 页面'})
- await expect(picker.getByRole('checkbox',{name:'导入第 2 页',exact:true})).toBeDisabled()
- await picker.getByRole('checkbox',{name:'导入第 1 页',exact:true}).check()
+ await expect(picker.getByRole('checkbox',{name:'导入第 1 页',exact:true})).toBeDisabled()
+ await picker.getByRole('checkbox',{name:'导入第 2 页',exact:true}).check()
  await picker.getByRole('button',{name:'导入所选页面',exact:true}).click()
- await expect(page.getByLabel('当前图像')).toContainText('默认页损坏.tif · 第 1 页')
+ await expect(page.getByLabel('当前图像')).toContainText('默认页损坏.tif · 第 2 页')
 })
 test('choose raw grayscale pages from a mixed multipage TIFF',async({page})=>{
  await start(page)

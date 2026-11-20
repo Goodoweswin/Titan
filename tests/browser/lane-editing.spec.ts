@@ -35,6 +35,44 @@ async function setup(page:Page){
  await page.getByRole('button',{name:'确认内参',exact:true}).click();await expect(page.getByText('内参已确认',{exact:true})).toBeVisible()
 }
 async function box(page:Page,label:string){return page.getByLabel(label,{exact:true}).evaluate(e=>['x','y','width','height'].map(k=>Number(e.getAttribute(k))))}
+test('switching to pan keeps the canvas in place at narrow window widths',async({page})=>{
+ await setup(page)
+ const canvas=page.getByLabel('泳道分析画布')
+ const pan=page.locator('.lane-canvas-card').getByRole('button',{name:'移动视图',exact:true})
+ await page.getByRole('button',{name:'调整泳道',exact:true}).click()
+ await page.getByRole('separator',{name:'调整左栏宽度'}).press('End')
+ for(const width of [860,930,1000,1080]){
+  await page.setViewportSize({width,height:900})
+  await pan.scrollIntoViewIfNeeded()
+  const before=await canvas.boundingBox()
+  const viewBox=await canvas.getAttribute('viewBox')
+  await pan.click()
+  await expect(pan).toHaveAttribute('aria-pressed','true')
+  expect(await canvas.boundingBox()).toEqual(before)
+  await expect(canvas).toHaveAttribute('viewBox',viewBox!)
+  await pan.click()
+  expect(await canvas.boundingBox()).toEqual(before)
+ }
+})
+
+test('manual correction can draw a missing peak from the inspector',async({page})=>{
+ await setup(page)
+ await page.getByRole('button',{name:'目标',exact:true}).click()
+ await page.getByLabel('目标名称',{exact:true}).fill('缺峰验收')
+ await page.getByRole('button',{name:'查看全图',exact:true}).click()
+ await page.getByRole('button',{name:'选择区域',exact:true}).click()
+ await drag(page,[20,60],[220,95])
+ await page.getByRole('button',{name:'沿用内参位置',exact:true}).click()
+ await expect(page.getByRole('button',{name:'L1 · 未检出',exact:true})).toBeVisible()
+ const manual=page.getByText('手动调整与图像信息',{exact:true})
+ await manual.click()
+ await page.getByRole('button',{name:'调整峰区',exact:true}).click()
+ await drag(page,[33,72],[48,80])
+ await expect(page.getByLabel('峰区 L1',{exact:true})).toBeVisible()
+ await manual.click()
+ await expect(page.getByRole('button',{name:'调整泳道',exact:true})).toHaveAttribute('aria-pressed','true')
+})
+
 test('image view zoom and Space pan preserve original region coordinates',async({page})=>{
  await setup(page)
  const card=page.locator('.lane-canvas-card'),canvas=page.getByLabel('泳道分析画布')

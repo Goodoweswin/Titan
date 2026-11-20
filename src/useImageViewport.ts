@@ -42,7 +42,7 @@ export default function useImageViewport(svg:RefObject<SVGSVGElement|null>,initi
  },[key,wheelTarget])
  function beginPan(e:PointerEvent){
   if(e.button!==1&&!(e.button===0&&(space.current||panMode)))return false
-  e.preventDefault();e.stopPropagation();svg.current?.focus();svg.current?.setPointerCapture(e.pointerId)
+  e.preventDefault();e.stopPropagation();svg.current?.focus({preventScroll:true});svg.current?.setPointerCapture(e.pointerId)
   const matrix=svg.current!.getScreenCTM()!.inverse()
   pan.current={view:[...current.current],start:new DOMPoint(e.clientX,e.clientY).matrixTransform(matrix),matrix}
   setPanning(true);return true

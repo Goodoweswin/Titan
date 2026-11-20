@@ -1,20 +1,11 @@
-.lane-toolbar,.canvas-toolbar { position:relative; }
-.wb-display-control>summary { cursor:pointer; white-space:nowrap; }
 .wb-display-panel {
- position:absolute;
- top:calc(100% + 8px);
- right:8px;
- z-index:12;
- width:220px;
- max-width:calc(100% - 16px);
- box-sizing:border-box;
- padding:12px;
- border:1px solid var(--border);
- border-radius:8px;
- background:var(--surface);
- box-shadow:0 7px 24px #0002;
+ padding:12px 0;
+ border-top:1px solid var(--border);
+ margin-top:14px;
  color:var(--ink);
 }
+.inspector > .wb-display-panel { margin:0 0 10px; border-top:0; border-bottom:1px solid var(--border); }
+.wb-display-panel h3 { margin:0 0 10px; font-size:var(--text-sm); }
 .wb-display-panel label { display:grid; gap:5px; margin:0 0 10px; }
 .wb-display-panel label>span { display:flex; justify-content:space-between; gap:12px; }
 .wb-display-panel input { width:100%; margin:0; accent-color:var(--accent); }

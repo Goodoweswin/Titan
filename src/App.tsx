@@ -20,7 +20,7 @@ import gorillaHead from '../assets/brand/titan-head.svg'
 import {callEngine} from './bridge'
 import {createProject,editProject,commitResult,mergeSaved,restoreHistory,acceptReview,mergeImported,retainResult} from './state'
 import type {CloseActions,Project,AnalysisResult,Rect,PlotSettings,DetectionPreview,ImageInspection,LibraryEntry,FrozenFigure,FigureSettings,FigureDocumentMetadata,PlotPreview,LibraryCollection,LibraryMaterial,LibraryArtifact,LibraryExportReceipt,LibraryResume} from './types'
-import ImagePagePicker,{automaticImagePage} from './ImagePagePicker'
+import ImagePagePicker from './ImagePagePicker'
 import Workspace from './Workspace'
 import LaneSetup, {type CanvasHistory} from './LaneSetup'
 import LaneResults from './LaneResults'
@@ -278,25 +278,24 @@ export default function App(){
  async function wbFiles(){return pickPaths('选择原始 WB 图像',{multiple:true,filters:[{name:'原始 WB 图像',extensions:['tif','tiff','png']}]})}
  async function readWbImages(base:Project,paths:string[],valid=()=>true,hashes?:Map<string,string>){
   let loaded=base
-  const failures:string[]=[],notices:string[]=[]
+  const failures:string[]=[]
   for(const path of paths)try{
    if(!valid())break
    let info=await callEngine<ImageInspection>('inspect_image',{path})
    if(hashes?.has(path)&&hashes.get(path)!==info.sha256)throw new Error('项目资料副本已变化，请重新添加。')
    if(!valid())break
-   const automatic=automaticImagePage(info)
-   if(!automatic&&!info.pages.some(page=>!page.error)){
+   const firstPage=info.pages.find(page=>page.page_index===0&&!page.error)
+   if(!info.pages.some(page=>!page.error)){
     throw new Error([...new Set(info.pages.map(page=>page.error))].filter(Boolean).join('；')||'找不到可定量的灰度页')
    }
    const importPage=(page_index:number)=>callEngine<Project>('import_image',{project:loaded,path,page_index,expected_sha256:info.sha256})
-   if(automatic){
+   if(firstPage){
     try{
-     loaded=await importPage(automatic.page_index)
-     if(info.page_count>1)notices.push(`${info.name}：自动导入第 ${automatic.page_index+1} 页（${automatic.dtype}）`)
+     loaded=await importPage(firstPage.page_index)
      continue
     }catch(error){
-     if(!info.pages.some(page=>!page.error&&page.page_index!==automatic.page_index))throw error
-     info={...info,pages:info.pages.map(page=>page.page_index===automatic.page_index?{...page,error:String(error)}:page)}
+     if(!info.pages.some(page=>!page.error&&page.page_index!==firstPage.page_index))throw error
+     info={...info,pages:info.pages.map(page=>page.page_index===firstPage.page_index?{...page,error:String(error)}:page)}
     }
    }
    if(!valid())break
@@ -308,7 +307,7 @@ export default function App(){
     catch(error){failures.push(`${info.name} · 第 ${page_index+1} 页: ${error}`)}
    }
   }catch(error){failures.push(`${filename(path)}: ${error}`)}
-  return {loaded,failures,notices}
+  return {loaded,failures}
  }
  async function importImages(){
   if(!project||project.read_only)return
@@ -316,11 +315,11 @@ export default function App(){
   const valid=()=>sameProjectContext(current.current,project)
   if(!paths.length||!valid())return
   await execute('导入原始图像',async()=>{
-   const {loaded,failures,notices}=await readWbImages(project,paths,valid)
+   const {loaded,failures}=await readWbImages(project,paths,valid)
    if(!valid())return
    const added=loaded.images.length-project.images.length
    if(added){assignProject(mergeImported(current.current,project,loaded));assignResult(null)}
-   setMessage([...failures,...notices,added?`已导入 ${added} 张图像，请确认极性与编码上界。`:'未导入图像。'].join('\n'))
+   setMessage(failures.join('\n'))
   })
  }
  async function pickPaths(title:string,options:Parameters<typeof open>[0]={}):Promise<string[]>{
@@ -336,14 +335,13 @@ export default function App(){
   if(!inputs.length)return false
   const base=await callEngine<Project>('new_project',{name:analysisName(inputs[0],'未命名 WB 分析')})
   setLibraryNotice('正在导入原始图像…')
-  const {loaded,failures,notices}=await readWbImages(base,inputs,undefined,hashes)
+  const {loaded,failures}=await readWbImages(base,inputs,undefined,hashes)
   if(!loaded.images.length||!await canLeaveFigure()||!await flushCurrent()){
    setLibraryNotice(failures.join('\n'));return false
   }
   const created=await callEngine<{project:Project;entry:LibraryEntry}>('library_create_from_wb',{project:loaded,collection_id:collectionId})
   await activateProject(created.project)
   activateModule('wb')
-  if(notices.length)setMessage(notices.join('\n'))
   await library.refresh()
   setLibraryNotice(failures.join('\n'))
   return true

@@ -78,7 +78,12 @@ def inspect_image(path):
     if path.suffix.lower() in ['.tif','.tiff']:
         import tifffile
         with tifffile.TiffFile(path) as t:
-            for index,page in enumerate(t.pages):
+            for index in range(len(t.pages)):
+                try:
+                    page=t.pages[index]
+                except tifffile.TiffFileError:
+                    pages.append(dict(page_index=index,width=0,height=0,dtype='',error='页面目录损坏',display_inverted=False))
+                    continue
                 error=None
                 try:validate_tiff_page(page)
                 except ValueError as e:error=str(e)

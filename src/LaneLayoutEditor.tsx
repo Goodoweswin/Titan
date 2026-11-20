@@ -3,26 +3,30 @@ import type {ImageAsset,Rect,LaneColumn,BandCandidate} from './types'
 import {displayStyle} from './image-display'
 import useImageViewport from './useImageViewport'
 import ImageViewControls from './ImageViewControls'
-import WbImageDisplay,{useWbImageDisplay} from './WbImageDisplay'
 
 export const laneTools = [
  ['region','选择区域'],
  ['lanes','调整泳道'],
  ['align','移动整组'],
+] as const
+
+export const laneCorrectionTools = [
  ['peaks','调整峰区'],
  ['background','画背景'],
 ] as const
+export type LaneTool=(typeof laneTools|typeof laneCorrectionTools)[number][0]
 
-interface Props{asset:ImageAsset;region:Rect|null;columns:LaneColumn[];laneBounds?:Rect;bands:Record<string,BandCandidate>;selected:string;readOnly:boolean;onSelect:(id:string)=>void;onRegion:(r:Rect)=>void;onColumn:(id:string,r:Rect)=>void;onBand:(id:string,r:Rect)=>void;onBackground:(id:string,r:Rect)=>void;onAlign:(dx:number)=>void;onInvert:()=>void;onRotate?:()=>void;onToolChange?:(tool:string)=>void}
+interface Props{asset:ImageAsset;displaySrc:string|undefined;tool:LaneTool;onToolChange:(tool:LaneTool)=>void;region:Rect|null;columns:LaneColumn[];laneBounds?:Rect;bands:Record<string,BandCandidate>;selected:string;readOnly:boolean;onSelect:(id:string)=>void;onRegion:(r:Rect)=>void;onColumn:(id:string,r:Rect)=>void;onBand:(id:string,r:Rect)=>void;onBackground:(id:string,r:Rect)=>void;onAlign:(dx:number)=>void;onInvert:()=>void;onRotate?:()=>void}
 type Gesture={start:[number,number];kind:string;id?:string;rect?:Rect}
 export default function LaneLayoutEditor(p:Props){
- const display=useWbImageDisplay(p.asset)
+ const {tool,onToolChange}=p
  const svg=useRef<SVGSVGElement>(null),gesture=useRef<Gesture|null>(null),draftRef=useRef<Rect|null>(null)
  const viewport=useImageViewport(svg,[0,0,p.asset.width,p.asset.height],p.asset.id),{view,setView}=viewport
- const [tool,setTool]=useState('region'),[draft,setDraft]=useState<Rect|null>(null)
- useEffect(()=>{setView([0,0,p.asset.width,p.asset.height]);setTool(p.columns.length?'lanes':'region')},[p.asset.id])
+ const [draft,setDraft]=useState<Rect|null>(null)
+ useEffect(()=>{setView([0,0,p.asset.width,p.asset.height])},[p.asset.id])
  useEffect(()=>{if(!p.region)return;const [x0,y0,x1,y1]=p.region,padX=(x1-x0)*.06,padY=Math.max((y1-y0)*.5,(x1-x0)*.12);setView([Math.max(0,x0-padX),Math.max(0,y0-padY),Math.min(p.asset.width,x1+padX),Math.min(p.asset.height,y1+padY)])},[p.region?.join(',')])
- useEffect(()=>{setTool(p.columns.length?'lanes':'region')},[p.columns.length])
+ useEffect(()=>{onToolChange(p.columns.length?'lanes':'region')},[p.asset.id,p.columns.length,onToolChange])
+ useEffect(()=>{cancel();viewport.setPanMode(false)},[tool])
  useEffect(()=>{if(p.readOnly)cancel()},[p.readOnly])
  useEffect(()=>{if(p.selected)svg.current?.focus({preventScroll:true})},[p.selected])
  function cancel(){gesture.current=null;draftRef.current=null;setDraft(null)}
@@ -78,11 +82,11 @@ export default function LaneLayoutEditor(p:Props){
  const selected=p.columns.find(c=>c.lane_id===p.selected),selectedBox=selected&&(draft&&gesture.current?.id===selected.lane_id&&gesture.current.kind.startsWith('lane')?draft:selected.rect)
  const handleY=selectedBox?(Math.max(selectedBox[1],view[1],p.region?.[1]??view[1])+Math.min(selectedBox[3],view[3],p.region?.[3]??view[3]))/2:0
  const hints:Record<string,string>={region:'拖选蛋白所在区域',lanes:'拖动泳道左右移动 · 两侧手柄调宽度 · ← → 微调，Shift 加速',align:'拖动以左右移动全部泳道',peaks:'拖动绿框上下移动 · 下方手柄调整高度',background:'为选中泳道拖画局部背景'}
- return <div className="lane-canvas-card"><div className="lane-toolbar"><div>{laneTools.map(([id,label])=><button key={id} className={tool===id&&!viewport.panMode?'tool selected':'tool'} aria-pressed={tool===id&&!viewport.panMode} disabled={p.readOnly||(id!=='region'&&!p.columns.length)} data-wb-guide={'tool-'+id} onClick={()=>{cancel();viewport.setPanMode(false);setTool(id);p.onToolChange?.(id)}}>{label}</button>)}</div><div>{p.onRotate&&<button className="text-btn" disabled={p.readOnly} onClick={p.onRotate}>旋转校正</button>}<button className="text-btn" disabled={p.readOnly} onClick={p.onInvert} aria-pressed={!!p.asset.display_inverted}>显示反色</button><WbImageDisplay display={display}/></div></div>
+ return <div className="lane-canvas-card"><div className="lane-toolbar"><div>{laneTools.map(([id,label])=><button key={id} className={tool===id&&!viewport.panMode?'tool selected':'tool'} aria-pressed={tool===id&&!viewport.panMode} disabled={p.readOnly||(id!=='region'&&!p.columns.length)} data-wb-guide={'tool-'+id} onClick={()=>{cancel();viewport.setPanMode(false);onToolChange(id)}}>{label}</button>)}</div><div>{p.onRotate&&<button className="text-btn" disabled={p.readOnly} onClick={p.onRotate}>旋转校正</button>}<button className="text-btn" disabled={p.readOnly} onClick={p.onInvert} aria-pressed={!!p.asset.display_inverted}>显示反色</button></div></div>
  <div className="image-view-bar"><ImageViewControls zoomPercent={viewport.zoomPercent} panMode={viewport.panMode} onPan={()=>{cancel();viewport.setPanMode(!viewport.panMode)}} onZoom={viewport.zoom} onFit={viewport.reset} fitLabel="查看全图"/><span className="hint">滚轮缩放 · 空格或中键拖动视图</span></div>
- <div className="lane-tool-hint" role="status">{viewport.panMode?'拖动移动视图，不修改区域或条带':hints[tool]}</div>
+ <div className="lane-tool-hint" role="status"><span aria-hidden={viewport.panMode}>{hints[tool]}</span><span aria-hidden={!viewport.panMode}>拖动移动视图，不修改区域或条带</span></div>
  <div className="lane-canvas-scroll"><svg ref={svg} tabIndex={0} data-wb-guide="canvas" aria-label="泳道分析画布" viewBox={`${view[0]} ${view[1]} ${w} ${h}`} style={{aspectRatio:`${w}/${h}`,touchAction:'none',cursor:viewport.cursor??(tool==='lanes'?'ew-resize':tool==='align'?'grab':'crosshair')}} onKeyDown={nudge} onKeyUp={viewport.onKeyUp} onBlur={viewport.cancelPan} onPointerDownCapture={e=>{viewport.beginPan(e)}} onPointerDown={e=>{if(e.button===0){svg.current?.focus({preventScroll:true});down(e)}}} onPointerMove={e=>{if(!viewport.movePan(e))move(e)}} onPointerUp={e=>{if(!viewport.endPan(e))finish(e)}} onPointerCancel={()=>{viewport.cancelPan();cancel()}} onLostPointerCapture={()=>{viewport.stopPan();cancel()}}>
- <image href={display.src} style={displayStyle(p.asset)} width={p.asset.width} height={p.asset.height}/>
+ <image href={p.displaySrc} style={displayStyle(p.asset)} width={p.asset.width} height={p.asset.height}/>
  {p.region&&<rect aria-label="识别区域" x={p.region[0]} y={p.region[1]} width={p.region[2]-p.region[0]} height={p.region[3]-p.region[1]} fill="none" stroke="#93a5c4" strokeDasharray={`${stroke*4} ${stroke*3}`} strokeWidth={stroke} pointerEvents="none"/>}
  {p.columns.map(c=>{const box=draft&&gesture.current?.id===c.lane_id&&gesture.current.kind.startsWith('lane')?draft:c.rect;return <g key={c.lane_id}>
   <rect aria-label={`泳道 ${c.lane_id}`} x={box[0]} y={box[1]} width={box[2]-box[0]} height={box[3]-box[1]} fill={c.lane_id===p.selected?'#4474df15':'transparent'} stroke={c.lane_id===p.selected?'#81a9ff':'#7ca0d5'} strokeWidth={stroke} onPointerDown={e=>down(e,c.lane_id)}/>

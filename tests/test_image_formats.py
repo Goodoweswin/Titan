@@ -48,6 +48,29 @@ def test_color_palette_is_not_silently_quantified(tmp_path):
  assert inspect_image(path)['pages'][0]['error']
  with pytest.raises(ValueError):decode(path)
 
+
+def test_readable_first_tiff_page_imports_with_corrupt_trailing_directory(tmp_path):
+ import struct
+
+ path=tmp_path/'trailing-directory.tif'
+ pixels=np.full((24,32),27,dtype=np.uint16)
+ with tifffile.TiffWriter(path) as writer:
+  writer.write(pixels,photometric='minisblack')
+  writer.write(pixels+4,photometric='minisblack')
+ with tifffile.TiffFile(path) as tiff:
+  offset=tiff.pages[1].offset
+  tag_count=struct.pack(tiff.byteorder+'H',1000)
+ with path.open('r+b') as stream:
+  stream.seek(offset)
+  stream.write(tag_count)
+
+ info=inspect_image(path)
+ assert info['page_count']==2 and info['pages'][0]['error'] is None
+ assert info['pages'][1]['error']
+ asset,=import_image(new_project('first page'),str(path),page_index=0)['images']
+ assert asset['page_index']==0
+ np.testing.assert_array_equal(decode(path,asset['page_index']),pixels)
+
 @pytest.mark.parametrize('dtype,values', [('uint8',[0,16,240,255]),('uint16',[0,1000,60000,65535])])
 def test_lzw_miniswhite_preserves_encoded_pixels(tmp_path,dtype,values):
  # Write known MINISBLACK compressed bytes, then change only the display tag.

@@ -51,9 +51,9 @@ export default function WbTutorial({context,onLocate,onReveal}:{context:Tutorial
    <p>{run.step===3&&context.editor?.hasPreview?'当前调整已生成峰区建议。查看绿框；出现“选择峰”的泳道，需要根据原图和曲线选择正确的主峰。':tutorialSteps[run.step].text}</p>
    <div className="wb-tutorial-bottom"><p role="status" className={status.ready?'wb-tutorial-ready':''}>{status.ready?(run.step===0?'查看原图后可以继续。':run.step===7?'文件已成功导出，可以完成教程。':'这一步已完成，可以继续。'):status.message}</p>
     <div className="wb-tutorial-actions">
-     {status.recovery&&<button className="text-btn" onClick={()=>setRun(r=>({...r,step:3,baseline:{regionEdits:0,laneSelections:0,identifications:0,peakTools:0,backgroundTools:0}}))}><RotateCcw size={14}/>返回识别步骤</button>}
+     {status.recovery&&<button className="text-btn" onClick={()=>setRun(r=>({...r,step:3,baseline:{regionEdits:0,laneSelections:0,identifications:0}}))}><RotateCcw size={14}/>返回识别步骤</button>}
      <button className="text-btn" onClick={locate}><LocateFixed size={14}/>定位此步</button>
-     <button className="btn secondary" aria-label="教程上一步" disabled={run.step===0} onClick={()=>setRun(r=>({...r,step:r.step-1,baseline:{regionEdits:0,laneSelections:0,identifications:0,peakTools:0,backgroundTools:0}}))}><ChevronLeft size={14}/>上一步</button>
+     <button className="btn secondary" aria-label="教程上一步" disabled={run.step===0} onClick={()=>setRun(r=>({...r,step:r.step-1,baseline:{regionEdits:0,laneSelections:0,identifications:0}}))}><ChevronLeft size={14}/>上一步</button>
      <button className="btn primary" disabled={!status.ready} onClick={next}>{run.step===7?'完成教程':'下一步'}<ChevronRight size={14}/></button>
     </div>
    </div>
