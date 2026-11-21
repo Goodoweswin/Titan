@@ -1,10 +1,10 @@
 {
-  "version": "0.4.7",
-  "notes": "# Titan v0.4.7-beta.2\n\n- 左侧新增一级导航。「首页」可返回当前分析，项目侧栏可独立折叠、调宽，切换页面时保留分析草稿。\n- 点击项目名即可展开或收起分析。「项目」和「最近」的标题字号随全局字号调整。\n- 账户页保留头像，点击用户名即可编辑。未登录时可直接从「登录账户」开始，也可继续使用本地分析。\n- 「SOP」可在系统浏览器中打开指南、采购清单和采购中心。「消息」入口已接入，文字聊天服务仍处于本地内测。\n- WB 可直接导入三个通道逐像素同值的 8 位和 16 位 TIFF，保留原始定量像素。真彩色 TIFF 需导出单个检测通道后再导入。\n- WB 组图的预览刷新后会保留保存提示。\n\nmacOS 提供 Apple Silicon 安装包和原 Beta 更新通道，Windows x64 提供 EXE 安装包。安装前请保存工作并退出 Titan。若 macOS 提示访问已有项目所在的文件夹，请按系统提示授权。安装包校验值见 SHA256SUMS.txt。",
+  "version": "0.4.8",
+  "notes": "# Titan v0.4.8-beta.2\n\n- 从 Finder 或文件资源管理器把支持的 TIFF、PNG 拖到当前 WB 分析即可导入。拖到项目「资料」可复制原图，拖到「开始 WB 分析」可在该项目下新建分析。拖放多页 TIFF 时读取第一页。\n- WB 分析右栏顶部固定显示「内参／目标」。新分析默认从第一张图开始，确认内参后才可添加目标。旧分析仍可打开和重测已保存的目标。\n- WB 组图自动应用初始裁剪。「调整裁剪」默认折叠，拖框或输入坐标后立即生效。右栏可重置当前行，也可设置 0.25–2 pt 的逐行黑框。黑框随 PNG、PDF 和 SVG 导出。\n\nmacOS 提供 Apple Silicon 安装包和原 Beta 更新通道，Windows x64 提供 EXE 安装包。安装前请保存工作并退出 Titan。若 macOS 提示访问已有项目所在的文件夹，请按系统提示授权。安装包校验值见 SHA256SUMS.txt。",
   "platforms": {
     "darwin-aarch64": {
-      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.7-beta.2/Titan-0.4.7-macos-arm64.app.tar.gz",
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSYkI4MTBtT0JIVEY2Y09NbC9CUmZYZXdtRDFybW1sMTJHTVNQRnA5Z2JxRHlnNE9STE5ZY2pRVVA2cE14RDFaM1J1QmNMYmVoaHVmS0p4TWFldlEvMVlpZW1WWTUvendNPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MjE0Njg2CWZpbGU6VGl0YW4uYXBwLnRhci5negl2ZXJzaW9uOjAuNC43CnRqVjF2SzdxaEh4OFlJMDVEUE13V1RaZkh5MFAwWkVIN05KZUtaMXRQeThpeXdVVk1DSTZNR2lrRmI2alV0WFpzTFVuRDR0aER3TUkxT2g4WVVOUUJRPT0K"
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.8-beta.2/Titan-0.4.8-macos-arm64.app.tar.gz",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSYkI4MTBtT0JIVEl4WktXYmdOdy8xQWVKVDBQbkNzcUtOTjlEcVF0dCt1RW1wM0FuRU82R2wyQ0tJb3JNRTdxZ1NKNUF3MnJzNUgxQkQ1bVlLRGRCNlhtTENWY0VZTHc4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MjQxNTYyCWZpbGU6VGl0YW4uYXBwLnRhci5negl2ZXJzaW9uOjAuNC44CmYzOUU2cGRxV0txNjI5UmYvZjFGY0xvNGt4RnpBS2svc2p3YkRxVzl6MmdSUi9Rbzl5LzF1aDZCM3NoYWFnb1NXdS9yaWhJL2laTHRuUTdQYWJ0WEFnPT0K"
     }
   }
 }
