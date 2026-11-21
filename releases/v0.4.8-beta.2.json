@@ -1,0 +1,47 @@
+{
+  "version": "0.4.8",
+  "tag": "v0.4.8-beta.2",
+  "repository": "Goodoweswin/Titan",
+  "assets": [
+    {
+      "name": "SHA256SUMS.txt",
+      "size": 710,
+      "sha256": "41aeaf93bcda2cfb281dc3ceeda828f8654872d904f160fe4476325c308fa0da"
+    },
+    {
+      "name": "Titan-0.4.8-macos-arm64-third-party.zip",
+      "size": 2793500,
+      "sha256": "8b7b39314c7bdee79a186bf428112b9e06cf064333f1d557d3f0e28cfc562cea"
+    },
+    {
+      "name": "Titan-0.4.8-macos-arm64.app.tar.gz",
+      "size": 111557352,
+      "sha256": "f934abfc5279bdd134d2ca9f4a65bca9d269ec3173f662fed6b625899a5b1379"
+    },
+    {
+      "name": "Titan-0.4.8-macos-arm64.app.tar.gz.sig",
+      "size": 420,
+      "sha256": "a9e9a82c7a42086984986c97f9370fdb516741122980160f5784bd9d68049f37"
+    },
+    {
+      "name": "Titan-0.4.8-macos-arm64.app.zip",
+      "size": 111671631,
+      "sha256": "de8d12784611d9d7af4b15a7287d006330c16c2cf217661b9849f4aa194770e8"
+    },
+    {
+      "name": "Titan-0.4.8-macos-arm64.dmg",
+      "size": 109765716,
+      "sha256": "ce9c749e6be82069a15aaf5930c55f2ef1a9e36c14ea58be5325c840e0ef9836"
+    },
+    {
+      "name": "Titan-0.4.8-windows-x64-setup.exe",
+      "size": 79366367,
+      "sha256": "8a27b470aaeda5a33c85c082fcfd31340a401c091a1e6cc8ffa5de33e1beb3e6"
+    },
+    {
+      "name": "Titan-0.4.8-windows-x64-third-party.zip",
+      "size": 2895716,
+      "sha256": "bd5c01a8ce6cb1404fce89c3eff27db341bb34dfd040e84ed46fbfc11b6023cf"
+    }
+  ]
+}
