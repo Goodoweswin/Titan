@@ -1,31 +1,35 @@
 # Titan
 
-Titan 是免费使用的本地实验图像分析桌面应用，提供 Western blot、免疫荧光以及统计与绘图功能。
+Titan 是免费使用的桌面应用，可在本地完成 Western blot 定量与组图、免疫荧光分析、统计绘图和 Excel 数据清洗。分析和项目保存无需登录。
 
-## 下载
+## 下载 Beta
 
-请到 **[GitHub Releases](https://github.com/Goodoweswin/Titan/releases)** 下载 Mac 或 Windows 安装包。Beta 表示测试版，更新内容与验证范围以对应版本说明为准。
+<!-- titan-beta-downloads:start -->
+**v0.4.9-beta.1**
 
-| 系统 | 安装包 |
+**[下载 macOS 版（Apple Silicon）](https://github.com/Goodoweswin/Titan/releases/download/v0.4.9-beta.1/Titan-0.4.9-macos-arm64.dmg)** · **[下载 Windows 版（x64）](https://github.com/Goodoweswin/Titan/releases/download/v0.4.9-beta.1/Titan-0.4.9-windows-x64-setup.exe)**
+
+[版本说明](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.9-beta.1) · [SHA-256 校验](https://github.com/Goodoweswin/Titan/releases/download/v0.4.9-beta.1/SHA256SUMS.txt)
+<!-- titan-beta-downloads:end -->
+
+支持 macOS 14+（Apple Silicon）和 Windows 10/11（x64）。[安装、校验与更新](docs/INSTALL.md) · [全部版本](https://github.com/Goodoweswin/Titan/releases)
+
+![Titan WB 工作台，展示合成条带的九条泳道、峰区和背景标记](assets/screenshots/wb-workspace.png)
+
+*Titan 0.4.9 界面的浏览器预览，使用合成数据。*
+
+## 快速开始
+
+安装后，在 Western blot 工具页选择「教程」，用内置合成数据练习目标测量和组图导出。已有自己的实验图时，可从项目中新建 WB 分析。[跟着快速上手操作](docs/QUICKSTART.md)
+
+| 任务 | 使用指南 |
 | --- | --- |
-| macOS 14+，Apple Silicon | `*-macos-arm64.dmg` |
-| Windows 10/11，x64 | `*-windows-x64-setup.exe` |
+| 从内参开始定量、确认目标并导出条带组图 | [Western blot](docs/USER_GUIDE.md) |
+| 测量二维荧光强度和阳性面积，制作多通道组图 | [免疫荧光](docs/IF_USER_GUIDE.md) |
+| 导入数据或读取项目结果，完成统计与绘图 | [统计与绘图](docs/STATS_USER_GUIDE.md) |
+| 在本地核对 Excel 表头、分组、单位和重复记录，再导入统计 | [Excel 数据清洗](docs/QUICKSTART.md#excel-数据清洗) |
 
-发布页面同时提供 `SHA256SUMS.txt` 和第三方许可归档。macOS 当前采用临时签名，Windows 未配置商业签名；尚未提供 Intel Mac、Windows ARM 或 Linux 安装包。
+## 反馈与许可
 
-分析和项目保存继续在本地进行。源码管理调整不增加强制登录、付费、设备绑定或联网使用限制。更新方式请看对应版本说明。
-
-## 源码与许可
-
-后续产品源码已迁入私有开发仓库。本公开仓库继续保留安装包下载、更新说明、[问题反馈](https://github.com/Goodoweswin/Titan/issues)和历史开源代码。
-
-已按 MIT 发布的源码及其既有授权继续保留，例如 [v0.4.5-beta.1 历史源码](https://github.com/Goodoweswin/Titan/tree/v0.4.5-beta.1)。该历史许可不代表后续安装包中的所有新增内容都采用 MIT；请查阅安装包附带的许可与第三方声明。
-
-新版本公开标签指向 `distribution` 分支的发布元数据。GitHub 自动生成的 Source code ZIP/TAR 对这些新标签提供的是元数据，不包含后续私有产品源码。
-
-## 使用与反馈
-
-- [使用指南](docs/USER_GUIDE.md) · [免疫荧光指南](docs/IF_USER_GUIDE.md) · [统计指南](docs/STATS_USER_GUIDE.md)
-- [问题反馈](https://github.com/Goodoweswin/Titan/issues) · [安全报告](SECURITY.md)
-
-仓库里的旧设计、截图和开发文档描述历史版本，当前界面以实际安装包为准。软件仍处于 Beta 阶段；自动化测试不等同于真实 WB/IF 科学准确性或完整原生操作验收。
+- [报告安装、操作或定量问题](https://github.com/Goodoweswin/Titan/issues/new?template=bug_report.yml) · [提出改进建议](https://github.com/Goodoweswin/Titan/issues/new?template=feature_request.yml) · [安全报告](SECURITY.md)
+- 已公开的历史源码保留 MIT 授权。新版安装包的许可及第三方声明随安装包分发。GitHub 为新版标签生成的 Source code ZIP/TAR 提供公开发布元数据。 [历史 MIT 源码](https://github.com/Goodoweswin/Titan/tree/v0.4.5-beta.1)
