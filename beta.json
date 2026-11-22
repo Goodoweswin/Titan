@@ -1,10 +1,10 @@
 {
-  "version": "0.4.8",
-  "notes": "# Titan v0.4.8-beta.2\n\n- 从 Finder 或文件资源管理器把支持的 TIFF、PNG 拖到当前 WB 分析即可导入。拖到项目「资料」可复制原图，拖到「开始 WB 分析」可在该项目下新建分析。拖放多页 TIFF 时读取第一页。\n- WB 分析右栏顶部固定显示「内参／目标」。新分析默认从第一张图开始，确认内参后才可添加目标。旧分析仍可打开和重测已保存的目标。\n- WB 组图自动应用初始裁剪。「调整裁剪」默认折叠，拖框或输入坐标后立即生效。右栏可重置当前行，也可设置 0.25–2 pt 的逐行黑框。黑框随 PNG、PDF 和 SVG 导出。\n\nmacOS 提供 Apple Silicon 安装包和原 Beta 更新通道，Windows x64 提供 EXE 安装包。安装前请保存工作并退出 Titan。若 macOS 提示访问已有项目所在的文件夹，请按系统提示授权。安装包校验值见 SHA256SUMS.txt。",
+  "version": "0.4.9",
+  "notes": "# Titan v0.4.9-beta.1\n\n- 左侧「工具」新增「数据清洗」。打开 Excel 后可核对表头、样本分组、单位和重复记录，再把确认过的结果送入统计。可选的 OpenAI 映射建议使用你自己的 API Key，发送前可查看和编辑表头摘要。本地整理可直接使用。\n- WB 组图支持一次勾选多个已分析蛋白，在预览上方切换蛋白行。蛋白名称与预期分子量在同一行编辑，旧组图的手动蛋白行可继续保留。\n- TIFF 和 PNG 可拖到项目主页或左栏项目。向项目内已有的 WB 分析拖入图像时，原图副本同时归档到项目资料。切换到 SOP 等页面后，Titan 会保护尚未确认的 WB 条带草稿。\n- 左栏统一项目、分析和图表名称的字号，为长名称留出更多空间，「旧版本」保持单行。\n\nmacOS 提供 Apple Silicon 安装包，也支持通过现有 Beta 通道更新。Windows x64 提供 EXE 安装包。安装包校验值见 `SHA256SUMS.txt`。",
   "platforms": {
     "darwin-aarch64": {
-      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.8-beta.2/Titan-0.4.8-macos-arm64.app.tar.gz",
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSYkI4MTBtT0JIVEl4WktXYmdOdy8xQWVKVDBQbkNzcUtOTjlEcVF0dCt1RW1wM0FuRU82R2wyQ0tJb3JNRTdxZ1NKNUF3MnJzNUgxQkQ1bVlLRGRCNlhtTENWY0VZTHc4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MjQxNTYyCWZpbGU6VGl0YW4uYXBwLnRhci5negl2ZXJzaW9uOjAuNC44CmYzOUU2cGRxV0txNjI5UmYvZjFGY0xvNGt4RnpBS2svc2p3YkRxVzl6MmdSUi9Rbzl5LzF1aDZCM3NoYWFnb1NXdS9yaWhJL2laTHRuUTdQYWJ0WEFnPT0K"
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.9-beta.1/Titan-0.4.9-macos-arm64.app.tar.gz",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSYkI4MTBtT0JIVENKdTJUUVErekJBN0NzTXBUWWZLN3Y5cXF6VzlPckFDaFRHNjVFQ280QmwyTGQ2TWl1cVFVOEZpZ0NOWHFPRTc4NDQ3RHlzVjhYdEpjNXBrVmNUTUFJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MzQxNjI0CWZpbGU6VGl0YW4uYXBwLnRhci5negl2ZXJzaW9uOjAuNC45CmZweVNqWG1NM3ViRXFPT29XMFhQZUtnbTJreUd3eC9DQlNZZENCbWhaUUZ0dXhadU45dmpvcGp1c1R5QzVhenFiWUgrdmhUVHFGdXYvN1ArcEFYT0N3PT0K"
     }
   }
 }
