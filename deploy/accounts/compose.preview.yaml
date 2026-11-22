@@ -1,4 +1,0 @@
-# Optional host inspection only; production authentication still requires HTTPS gateway.
-services:
-  accounts-api:
-    ports: ["127.0.0.1:18080:8000"]

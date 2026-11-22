@@ -33,3 +33,4 @@ Titan 是免费使用的桌面应用，可在本地完成 Western blot 定量与
 
 - [报告安装、操作或定量问题](https://github.com/Goodoweswin/Titan/issues/new?template=bug_report.yml) · [提出改进建议](https://github.com/Goodoweswin/Titan/issues/new?template=feature_request.yml) · [安全报告](SECURITY.md)
 - 已公开的历史源码保留 MIT 授权。新版安装包的许可及第三方声明随安装包分发。GitHub 为新版标签生成的 Source code ZIP/TAR 提供公开发布元数据。 [历史 MIT 源码](https://github.com/Goodoweswin/Titan/tree/v0.4.5-beta.1)
+- 完整的早期公开仓库已归档，可在原有提交中查看源码和开发文档。 [旧公开仓库归档](https://github.com/Goodoweswin/Titan/tree/archive/legacy-open-source) · [第三方许可](docs/THIRD_PARTY_NOTICES.md)
