@@ -12,7 +12,7 @@ Titan 是免费使用的桌面应用，可在本地完成 Western blot 定量与
 [版本说明](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.9-beta.1) · [SHA-256 校验](https://github.com/Goodoweswin/Titan/releases/download/v0.4.9-beta.1/SHA256SUMS.txt)
 <!-- titan-beta-downloads:end -->
 
-支持 macOS 14+（Apple Silicon）和 Windows 10/11（x64）。[安装、校验与更新](docs/INSTALL.md) · [全部版本](https://github.com/Goodoweswin/Titan/releases)
+支持 macOS 14+（Apple Silicon）和 Windows 10/11（x64）。[安装、校验与更新](docs/INSTALL.md) · [快速上手](docs/QUICKSTART.md) · [全部版本](https://github.com/Goodoweswin/Titan/releases)
 
 ![Titan WB 工作台，展示合成条带的九条泳道、峰区和背景标记](assets/screenshots/wb-workspace.png)
 
