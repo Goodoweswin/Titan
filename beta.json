@@ -1,10 +1,10 @@
 {
-  "version": "0.4.9",
-  "notes": "# Titan v0.4.9-beta.1\n\n- 左侧「工具」新增「数据清洗」。打开 Excel 后可核对表头、样本分组、单位和重复记录，再把确认过的结果送入统计。可选的 OpenAI 映射建议使用你自己的 API Key，发送前可查看和编辑表头摘要。本地整理可直接使用。\n- WB 组图支持一次勾选多个已分析蛋白，在预览上方切换蛋白行。蛋白名称与预期分子量在同一行编辑，旧组图的手动蛋白行可继续保留。\n- TIFF 和 PNG 可拖到项目主页或左栏项目。向项目内已有的 WB 分析拖入图像时，原图副本同时归档到项目资料。切换到 SOP 等页面后，Titan 会保护尚未确认的 WB 条带草稿。\n- 左栏统一项目、分析和图表名称的字号，为长名称留出更多空间，「旧版本」保持单行。\n\nmacOS 提供 Apple Silicon 安装包，也支持通过现有 Beta 通道更新。Windows x64 提供 EXE 安装包。安装包校验值见 `SHA256SUMS.txt`。",
+  "version": "0.4.12",
+  "notes": "# Titan v0.4.12-beta.2\n\n- WB 导入支持自动判断亮条带或暗条带。自动识别按信号峰与谷底分隔泳道，按局部背景和噪声确定条带范围。旧分析保存的框仍可继续编辑，定量继续使用原始像素。\n- WB 组图可一次导出 PNG、PDF 和 SVG，分辨率可选 300 或 600 DPI，并附带来源记录。\n- 左栏支持管理已保存的图表，包括固定、移除与恢复。免疫荧光和统计工作区修复了连续编辑时保存顺序可能错乱的问题。\n- 「科学绘图」提供可编辑画布和 `.titanfig` 文档。生成插图需要配置相应的服务。基础本地分析仍可直接使用，消息功能沿用测试服务的可用范围。\n\nmacOS Apple Silicon 可使用 DMG 或现有 Beta 更新通道。Windows x64 可使用 EXE 安装包。下载后可用 `SHA256SUMS.txt` 核对文件。",
   "platforms": {
     "darwin-aarch64": {
-      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.9-beta.1/Titan-0.4.9-macos-arm64.app.tar.gz",
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSYkI4MTBtT0JIVENKdTJUUVErekJBN0NzTXBUWWZLN3Y5cXF6VzlPckFDaFRHNjVFQ280QmwyTGQ2TWl1cVFVOEZpZ0NOWHFPRTc4NDQ3RHlzVjhYdEpjNXBrVmNUTUFJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1MzQxNjI0CWZpbGU6VGl0YW4uYXBwLnRhci5negl2ZXJzaW9uOjAuNC45CmZweVNqWG1NM3ViRXFPT29XMFhQZUtnbTJreUd3eC9DQlNZZENCbWhaUUZ0dXhadU45dmpvcGp1c1R5QzVhenFiWUgrdmhUVHFGdXYvN1ArcEFYT0N3PT0K"
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.12-beta.2/Titan-0.4.12-macos-arm64.app.tar.gz",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSYkI4MTBtT0JIVE5XdWUxS0pFbVBtLzVHKzJWaGVNMGwzVmJIS3VmckEyZWNQWE9MUmJhdlJPa2laREhoUUx1RVNCaVkwTmUwV2JxZ2VaZzBIeTYzaEh1cUlXalJkdWdVPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NDIyNDI1CWZpbGU6VGl0YW4uYXBwLnRhci5negl2ZXJzaW9uOjAuNC4xMgp2M3N1SkNBQUt6QnVBMkpoWkE2SmJ6V3AzQW9vNDdkd0w2ZENxUkZSdzY1MHc3ZjZWTlVQNG96RVNpdjVFQlJzZm5WbEg1K0hwMU1KNXo4Ny9BaTJBQT09Cg=="
     }
   }
 }
