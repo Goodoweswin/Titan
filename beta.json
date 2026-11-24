@@ -1,10 +1,10 @@
 {
-  "version": "0.4.21",
-  "notes": "# Titan v0.4.21-beta.1\n\n- WB 识别后可直接在画布上拖动绿框。峰区横向调整同步更新泳道边界，曲线和定量使用相同的原图范围。背景框可独立编辑，未检出的目标保留原槽位。旧项目的信号方向可复核并恢复历史设置，既有冻结图表继续保留。\n- IF 基础分析支持导入或拖入 ND2、TIFF 和 OME-TIFF。可用矩形、自由手绘区域或全图测量目标通道的平均强度和积分，选择背景区域校正，并将当前视野结果导出为 CSV。合并 RGB TIFF 可预览。旧分割与组图数据仍保留，旧图稿可从项目打开。基础工作台集中显示强度测量相关工具。\n- 统计工作区将图形放在独立的中央画布，图形设置放在右侧。项目页提供概览和分类浏览。WB 与 IF 图像页签支持确认后移除，IF 实验名称可以直接编辑。\n- SOP 和消息入口继续位于主导航。本地分析可直接使用，平台 AI 清洗继续要求登录并确认映射。\n\nmacOS Apple Silicon 可使用 DMG 或现有 Beta 更新通道。Windows x64 可使用 EXE 安装包。下载后可用 `SHA256SUMS.txt` 核对文件。",
+  "version": "0.4.26",
+  "notes": "# Titan v0.4.26-beta.3\n\n- WB 可在原图或曲线上直接选择峰区，也可拖动绿框微调积分范围。改进末端截断候选和弱信号的处理。内参和关联目标支持联动分割、合并、补画和排除，保留各图坐标和空缺槽位。复核确认后恢复归一化。\n- 设置集中管理外观和账户资料。日历可从左侧导航打开，按日记录实验安排。帮助入口提供操作指引，桌面图标更新。\n- 保留 IF 基础分析，可导入 ND2、TIFF 或 OME-TIFF，测量感兴趣区域的通道强度并导出 CSV。SOP 和消息仍在主导航，本地分析可直接使用。\n\nmacOS Apple Silicon 可使用 DMG 或现有 Beta 更新通道。Windows x64 可使用 EXE 安装包。下载后可用 `SHA256SUMS.txt` 核对文件。",
   "platforms": {
     "darwin-aarch64": {
-      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.21-beta.1/Titan-0.4.21-macos-arm64.app.tar.gz",
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSYkI4MTBtT0JIVEZSVm5vVFBMTTVCMkpYUWQzOVFNcE5PUENxSno0K3dyY1lUL0xSUlhYbFVJOGlGN3FZZmE2eUhweDlEZTZwc3U1YlBIamVvL24xaUx5NDdISHFiNFFRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTA2MjU5CWZpbGU6VGl0YW4uYXBwLnRhci5negl2ZXJzaW9uOjAuNC4yMQpOcW5CUjFLODMyaEVIYnRvRHVxQ2x1MjFnTlZ1OFZTdHdQMFhGOFpwWEFMYXc5TVNVTFJoNXoxWitQRm1WVlpFQnBqSXZaczJXb3hNRnFXeGRyVExDUT09Cg=="
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.26-beta.3/Titan-0.4.26-macos-arm64.app.tar.gz",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSYkI4MTBtT0JIVEVMSFUzZk5vU2NrbjQ2R1IzN1RmNGl4NVJWNWZDMDBXY2RaUk1EdlZEdDdMUEh5a2JkS1NkQ0FkSG9IVGlzaVkrNkR6a0hTZWJqLzdOZzIxVkZCckEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTQ4NDM2CWZpbGU6VGl0YW4uYXBwLnRhci5negl2ZXJzaW9uOjAuNC4yNgpXTUEzQTUvN2pKVzJDeS9tWm1ZdzdIVU5KQ0J0cW9zajM3OHFaOVRFdHhUUytLQkM2a0VvdER6YjZwNmJzSlltTjl0YXQ1ampPWVp6ZXQ0MmV4dVBCUT09Cg=="
     }
   }
 }
