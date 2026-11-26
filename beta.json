@@ -1,10 +1,10 @@
 {
-  "version": "0.4.26",
-  "notes": "# Titan v0.4.26-beta.3\n\n- WB 可在原图或曲线上直接选择峰区，也可拖动绿框微调积分范围。改进末端截断候选和弱信号的处理。内参和关联目标支持联动分割、合并、补画和排除，保留各图坐标和空缺槽位。复核确认后恢复归一化。\n- 设置集中管理外观和账户资料。日历可从左侧导航打开，按日记录实验安排。帮助入口提供操作指引，桌面图标更新。\n- 保留 IF 基础分析，可导入 ND2、TIFF 或 OME-TIFF，测量感兴趣区域的通道强度并导出 CSV。SOP 和消息仍在主导航，本地分析可直接使用。\n\nmacOS Apple Silicon 可使用 DMG 或现有 Beta 更新通道。Windows x64 可使用 EXE 安装包。下载后可用 `SHA256SUMS.txt` 核对文件。",
+  "version": "0.4.27",
+  "notes": "# Titan v0.4.27-beta.1\n\n- 科学绘图素材库扩展到 100 项审核素材，支持分类检索、收藏、个人素材和离线专题。已有图稿继续保存嵌入的素材副本。新版绘图首页提供模板预览、图稿搜索及归档数量。\n- 首页展示欢迎入口，WB、IF 和统计分析名称统一显示在顶栏。项目栏文字、设置与帮助页面布局和图标工具提示一并更新，显示字号集中在设置中调整。\n- Mac 使用中文菜单，可按当前工作区保存、导出、撤销和导航，退出时检查未保存的草稿。\n- Titan 智能体使用新版欢迎页和输入区，提供 Excel 整理与统计衔接。保留发送前确认、结果文件保存和预览重开。\n- AI 用量页与智能体兼容普通额度和无限额度；未核实的价格保留真实 tokens，并显示为待核账。\n- 消息页使用三栏布局，支持商户发单及买家核对、确认和切换订单。已完成本地联调；正式消息服务尚未部署，正式账号暂不能使用聊天和订单确认。\n- 修复顶栏分析名称处的 WB/IF 文件拖入，以及 IF 测量结果与自动保存同时返回时的后续保存冲突。\n- Windows 安装包改由 CircleCI 构建，GitHub 继续提供安装包、第三方许可和 SHA-256 校验文件。\n\nmacOS Apple Silicon 使用 DMG 或已有 Beta 更新入口。Windows x64 使用 EXE 安装包。",
   "platforms": {
     "darwin-aarch64": {
-      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.26-beta.3/Titan-0.4.26-macos-arm64.app.tar.gz",
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSYkI4MTBtT0JIVEVMSFUzZk5vU2NrbjQ2R1IzN1RmNGl4NVJWNWZDMDBXY2RaUk1EdlZEdDdMUEh5a2JkS1NkQ0FkSG9IVGlzaVkrNkR6a0hTZWJqLzdOZzIxVkZCckEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NTQ4NDM2CWZpbGU6VGl0YW4uYXBwLnRhci5negl2ZXJzaW9uOjAuNC4yNgpXTUEzQTUvN2pKVzJDeS9tWm1ZdzdIVU5KQ0J0cW9zajM3OHFaOVRFdHhUUytLQkM2a0VvdER6YjZwNmJzSlltTjl0YXQ1ampPWVp6ZXQ0MmV4dVBCUT09Cg=="
+      "url": "https://github.com/Goodoweswin/Titan/releases/download/v0.4.27-beta.1/Titan-0.4.27-macos-arm64.app.tar.gz",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSYkI4MTBtT0JIVEJDTmJWamJ6b09ZejV3eTdGZWEyaGxFdjVsV0UzNVkwU0UyQXJ2N01UdXFUL3lmM0xPc2swMkMyS0VsMTR4NVpHZnU1QzJNWVI0bncwZkxMcitxS2dzPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzk1NjM3ODIwCWZpbGU6VGl0YW4uYXBwLnRhci5negl2ZXJzaW9uOjAuNC4yNwovL0pBSWJWUm9YY0I3NEZmcXZuNVkzcnQxTWppRG9LcU9jNzY4TzVlYnFoT3hNZGMvQ2dFMWlUYUVrRjNqQm5DRHdlT0xHT000TXFKQTNNc2ttREtCUT09Cg=="
     }
   }
 }
