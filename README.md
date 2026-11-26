@@ -5,11 +5,11 @@ Titan 是免费使用的桌面应用，可在本地完成 Western blot 定量与
 ## 下载 Beta
 
 <!-- titan-beta-downloads:start -->
-**v0.4.26-beta.3**
+**v0.4.27-beta.1**
 
-**[下载 macOS 版（Apple Silicon）](https://github.com/Goodoweswin/Titan/releases/download/v0.4.26-beta.3/Titan-0.4.26-macos-arm64.dmg)** · **[下载 Windows 版（x64）](https://github.com/Goodoweswin/Titan/releases/download/v0.4.26-beta.3/Titan-0.4.26-windows-x64-setup.exe)**
+**[下载 macOS 版（Apple Silicon）](https://github.com/Goodoweswin/Titan/releases/download/v0.4.27-beta.1/Titan-0.4.27-macos-arm64.dmg)** · **[下载 Windows 版（x64）](https://github.com/Goodoweswin/Titan/releases/download/v0.4.27-beta.1/Titan-0.4.27-windows-x64-setup.exe)**
 
-[版本说明](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.26-beta.3) · [SHA-256 校验](https://github.com/Goodoweswin/Titan/releases/download/v0.4.26-beta.3/SHA256SUMS.txt)
+[版本说明](https://github.com/Goodoweswin/Titan/releases/tag/v0.4.27-beta.1) · [SHA-256 校验](https://github.com/Goodoweswin/Titan/releases/download/v0.4.27-beta.1/SHA256SUMS.txt)
 <!-- titan-beta-downloads:end -->
 
 支持 macOS 14+（Apple Silicon）和 Windows 10/11（x64）。[安装、校验与更新](docs/INSTALL.md) · [快速上手](docs/QUICKSTART.md) · [全部版本](https://github.com/Goodoweswin/Titan/releases)
